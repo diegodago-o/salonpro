@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { CreateTenantRequest, PagedResult, Tenant } from '../models/tenant.model';
+import { Branch, CreateBranchRequest, CreateTenantRequest, PagedResult, Tenant, UpdateSubscriptionRequest } from '../models/tenant.model';
 import { map } from 'rxjs/operators';
 
 interface ApiResponse<T> { success: boolean; data: T; message: string | null; }
@@ -37,5 +37,20 @@ export class TenantService {
 
   changeStatus(id: number, status: string) {
     return this.http.patch<ApiResponse<void>>(`${this.base}/${id}/status`, { status });
+  }
+
+  getBranches(tenantId: number) {
+    return this.http.get<ApiResponse<Branch[]>>(`${this.base}/${tenantId}/branches`)
+      .pipe(map(r => r.data));
+  }
+
+  createBranch(tenantId: number, req: CreateBranchRequest) {
+    return this.http.post<ApiResponse<Branch>>(`${this.base}/${tenantId}/branches`, req)
+      .pipe(map(r => r.data));
+  }
+
+  updateSubscription(tenantId: number, req: UpdateSubscriptionRequest) {
+    return this.http.put<ApiResponse<any>>(`${this.base}/${tenantId}/subscription`, req)
+      .pipe(map(r => r.data));
   }
 }

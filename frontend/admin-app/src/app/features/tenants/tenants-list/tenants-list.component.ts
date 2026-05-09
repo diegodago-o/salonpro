@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { TenantService } from '../../../core/services/tenant.service';
 import { Tenant, TenantStatus, CreateTenantRequest, PagedResult } from '../../../core/models/tenant.model';
 import { Plan } from '../../../core/models/plan.model';
@@ -87,6 +88,7 @@ import { PlanService } from '../../../core/services/plan.service';
                     <td>{{ t.createdAt | date:'dd/MM/yyyy' }}</td>
                     <td>
                       <div class="actions">
+                        <button class="btn-icon" title="Ver detalle" (click)="goToDetail(t.id)">👁️</button>
                         <button class="btn-icon" title="Editar" (click)="openEdit(t)">✏️</button>
                         @if (t.status !== 'Suspended' && t.status !== 'Cancelled') {
                           <button class="btn-icon danger" title="Suspender" (click)="changeStatus(t, 'Suspended')">🚫</button>
@@ -404,7 +406,7 @@ export class TenantsListComponent implements OnInit {
 
   form: CreateTenantRequest & { id?: number } = this.emptyForm();
 
-  constructor(private svc: TenantService, private planSvc: PlanService) {}
+  constructor(private svc: TenantService, private planSvc: PlanService, private router: Router) {}
 
   ngOnInit() {
     this.load();
@@ -498,6 +500,8 @@ export class TenantsListComponent implements OnInit {
       });
     }
   }
+
+  goToDetail(id: number) { this.router.navigate(['/tenants', id]); }
 
   changeStatus(t: Tenant, status: string) {
     const labels: Record<string, string> = { Suspended: 'suspender', Active: 'activar', Cancelled: 'cancelar' };

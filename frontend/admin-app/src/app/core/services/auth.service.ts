@@ -1,7 +1,8 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { catchError, filter, map, switchMap, take, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { AuthResponse, LoginRequest, UserInfo } from '../models/auth.model';
 
@@ -21,6 +22,9 @@ export class AuthService {
   readonly user = this._user.asReadonly();
   readonly isLoggedIn = computed(() => this._user() !== null);
 
+  private _refreshing = false;
+  private _refresh$ = new BehaviorSubject<string | null>(null);
+
   constructor(private http: HttpClient, private router: Router) {}
 
   login(req: LoginRequest) {
@@ -39,6 +43,48 @@ export class AuthService {
 
   getToken(): string | null {
     return localStorage.getItem(this.TOKEN_KEY);
+  }
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem(this.REFRESH_KEY);
+  }
+
+  tryRefresh(): Observable<string> {
+    if (this._refreshing) {
+      return this._refresh$.asObservable().pipe(
+        filter((t): t is string => t !== null),
+        take(1)
+      );
+    }
+
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      this.clearSession();
+      this.router.navigate(['/login']);
+      return throwError(() => new Error('No refresh token'));
+    }
+
+    this._refreshing = true;
+    this._refresh$.next(null);
+
+    return this.http
+      .post<ApiResponse<AuthResponse>>(`${environment.apiUrl}/auth/refresh`, { refreshToken })
+      .pipe(
+        tap(res => {
+          this._refreshing = false;
+          if (res.success) {
+            this.saveSession(res.data);
+            this._refresh$.next(res.data.accessToken);
+          }
+        }),
+        map(res => res.data.accessToken),
+        catchError(err => {
+          this._refreshing = false;
+          this.clearSession();
+          this.router.navigate(['/login']);
+          return throwError(() => err);
+        })
+      );
   }
 
   private saveSession(auth: AuthResponse) {

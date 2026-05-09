@@ -59,3 +59,27 @@ export interface PagedResult<T> {
   pageSize: number;
   totalPages: number;
 }
+
+export interface Branch {
+  id: number;
+  tenantId: number;
+  name: string;
+  address: string | null;
+  city: string | null;
+  phone: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface CreateBranchRequest {
+  name: string;
+  address: string | null;
+  city: string | null;
+  phone: string | null;
+}
+
+export interface UpdateSubscriptionRequest {
+  planId: number;
+  extraBranches: number;
+  billingCycle: string;
+}
