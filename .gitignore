@@ -1,0 +1,56 @@
+# .NET / C#
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.lock.json
+appsettings.Development.json
+appsettings.Local.json
+
+# Entity Framework
+*.db
+*.db-shm
+*.db-wal
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+!**/packages/repositories.config
+
+# Test results
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Azure / Infra
+.terraform/
+*.tfstate
+*.tfstate.backup
