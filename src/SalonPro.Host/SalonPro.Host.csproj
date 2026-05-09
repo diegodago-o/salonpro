@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SalonPro.Shared\SalonPro.Shared.csproj" />
+    <ProjectReference Include="..\SalonPro.Gateway\SalonPro.Gateway.csproj" />
+    <ProjectReference Include="..\Modules\SalonPro.Tenants\SalonPro.Tenants.Infrastructure\SalonPro.Tenants.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\SalonPro.Tenants\SalonPro.Tenants.Api\SalonPro.Tenants.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
