@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PlanService } from '../../../core/services/plan.service';
 import { Plan, CreatePlanRequest } from '../../../core/models/plan.model';
+import { ToastService } from '../../../core/services/toast.service';
+import { ConfirmService } from '../../../core/services/confirm.service';
 
 @Component({
   selector: 'app-plans-list',
@@ -32,6 +34,11 @@ import { Plan, CreatePlanRequest } from '../../../core/models/plan.model';
                 </div>
                 <div class="plan-actions">
                   <button class="btn-icon" (click)="openEdit(p)" title="Editar">✏️</button>
+                  <button
+                    class="btn-icon"
+                    [title]="p.isActive ? 'Desactivar plan' : 'Activar plan'"
+                    (click)="toggle(p)"
+                  >{{ p.isActive ? '🔴' : '🟢' }}</button>
                 </div>
               </div>
               <div class="plan-name">{{ p.name }}</div>
@@ -242,7 +249,11 @@ export class PlansListComponent implements OnInit {
 
   form: CreatePlanRequest = this.emptyForm();
 
-  constructor(private svc: PlanService) {}
+  constructor(
+    private svc: PlanService,
+    private toast: ToastService,
+    private confirm: ConfirmService
+  ) {}
 
   ngOnInit() { this.load(); }
 
@@ -282,6 +293,22 @@ export class PlansListComponent implements OnInit {
 
   closeModal() { this.showModal.set(false); }
 
+  async toggle(p: Plan) {
+    const action = p.isActive ? 'desactivar' : 'activar';
+    const ok = await this.confirm.confirm(
+      `¿Deseas ${action} el plan "${p.name}"?`,
+      { title: `${p.isActive ? 'Desactivar' : 'Activar'} plan`, danger: p.isActive }
+    );
+    if (!ok) return;
+    this.svc.toggleActive(p.id).subscribe({
+      next: (updated) => {
+        this.plans.update(list => list.map(x => x.id === p.id ? { ...x, isActive: updated.isActive } : x));
+        this.toast.success(`Plan "${p.name}" ${updated.isActive ? 'activado' : 'desactivado'}.`);
+      },
+      error: () => this.toast.error('Error al cambiar el estado del plan.')
+    });
+  }
+
   save() {
     const features = this.featuresText.trim()
       ? JSON.stringify(this.featuresText.split('\n').map(s => s.trim()).filter(Boolean))
@@ -296,7 +323,12 @@ export class PlansListComponent implements OnInit {
       : this.svc.create(payload);
 
     obs.subscribe({
-      next: () => { this.saving.set(false); this.closeModal(); this.load(); },
+      next: () => {
+        this.saving.set(false);
+        this.closeModal();
+        this.load();
+        this.toast.success(editing ? 'Plan actualizado.' : 'Plan creado correctamente.');
+      },
       error: (err) => { this.saving.set(false); this.modalError.set(err.error?.message || 'Error al guardar'); }
     });
   }

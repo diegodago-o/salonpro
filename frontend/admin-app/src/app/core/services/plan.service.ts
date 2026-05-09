@@ -23,4 +23,8 @@ export class PlanService {
   update(id: number, req: CreatePlanRequest) {
     return this.http.put<ApiResponse<Plan>>(`${this.base}/${id}`, req).pipe(map(r => r.data));
   }
+
+  toggleActive(id: number) {
+    return this.http.patch<ApiResponse<Plan>>(`${this.base}/${id}/toggle`, {}).pipe(map(r => r.data));
+  }
 }

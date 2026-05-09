@@ -6,6 +6,8 @@ import { TenantService } from '../../../core/services/tenant.service';
 import { PlanService } from '../../../core/services/plan.service';
 import { Tenant, TenantStatus, Branch, CreateBranchRequest, UpdateSubscriptionRequest } from '../../../core/models/tenant.model';
 import { Plan } from '../../../core/models/plan.model';
+import { ToastService } from '../../../core/services/toast.service';
+import { ConfirmService } from '../../../core/services/confirm.service';
 
 @Component({
   selector: 'app-tenant-detail',
@@ -496,7 +498,9 @@ export class TenantDetailComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private svc: TenantService,
-    private planSvc: PlanService
+    private planSvc: PlanService,
+    private toast: ToastService,
+    private confirm: ConfirmService
   ) {}
 
   ngOnInit() {
@@ -529,10 +533,22 @@ export class TenantDetailComponent implements OnInit {
     return m[s] ?? s;
   }
 
-  changeStatus(t: Tenant, status: string) {
-    const label: Record<string, string> = { Suspended: 'suspender', Active: 'activar' };
-    if (!confirm(`¿Deseas ${label[status]} "${t.businessName}"?`)) return;
-    this.svc.changeStatus(t.id, status).subscribe({ next: () => this.loadTenant() });
+  async changeStatus(t: Tenant, status: string) {
+    const labels: Record<string, string> = { Suspended: 'suspender', Active: 'activar' };
+    const titles: Record<string, string> = { Suspended: 'Suspender salón', Active: 'Activar salón' };
+    const ok = await this.confirm.confirm(
+      `¿Deseas ${labels[status]} "${t.businessName}"?`,
+      { title: titles[status] ?? 'Cambiar estado', danger: status === 'Suspended' }
+    );
+    if (!ok) return;
+    this.svc.changeStatus(t.id, status).subscribe({
+      next: () => {
+        this.loadTenant();
+        const msgs: Record<string, string> = { Suspended: 'Salón suspendido.', Active: 'Salón activado.' };
+        this.toast.success(msgs[status] ?? 'Estado actualizado.');
+      },
+      error: () => this.toast.error('Error al cambiar el estado.')
+    });
   }
 
   openEdit(t: Tenant) {
@@ -545,7 +561,10 @@ export class TenantDetailComponent implements OnInit {
     this.saving.set(true);
     this.modalError.set('');
     this.svc.update(this.tenantId, this.editForm).subscribe({
-      next: () => { this.saving.set(false); this.closeModals(); this.loadTenant(); },
+      next: () => {
+        this.saving.set(false); this.closeModals(); this.loadTenant();
+        this.toast.success('Salón actualizado correctamente.');
+      },
       error: err => { this.saving.set(false); this.modalError.set(err.error?.message || 'Error al guardar'); }
     });
   }
@@ -560,7 +579,10 @@ export class TenantDetailComponent implements OnInit {
     this.saving.set(true);
     this.modalError.set('');
     this.svc.createBranch(this.tenantId, this.branchForm).subscribe({
-      next: () => { this.saving.set(false); this.closeModals(); this.loadBranches(); this.loadTenant(); },
+      next: () => {
+        this.saving.set(false); this.closeModals(); this.loadBranches(); this.loadTenant();
+        this.toast.success('Sede agregada correctamente.');
+      },
       error: err => { this.saving.set(false); this.modalError.set(err.error?.message || 'Error al crear sede'); }
     });
   }
@@ -580,7 +602,10 @@ export class TenantDetailComponent implements OnInit {
     this.saving.set(true);
     this.modalError.set('');
     this.svc.updateSubscription(this.tenantId, this.subForm).subscribe({
-      next: () => { this.saving.set(false); this.closeModals(); this.loadTenant(); },
+      next: () => {
+        this.saving.set(false); this.closeModals(); this.loadTenant();
+        this.toast.success('Suscripción actualizada correctamente.');
+      },
       error: err => { this.saving.set(false); this.modalError.set(err.error?.message || 'Error al cambiar plan'); }
     });
   }

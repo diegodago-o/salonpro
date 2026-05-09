@@ -43,4 +43,12 @@ public class PlansController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new UpdatePlanCommand(id, request), ct);
         return Ok(ApiResponse<PlanDto>.Ok(result));
     }
+
+    [HttpPatch("{id:int}/toggle")]
+    public async Task<ActionResult<ApiResponse<PlanDto>>> Toggle(int id, CancellationToken ct)
+    {
+        var result = await mediator.Send(new TogglePlanCommand(id), ct);
+        var msg = result.IsActive ? "Plan activado." : "Plan desactivado.";
+        return Ok(ApiResponse<PlanDto>.Ok(result, msg));
+    }
 }

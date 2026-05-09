@@ -6,6 +6,8 @@ import { TenantService } from '../../../core/services/tenant.service';
 import { Tenant, TenantStatus, CreateTenantRequest, PagedResult } from '../../../core/models/tenant.model';
 import { Plan } from '../../../core/models/plan.model';
 import { PlanService } from '../../../core/services/plan.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { ConfirmService } from '../../../core/services/confirm.service';
 
 @Component({
   selector: 'app-tenants-list',
@@ -406,7 +408,13 @@ export class TenantsListComponent implements OnInit {
 
   form: CreateTenantRequest & { id?: number } = this.emptyForm();
 
-  constructor(private svc: TenantService, private planSvc: PlanService, private router: Router) {}
+  constructor(
+    private svc: TenantService,
+    private planSvc: PlanService,
+    private router: Router,
+    private toast: ToastService,
+    private confirm: ConfirmService
+  ) {}
 
   ngOnInit() {
     this.load();
@@ -490,12 +498,18 @@ export class TenantsListComponent implements OnInit {
         address: this.form.address,
         city: this.form.city
       }).subscribe({
-        next: () => { this.saving.set(false); this.closeModal(); this.load(); },
+        next: () => {
+          this.saving.set(false); this.closeModal(); this.load();
+          this.toast.success('Salón actualizado correctamente.');
+        },
         error: (err) => { this.saving.set(false); this.modalError.set(err.error?.message || 'Error al guardar'); }
       });
     } else {
       this.svc.create(this.form).subscribe({
-        next: () => { this.saving.set(false); this.closeModal(); this.page.set(1); this.load(); },
+        next: () => {
+          this.saving.set(false); this.closeModal(); this.page.set(1); this.load();
+          this.toast.success('Salón creado correctamente.');
+        },
         error: (err) => { this.saving.set(false); this.modalError.set(err.error?.message || 'Error al crear'); }
       });
     }
@@ -503,10 +517,22 @@ export class TenantsListComponent implements OnInit {
 
   goToDetail(id: number) { this.router.navigate(['/tenants', id]); }
 
-  changeStatus(t: Tenant, status: string) {
-    const labels: Record<string, string> = { Suspended: 'suspender', Active: 'activar', Cancelled: 'cancelar' };
-    if (!confirm(`¿Deseas ${labels[status] ?? status} "${t.businessName}"?`)) return;
-    this.svc.changeStatus(t.id, status).subscribe({ next: () => this.load() });
+  async changeStatus(t: Tenant, status: string) {
+    const labels: Record<string, string> = { Suspended: 'suspender', Active: 'activar' };
+    const titles: Record<string, string> = { Suspended: 'Suspender salón', Active: 'Activar salón' };
+    const ok = await this.confirm.confirm(
+      `¿Deseas ${labels[status] ?? status} "${t.businessName}"?`,
+      { title: titles[status] ?? 'Cambiar estado', danger: status === 'Suspended' }
+    );
+    if (!ok) return;
+    this.svc.changeStatus(t.id, status).subscribe({
+      next: () => {
+        this.load();
+        const msgs: Record<string, string> = { Suspended: 'Salón suspendido.', Active: 'Salón activado.' };
+        this.toast.success(msgs[status] ?? 'Estado actualizado.');
+      },
+      error: () => this.toast.error('Error al cambiar el estado.')
+    });
   }
 
   private emptyForm(): CreateTenantRequest & { id?: number } {

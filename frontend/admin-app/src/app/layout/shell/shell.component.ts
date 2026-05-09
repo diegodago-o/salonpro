@@ -2,11 +2,13 @@ import { Component, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
+import { ToastContainerComponent } from '../../core/components/toast-container/toast-container.component';
+import { ConfirmDialogComponent } from '../../core/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, ToastContainerComponent, ConfirmDialogComponent],
   template: `
     <div class="shell">
       <!-- Sidebar -->
@@ -54,6 +56,10 @@ import { AuthService } from '../../core/services/auth.service';
         <router-outlet />
       </main>
     </div>
+
+    <!-- Global overlays -->
+    <app-toast-container />
+    <app-confirm-dialog />
   `,
   styles: [`
     .shell { display: flex; height: 100vh; background: #f4f6f9; }
