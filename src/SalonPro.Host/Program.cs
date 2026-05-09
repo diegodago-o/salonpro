@@ -47,12 +47,16 @@ try
 
     builder.Services.AddAuthorization();
 
-    // CORS
+    // CORS — en desarrollo permite todo, en producción solo orígenes configurados
     builder.Services.AddCors(opt => opt.AddDefaultPolicy(policy =>
-        policy.WithOrigins(
-            builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? ["http://localhost:4200", "http://localhost:4300"])
-        .AllowAnyHeader()
-        .AllowAnyMethod()));
+    {
+        if (builder.Environment.IsDevelopment())
+            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        else
+            policy.WithOrigins(
+                builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? ["http://localhost:4200", "http://localhost:4300"])
+            .AllowAnyHeader().AllowAnyMethod();
+    }));
 
     // Módulos
     builder.Services.AddTenantsApplication();
@@ -65,6 +69,30 @@ try
         .AddIdentityApi();
 
     builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen(c =>
+    {
+        c.SwaggerDoc("v1", new() { Title = "SalonPro API", Version = "v1" });
+        c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+            Description = "Ingresa el token JWT"
+        });
+        c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+        {
+            {
+                new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                {
+                    Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                    { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" }
+                },
+                []
+            }
+        });
+    });
 
     var app = builder.Build();
 
@@ -74,6 +102,9 @@ try
         await TenantsSeeder.SeedAsync(app.Services);
         await IdentitySeeder.SeedAsync(app.Services);
     }
+
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "SalonPro API v1"));
 
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseHttpsRedirection();

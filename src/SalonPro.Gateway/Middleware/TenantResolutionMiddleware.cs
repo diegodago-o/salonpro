@@ -7,8 +7,11 @@ public class TenantResolutionMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context, ITenantService tenantService)
     {
-        // Admin panel paths no requieren tenant
-        if (context.Request.Path.StartsWithSegments("/api/v1/admin"))
+        // Admin y auth no requieren resolución de tenant
+        if (context.Request.Path.StartsWithSegments("/api/v1/admin") ||
+            context.Request.Path.StartsWithSegments("/api/v1/auth") ||
+            context.Request.Path.StartsWithSegments("/swagger") ||
+            context.Request.Path.StartsWithSegments("/health"))
         {
             await next(context);
             return;
