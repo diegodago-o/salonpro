@@ -5,6 +5,8 @@
     <ProjectReference Include="..\SalonPro.Gateway\SalonPro.Gateway.csproj" />
     <ProjectReference Include="..\Modules\SalonPro.Tenants\SalonPro.Tenants.Infrastructure\SalonPro.Tenants.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\SalonPro.Tenants\SalonPro.Tenants.Api\SalonPro.Tenants.Api.csproj" />
+    <ProjectReference Include="..\Modules\SalonPro.Identity\SalonPro.Identity.Infrastructure\SalonPro.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\SalonPro.Identity\SalonPro.Identity.Api\SalonPro.Identity.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,9 +2,14 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using SalonPro.Gateway.Middleware;
+using SalonPro.Identity.Api;
+using SalonPro.Identity.Application;
+using SalonPro.Identity.Infrastructure;
+using SalonPro.Identity.Infrastructure.Data.Seed;
 using SalonPro.Tenants.Api;
 using SalonPro.Tenants.Application;
 using SalonPro.Tenants.Infrastructure;
+using SalonPro.Tenants.Infrastructure.Data.Seed;
 using System.Text;
 
 Log.Logger = new LoggerConfiguration()
@@ -52,13 +57,23 @@ try
     // Módulos
     builder.Services.AddTenantsApplication();
     builder.Services.AddTenantsInfrastructure(builder.Configuration);
+    builder.Services.AddIdentityApplication();
+    builder.Services.AddIdentityInfrastructure(builder.Configuration);
 
     builder.Services.AddControllers()
-        .AddTenantsApi();
+        .AddTenantsApi()
+        .AddIdentityApi();
 
     builder.Services.AddEndpointsApiExplorer();
 
     var app = builder.Build();
+
+    // Seed datos iniciales en desarrollo
+    if (app.Environment.IsDevelopment())
+    {
+        await TenantsSeeder.SeedAsync(app.Services);
+        await IdentitySeeder.SeedAsync(app.Services);
+    }
 
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseHttpsRedirection();
