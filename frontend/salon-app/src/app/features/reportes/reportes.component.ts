@@ -1,72 +1,37 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { VentasService } from '../../core/services/ventas.service';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 import { Sale } from '../../core/models/ventas.models';
 
 @Component({
   selector: 'app-reportes',
-  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe],
+  standalone: true,
+  imports: [CurrencyPipe, DatePipe, IconComponent],
   templateUrl: './reportes.component.html',
   styleUrl: './reportes.component.scss'
 })
 export class ReportesComponent implements OnInit {
-  private readonly fb = inject(FormBuilder);
   private readonly ventasService = inject(VentasService);
-
   readonly ventas = signal<Sale[]>([]);
-  readonly cargando = signal(false);
 
-  readonly form = this.fb.group({
-    desde: [this.fechaHoy()],
-    hasta: [this.fechaHoy()],
-  });
+  readonly totalMes = () => this.ventas().reduce((s, v) => s + v.grossTotal, 0);
+  readonly totalDeducciones = () => this.ventas().reduce((s, v) => s + v.totalDeductions, 0);
+  readonly countActivas = () => this.ventas().filter(v => v.status === 'Active').length;
 
-  // ── Métricas calculadas ───────────────────────────────
-  readonly activas = computed(() => this.ventas().filter(v => v.status === 'Active'));
-
-  readonly totalBruto = computed(() => this.activas().reduce((s, v) => s + v.grossTotal, 0));
-  readonly totalDeduciones = computed(() => this.activas().reduce((s, v) => s + v.totalDeductions, 0));
-  readonly totalSalon = computed(() => this.activas().reduce((s, v) => s + v.salonTotal, 0));
-  readonly totalPeluqueros = computed(() => this.activas().reduce((s, v) => s + v.stylistTotal, 0));
-  readonly totalPropinas = computed(() => this.activas().reduce((s, v) => s + v.tipAmount, 0));
-  readonly countVentas = computed(() => this.activas().length);
-
-  readonly porPeluquero = computed(() => {
-    const mapa = new Map<string, { ventas: number; bruto: number; comision: number }>();
-    for (const v of this.activas()) {
-      const prev = mapa.get(v.stylistName) ?? { ventas: 0, bruto: 0, comision: 0 };
-      mapa.set(v.stylistName, {
-        ventas: prev.ventas + 1,
-        bruto: prev.bruto + v.grossTotal,
-        comision: prev.comision + v.stylistTotal,
-      });
-    }
-    return [...mapa.entries()].map(([name, d]) => ({ name, ...d }))
-      .sort((a, b) => b.bruto - a.bruto);
-  });
-
-  readonly porMetodoPago = computed(() => {
-    const mapa = new Map<string, { ventas: number; monto: number }>();
-    for (const v of this.activas()) {
-      const prev = mapa.get(v.paymentMethodName) ?? { ventas: 0, monto: 0 };
-      mapa.set(v.paymentMethodName, { ventas: prev.ventas + 1, monto: prev.monto + v.grossTotal });
-    }
-    return [...mapa.entries()].map(([name, d]) => ({ name, ...d }))
-      .sort((a, b) => b.monto - a.monto);
-  });
-
-  ngOnInit(): void { this.buscar(); }
-
-  buscar(): void {
-    this.cargando.set(true);
+  ngOnInit(): void {
     this.ventasService.getVentasHoy().subscribe(r => {
-      this.ventas.set(r.data);
-      this.cargando.set(false);
+      if (r.success && r.data) this.ventas.set(r.data);
     });
   }
 
-  private fechaHoy(): string {
-    return new Date().toISOString().split('T')[0];
+  getStylistStats(): { name: string; total: number; pct: number }[] {
+    const map = new Map<string, number>();
+    this.ventas().filter(v => v.status === 'Active').forEach(v => {
+      map.set(v.stylistName, (map.get(v.stylistName) ?? 0) + v.grossTotal);
+    });
+    const entries = [...map.entries()].sort((a, b) => b[1] - a[1]);
+    const max = entries[0]?.[1] ?? 1;
+    return entries.map(([name, total]) => ({ name, total, pct: Math.round(total / max * 100) }));
   }
 }

@@ -1,14 +1,16 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { CajaService } from '../../core/services/caja.service';
 import { CashRegister } from '../../core/models/caja.models';
-import { CurrencyPipe, DatePipe, NgTemplateOutlet } from '@angular/common';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
-type Vista = 'loading' | 'sin-caja' | 'caja-abierta' | 'cerrar-caja' | 'detalle-historial';
+type Vista = 'loading' | 'sin-caja' | 'caja-abierta' | 'cerrar-caja' | 'detalle';
 
 @Component({
   selector: 'app-caja',
-  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, NgTemplateOutlet],
+  standalone: true,
+  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, IconComponent],
   templateUrl: './caja.component.html',
   styleUrl: './caja.component.scss'
 })
@@ -34,14 +36,23 @@ export class CajaComponent implements OnInit {
     notes: ['']
   });
 
-  ngOnInit(): void {
-    this.cargarEstado();
+  get expectedCash(): number {
+    const caja = this.cajaActual();
+    if (!caja) return 0;
+    const efectivo = caja.details.find(d => d.paymentMethodName === 'Efectivo')?.totalAmount ?? 0;
+    return efectivo + caja.openingBalance;
   }
+
+  get diff(): number {
+    return (this.formCerrar.value.declaredCash ?? 0) - this.expectedCash;
+  }
+
+  ngOnInit(): void { this.cargarEstado(); }
 
   private cargarEstado(): void {
     this.vista.set('loading');
     this.cajaService.getCajaActual().subscribe(res => {
-      if (res.data) {
+      if (res.success && res.data) {
         this.cajaActual.set(res.data);
         this.vista.set('caja-abierta');
       } else {
@@ -53,7 +64,7 @@ export class CajaComponent implements OnInit {
 
   private cargarHistorial(): void {
     this.cajaService.getHistorial().subscribe(res => {
-      this.historial.set(res.data);
+      if (res.success && res.data) this.historial.set(res.data);
     });
   }
 
@@ -61,7 +72,6 @@ export class CajaComponent implements OnInit {
     if (this.formAbrir.invalid || this.guardando()) return;
     this.guardando.set(true);
     this.errorMsg.set(null);
-
     this.cajaService.abrirCaja({
       openingBalance: this.formAbrir.value.openingBalance!,
       notes: this.formAbrir.value.notes ?? undefined
@@ -71,27 +81,17 @@ export class CajaComponent implements OnInit {
         this.successMsg.set('Caja abierta correctamente');
         this.vista.set('caja-abierta');
         this.guardando.set(false);
-        this.formAbrir.reset({ openingBalance: 0 });
+        this.cargarHistorial();
         setTimeout(() => this.successMsg.set(null), 3000);
       },
-      error: () => {
-        this.errorMsg.set('Error al abrir la caja. Intenta de nuevo.');
-        this.guardando.set(false);
-      }
+      error: () => { this.errorMsg.set('Error al abrir la caja.'); this.guardando.set(false); }
     });
-  }
-
-  irACerrarCaja(): void {
-    this.vista.set('cerrar-caja');
-    this.formCerrar.reset({ declaredCash: 0 });
-    this.errorMsg.set(null);
   }
 
   cerrarCaja(): void {
     if (this.formCerrar.invalid || this.guardando() || !this.cajaActual()) return;
     this.guardando.set(true);
     this.errorMsg.set(null);
-
     this.cajaService.cerrarCaja(this.cajaActual()!.id, {
       declaredCash: this.formCerrar.value.declaredCash!,
       notes: this.formCerrar.value.notes ?? undefined
@@ -100,43 +100,18 @@ export class CajaComponent implements OnInit {
         this.cajaDetalle.set(res.data);
         this.cajaActual.set(null);
         this.cargarHistorial();
-        this.vista.set('detalle-historial');
+        this.vista.set('detalle');
         this.guardando.set(false);
       },
-      error: () => {
-        this.errorMsg.set('Error al cerrar la caja. Intenta de nuevo.');
-        this.guardando.set(false);
-      }
+      error: () => { this.errorMsg.set('Error al cerrar la caja.'); this.guardando.set(false); }
     });
   }
 
-  verDetalle(caja: CashRegister): void {
-    this.cajaDetalle.set(caja);
-    this.vista.set('detalle-historial');
-  }
+  irACerrar(): void { this.vista.set('cerrar-caja'); this.formCerrar.reset({ declaredCash: 0 }); this.errorMsg.set(null); }
+  cancelarCierre(): void { this.vista.set('caja-abierta'); this.errorMsg.set(null); }
+  verDetalle(caja: CashRegister): void { this.cajaDetalle.set(caja); this.vista.set('detalle'); }
+  volverAEstado(): void { this.cajaDetalle.set(null); this.vista.set(this.cajaActual() ? 'caja-abierta' : 'sin-caja'); }
 
-  volverAEstado(): void {
-    this.cajaDetalle.set(null);
-    this.vista.set(this.cajaActual() ? 'caja-abierta' : 'sin-caja');
-  }
-
-  cancelarCierre(): void {
-    this.vista.set('caja-abierta');
-    this.errorMsg.set(null);
-  }
-
-  get diferenciaColor(): string {
-    const diff = this.cajaDetalle()?.difference ?? 0;
-    if (diff > 0) return 'positivo';
-    if (diff < 0) return 'negativo';
-    return 'neutro';
-  }
-
-  totalVentas(caja: CashRegister): number {
-    return caja.details.reduce((sum, d) => sum + d.totalAmount, 0);
-  }
-
-  totalDeducciones(caja: CashRegister): number {
-    return caja.details.reduce((sum, d) => sum + d.totalDeductions, 0);
-  }
+  totalVentas(caja: CashRegister): number { return caja.details.reduce((s, d) => s + d.totalAmount, 0); }
+  totalDeducciones(caja: CashRegister): number { return caja.details.reduce((s, d) => s + d.totalDeductions, 0); }
 }

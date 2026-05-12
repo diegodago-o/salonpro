@@ -1,128 +1,73 @@
-<div class="page">
-
-  <div class="page-header">
-    <h1 class="page-title">📦 Productos</h1>
-    @if (vista() === 'lista' && esPropietario()) {
-      <button class="btn-primary" (click)="abrirNuevo()">+ Nuevo producto</button>
-    }
+<div class="page fade-in">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">Stock</div>
+      <h1><span class="serif">Inventario de</span> <span class="serif-italic">productos</span></h1>
+      <div class="deck">{{ productos().length }} productos · {{ conStockBajo() }} con stock bajo</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost"><sp-icon name="download" [size]="14" /> Entrada</button>
+      <button class="btn btn-primary"><sp-icon name="plus" [size]="14" /> Nuevo producto</button>
+    </div>
   </div>
 
-  @if (msg()) {
-    <div class="alert" [class.alert-ok]="msg()!.type==='ok'" [class.alert-err]="msg()!.type==='err'">{{ msg()!.text }}</div>
-  }
+  <div style="display:flex;gap:6px;margin-bottom:16px">
+    <button class="btn btn-sm" [class.btn-primary]="tab()==='all'" [class.btn-ghost]="tab()!=='all'" (click)="setTab('all')">Todos</button>
+    <button class="btn btn-sm" [class.btn-primary]="tab()==='sale'" [class.btn-ghost]="tab()!=='sale'" (click)="setTab('sale')">Venta a cliente</button>
+    <button class="btn btn-sm" [class.btn-primary]="tab()==='internal'" [class.btn-ghost]="tab()!=='internal'" (click)="setTab('internal')">Consumo interno</button>
+  </div>
 
-  <!-- ── LISTA ── -->
-  @if (vista() === 'lista') {
-    <div class="card">
-      <div class="toolbar">
-        <input type="text" class="search-input" placeholder="Buscar producto, marca o categoría..."
-          [value]="filtro()" (input)="filtro.set($any($event.target).value)" />
-        <label class="toggle-label">
-          <input type="checkbox" [checked]="soloActivos()" (change)="soloActivos.set($any($event.target).checked)" />
-          Solo activos
-        </label>
-      </div>
+  <div class="card" style="overflow:hidden">
+    @if (cargando()) {
+      <div style="padding:40px;text-align:center;color:var(--ink-4)">Cargando inventario…</div>
+    } @else {
       <div class="table-wrap">
-        <table class="data-table">
+        <table class="tbl">
           <thead>
             <tr>
-              <th>Nombre</th><th>Marca</th><th>Categoría</th>
-              <th class="text-right">Costo</th><th class="text-right">Precio venta</th>
-              <th class="text-right">Stock</th><th>Venta</th><th>Estado</th>
-              @if (esPropietario()) { <th></th> }
+              <th>Producto</th><th>Marca</th><th>Tipo</th>
+              <th style="text-align:right">Compra</th><th style="text-align:right">Venta</th>
+              <th style="text-align:right">Margen</th><th>Stock</th><th></th>
             </tr>
           </thead>
           <tbody>
-            @for (p of productosFiltrados(); track p.id) {
-              <tr [class.inactive]="!p.isActive">
-                <td class="name-cell">{{ p.name }}</td>
+            @for (p of lista(); track p.id) {
+              <tr>
+                <td>
+                  <div style="font-weight:500">{{ p.name }}</div>
+                  <div style="font-size:11px;color:var(--ink-4)">{{ p.category }}</div>
+                </td>
                 <td>{{ p.brand }}</td>
-                <td><span class="cat-badge">{{ p.category }}</span></td>
-                <td class="text-right">{{ p.purchasePrice | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-                <td class="text-right">{{ p.isForSale ? (p.salePrice | currency:'COP':'symbol-narrow':'1.0-0') : '—' }}</td>
-                <td class="text-right" [class.stock-low]="p.stock <= 3">{{ p.stock }}</td>
-                <td><span class="status-dot" [class.active]="p.isForSale">{{ p.isForSale ? 'Sí' : 'No' }}</span></td>
-                <td><span class="status-dot" [class.active]="p.isActive">{{ p.isActive ? 'Activo' : 'Inactivo' }}</span></td>
-                @if (esPropietario()) {
-                  <td class="actions-cell">
-                    <button class="btn-sm" (click)="abrirEditar(p)">Editar</button>
-                    <button class="btn-sm" (click)="abrirStock(p)">Stock</button>
-                    <button class="btn-sm btn-sm-danger" (click)="toggleActivo(p)">{{ p.isActive ? 'Desact.' : 'Activar' }}</button>
-                  </td>
-                }
+                <td>
+                  @if (p.isForSale) {
+                    <span class="pill pill-accent">Venta</span>
+                  } @else {
+                    <span class="pill">Consumo</span>
+                  }
+                </td>
+                <td class="tnum" style="text-align:right;color:var(--ink-3)">{{ p.purchasePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ p.salePrice ? (p.salePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}</td>
+                <td class="tnum" style="text-align:right" [style.color]="margen(p) > 40 ? 'var(--success)' : 'var(--ink-3)'">
+                  {{ p.salePrice ? margen(p) + '%' : '—' }}
+                </td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span class="serif tnum" style="font-size:17px" [style.color]="p.stock <= 5 ? 'var(--warn)' : 'var(--ink)'">{{ p.stock }}</span>
+                    @if (p.stock <= 5) { <span class="pill pill-warn">Bajo</span> }
+                  </div>
+                  <div class="bar" style="width:80px;margin-top:4px">
+                    <div class="bar-fill" [style.width]="(p.stock / 30 * 100) + '%'" [style.background]="p.stock <= 5 ? 'var(--warn)' : 'var(--ink-3)'"></div>
+                  </div>
+                </td>
+                <td><button class="btn btn-icon btn-ghost"><sp-icon name="edit" [size]="14" /></button></td>
               </tr>
             }
           </tbody>
         </table>
       </div>
-    </div>
-  }
-
-  <!-- ── FORM producto ── -->
-  @if (vista() === 'form') {
-    <div class="form-container">
-      <button class="btn-back" (click)="volver()">← Volver</button>
-      <div class="card form-card">
-        <h2 class="form-title">{{ editando() ? 'Editar producto' : 'Nuevo producto' }}</h2>
-        <div [formGroup]="form" class="form-grid">
-          <div class="field-group full-width">
-            <label class="field-label">Nombre *</label>
-            <input type="text" formControlName="name" class="field-input" />
-          </div>
-          <div class="field-group">
-            <label class="field-label">Marca *</label>
-            <input type="text" formControlName="brand" class="field-input" />
-          </div>
-          <div class="field-group">
-            <label class="field-label">Categoría *</label>
-            <input type="text" formControlName="category" class="field-input" />
-          </div>
-          <div class="field-group">
-            <label class="field-label">Precio de compra *</label>
-            <div class="prefix-wrap"><span class="prefix">$</span><input type="number" formControlName="purchasePrice" class="field-input" min="0" /></div>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Stock *</label>
-            <input type="number" formControlName="stock" class="field-input" min="0" />
-          </div>
-          <div class="field-group">
-            <label class="toggle-label field-label">
-              <input type="checkbox" formControlName="isForSale" /> ¿Se vende al público?
-            </label>
-          </div>
-          @if (form.get('isForSale')!.value) {
-            <div class="field-group">
-              <label class="field-label">Precio de venta</label>
-              <div class="prefix-wrap"><span class="prefix">$</span><input type="number" formControlName="salePrice" class="field-input" min="0" /></div>
-            </div>
-          }
-        </div>
-        <div class="form-actions">
-          <button class="btn-secondary" (click)="volver()">Cancelar</button>
-          <button class="btn-primary" (click)="guardar()" [disabled]="form.invalid || guardando()">{{ guardando() ? 'Guardando...' : 'Guardar' }}</button>
-        </div>
-      </div>
-    </div>
-  }
-
-  <!-- ── AJUSTE STOCK ── -->
-  @if (vista() === 'stock' && editando()) {
-    <div class="form-container">
-      <button class="btn-back" (click)="volver()">← Volver</button>
-      <div class="card form-card" style="max-width: 400px">
-        <h2 class="form-title">Ajustar stock — {{ editando()!.name }}</h2>
-        <p class="stock-actual">Stock actual: <strong>{{ editando()!.stock }}</strong> unidades</p>
-        <div class="field-group">
-          <label class="field-label">Nuevo stock</label>
-          <input type="number" class="field-input" [value]="nuevoStock()"
-            (input)="nuevoStock.set(+$any($event.target).value)" min="0" />
-        </div>
-        <div class="form-actions">
-          <button class="btn-secondary" (click)="volver()">Cancelar</button>
-          <button class="btn-primary" (click)="guardarStock()">Guardar stock</button>
-        </div>
-      </div>
-    </div>
-  }
-
+      @if (lista().length === 0) {
+        <div style="padding:40px;text-align:center;color:var(--ink-4)">Sin productos en esta categoría</div>
+      }
+    }
+  </div>
 </div>

@@ -1,0 +1,62 @@
+<div class="page fade-in">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Stock</div>
+      <h1><span class="serif">Inventario de</span> <span class="serif-italic">productos</span></h1>
+      <div class="deck">{{ productos().length }} productos · {{ conStockBajo() }} con stock bajo</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost"><sp-icon name="download" [size]="14" /> Entrada</button>
+      <button class="btn btn-primary"><sp-icon name="plus" [size]="14" /> Nuevo producto</button>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:6px;margin-bottom:16px">
+    <button [class]="'btn btn-sm ' + (tab() === 'all' ? 'btn-primary' : 'btn-ghost')" (click)="tab.set('all')">Todos</button>
+    <button [class]="'btn btn-sm ' + (tab() === 'sale' ? 'btn-primary' : 'btn-ghost')" (click)="tab.set('sale')">Venta a cliente</button>
+    <button [class]="'btn btn-sm ' + (tab() === 'internal' ? 'btn-primary' : 'btn-ghost')" (click)="tab.set('internal')">Consumo interno</button>
+  </div>
+
+  <div class="card" style="overflow:hidden">
+    <table class="tbl">
+      <thead><tr><th>Producto</th><th>Marca</th><th>Tipo</th><th style="text-align:right">Compra</th><th style="text-align:right">Venta</th><th style="text-align:right">Margen</th><th>Stock</th><th></th></tr></thead>
+      <tbody>
+        @for (p of lista(); track p.id) {
+          <tr>
+            <td>
+              <div style="font-weight:500">{{ p.name }}</div>
+              <div style="font-size:11px;color:var(--ink-4)">{{ p.category }}</div>
+            </td>
+            <td>{{ p.brand }}</td>
+            <td>
+              @if (p.isForSale) {
+                <span class="pill pill-accent">Venta</span>
+              } @else {
+                <span class="pill">Consumo</span>
+              }
+            </td>
+            <td class="tnum" style="text-align:right;color:var(--ink-3)">{{ p.purchasePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+            <td class="tnum" style="text-align:right">{{ p.salePrice ? (p.salePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}</td>
+            <td class="tnum" style="text-align:right" [style.color]="margen(p) > 40 ? 'var(--success)' : 'var(--ink-3)'">
+              {{ p.salePrice ? (margen(p) | number:'1.0-0') + '%' : '—' }}
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="serif tnum" style="font-size:17px" [style.color]="p.stock <= lowStockThreshold ? 'var(--warn)' : 'var(--ink)'">{{ p.stock }}</span>
+                @if (p.stock <= lowStockThreshold) {
+                  <span class="pill pill-warn">Bajo</span>
+                }
+              </div>
+              <div class="bar" style="width:80px;margin-top:4px">
+                <div class="bar-fill"
+                  [style.width]="Math.min(100, p.stock / 20 * 100) + '%'"
+                  [style.background]="p.stock <= lowStockThreshold ? 'var(--warn)' : 'var(--ink-3)'"></div>
+              </div>
+            </td>
+            <td><button class="btn btn-icon btn-ghost"><sp-icon name="edit" [size]="14" /></button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,108 +1,87 @@
-<div class="page">
-
-  <div class="page-header">
-    <h1 class="page-title">📊 Reportes</h1>
+<div class="page fade-in">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">Análisis</div>
+      <h1><span class="serif">Reportes y</span> <span class="serif-italic">métricas</span></h1>
+      <div class="deck">Comparativos · tendencias · clientes</div>
+    </div>
+    <button class="btn btn-ghost"><sp-icon name="download" [size]="14" /> Exportar CSV</button>
   </div>
 
-  <!-- Filtro de período -->
-  <div class="periodo-card card" [formGroup]="form">
-    <div class="periodo-row">
-      <div class="field-group">
-        <label class="field-label">Desde</label>
-        <input type="date" formControlName="desde" class="field-input" />
-      </div>
-      <div class="field-group">
-        <label class="field-label">Hasta</label>
-        <input type="date" formControlName="hasta" class="field-input" />
-      </div>
-      <button class="btn-primary" (click)="buscar()" [disabled]="cargando()">
-        {{ cargando() ? 'Cargando...' : '🔍 Buscar' }}
-      </button>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+    <div class="kpi">
+      <div class="kpi-label">Ventas registradas</div>
+      <div class="kpi-value tnum">{{ countActivas() }}</div>
+      <div class="kpi-delta">registros activos</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Ingresos brutos</div>
+      <div class="kpi-value tnum">{{ totalMes() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+      <div class="kpi-delta">total período</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Deducciones</div>
+      <div class="kpi-value tnum" style="font-size:28px">{{ totalDeducciones() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+      <div class="kpi-delta down">total deducciones</div>
     </div>
   </div>
 
-  @if (!cargando() && ventas().length > 0) {
-
-    <!-- KPIs -->
-    <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-label">Ventas</div><div class="kpi-value">{{ countVentas() }}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Total bruto</div><div class="kpi-value">{{ totalBruto() | currency:'COP':'symbol-narrow':'1.0-0' }}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Deducciones</div><div class="kpi-value text-danger">−{{ totalDeduciones() | currency:'COP':'symbol-narrow':'1.0-0' }}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Neto salón</div><div class="kpi-value salon-color">{{ totalSalon() | currency:'COP':'symbol-narrow':'1.0-0' }}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Neto peluqueros</div><div class="kpi-value stylist-color">{{ totalPeluqueros() | currency:'COP':'symbol-narrow':'1.0-0' }}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Total propinas</div><div class="kpi-value">{{ totalPropinas() | currency:'COP':'symbol-narrow':'1.0-0' }}</div></div>
-    </div>
-
-    <div class="reportes-grid">
-
-      <!-- Por peluquero -->
-      <div class="card reporte-card">
-        <h3 class="reporte-title">Por peluquero</h3>
-        <table class="data-table">
-          <thead>
-            <tr><th>Peluquero</th><th class="text-right">Ventas</th><th class="text-right">Bruto</th><th class="text-right">Comisión</th></tr>
-          </thead>
-          <tbody>
-            @for (p of porPeluquero(); track p.name) {
-              <tr>
-                <td class="name-cell">{{ p.name }}</td>
-                <td class="text-right">{{ p.ventas }}</td>
-                <td class="text-right">{{ p.bruto | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-                <td class="text-right stylist-color">{{ p.comision | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Por método de pago -->
-      <div class="card reporte-card">
-        <h3 class="reporte-title">Por método de pago</h3>
-        <table class="data-table">
-          <thead>
-            <tr><th>Método</th><th class="text-right">Ventas</th><th class="text-right">Monto total</th></tr>
-          </thead>
-          <tbody>
-            @for (m of porMetodoPago(); track m.name) {
-              <tr>
-                <td>{{ m.name }}</td>
-                <td class="text-right">{{ m.ventas }}</td>
-                <td class="text-right">{{ m.monto | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-
-    </div>
-
-    <!-- Detalle de ventas -->
-    <div class="card" style="margin-top:1.5rem">
-      <h3 class="reporte-title" style="margin-bottom:0.75rem">Detalle de ventas</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card" style="padding:24px">
+      <div class="eyebrow" style="margin-bottom:4px">Período actual</div>
+      <h3 class="serif" style="margin:4px 0 18px;font-size:22px;font-weight:400">Ventas recientes</h3>
       <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr><th>Fecha</th><th>Cliente</th><th>Peluquero</th><th>Método pago</th><th class="text-right">Bruto</th><th class="text-right">Salón</th><th>Estado</th></tr>
-          </thead>
+        <table class="tbl">
+          <thead><tr><th>Peluquero</th><th>Cliente</th><th style="text-align:right">Total</th></tr></thead>
           <tbody>
-            @for (v of activas(); track v.id) {
+            @for (v of ventas().slice(0,8); track v.id) {
               <tr>
-                <td>{{ v.saleDateTime | date:'dd/MM HH:mm' }}</td>
-                <td>{{ v.clientName }}</td>
-                <td>{{ v.stylistName }}</td>
-                <td>{{ v.paymentMethodName }}</td>
-                <td class="text-right">{{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-                <td class="text-right salon-color">{{ v.salonTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-                <td><span class="badge badge-active">Activa</span></td>
+                <td style="font-weight:500">{{ v.stylistName }}</td>
+                <td style="color:var(--ink-3)">{{ v.clientName }}</td>
+                <td class="tnum" style="text-align:right">{{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
               </tr>
             }
           </tbody>
         </table>
       </div>
+      @if (ventas().length === 0) {
+        <div style="padding:20px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período</div>
+      }
     </div>
 
-  } @else if (!cargando() && ventas().length === 0) {
-    <div class="empty card">Sin ventas en el período seleccionado.</div>
-  }
+    <div class="card" style="padding:24px">
+      <div class="eyebrow" style="margin-bottom:4px">Distribución</div>
+      <h3 class="serif" style="margin:4px 0 18px;font-size:22px;font-weight:400">Ingresos por peluquero</h3>
+      @for (stylist of getStylistStats(); track stylist.name) {
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:13px;font-weight:500">{{ stylist.name }}</span>
+            <span class="tnum" style="font-size:13px">{{ stylist.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+          </div>
+          <div class="bar">
+            <div class="bar-fill" [style.width]="stylist.pct + '%'"></div>
+          </div>
+        </div>
+      }
+      @if (getStylistStats().length === 0) {
+        <div style="color:var(--ink-4);font-size:13px">Sin datos disponibles</div>
+      }
+    </div>
+  </div>
 
+  <div class="card" style="padding:24px">
+    <div class="eyebrow" style="margin-bottom:12px">Horarios pico</div>
+    <div style="display:flex;align-items:flex-end;gap:4px;height:100px">
+      @for (h of [2,4,8,14,18,22,24,20,16,19,24,18,12,6]; track $index) {
+        <div style="flex:1;min-width:6px;border-radius:2px 2px 0 0;transition:opacity 120ms"
+             [style.height]="(h/24*100)+'%'"
+             [style.background]="$index===6||$index===10 ? 'var(--accent)' : 'var(--ink)'"
+             [style.opacity]="$index===6||$index===10 ? '1' : '0.85'">
+        </div>
+      }
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ink-4);margin-top:8px">
+      <span>9am</span><span>1pm</span><span>5pm</span><span>9pm</span>
+    </div>
+  </div>
 </div>

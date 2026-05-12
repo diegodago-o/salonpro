@@ -1,37 +1,54 @@
-<div class="page">
-
-  <div class="page-header">
-    <h1 class="page-title">📋 Liquidaciones</h1>
+<div class="page fade-in">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Comisiones</div>
+      <h1><span class="serif">Liquidación de</span> <span class="serif-italic">peluqueros</span></h1>
+      <div class="deck">Genera y aprueba pagos por período</div>
+    </div>
     @if (vista() === 'lista') {
-      <button class="btn-primary" (click)="abrirNueva()">+ Nueva liquidación</button>
+      <button class="btn btn-primary" (click)="abrirNueva()">
+        <sp-icon name="plus" [size]="14" /> Nueva liquidación
+      </button>
     }
   </div>
 
   @if (msg()) {
-    <div class="alert" [class.alert-ok]="msg()!.type==='ok'" [class.alert-err]="msg()!.type==='err'">{{ msg()!.text }}</div>
+    <div class="toast" style="position:static;transform:none;margin-bottom:16px;display:inline-flex"
+      [style.background]="msg()!.type === 'ok' ? 'var(--success)' : 'var(--danger)'">
+      {{ msg()!.text }}
+    </div>
   }
 
-  <!-- ── LISTA ── -->
+  <!-- LISTA -->
   @if (vista() === 'lista') {
+    @if (abiertas().length === 0 && cerradas().length === 0) {
+      <div class="card" style="padding:60px;text-align:center">
+        <div class="eyebrow" style="margin-bottom:8px">Sin liquidaciones</div>
+        <div style="color:var(--ink-4);font-size:14px">Crea la primera liquidación del período.</div>
+        <button class="btn btn-primary btn-lg" style="margin-top:20px" (click)="abrirNueva()">
+          <sp-icon name="plus" [size]="14" /> Nueva liquidación
+        </button>
+      </div>
+    }
 
     @if (abiertas().length > 0) {
-      <h2 class="section-sub">Abiertas</h2>
-      <div class="liq-grid">
+      <div class="eyebrow" style="margin-bottom:10px;color:var(--accent-deep)">Abiertas</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px">
         @for (l of abiertas(); track l.id) {
-          <div class="liq-card open">
-            <div class="liq-header">
-              <span class="liq-stylist">{{ l.stylistName }}</span>
-              <span class="liq-status open">Abierta</span>
+          <div class="card" style="padding:20px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+              <div>
+                <div style="font-weight:600;font-size:15px">{{ l.stylistName }}</div>
+                <div style="font-size:12px;color:var(--ink-3);margin-top:2px">{{ l.startDate | date:'dd/MM/yy' }} — {{ l.endDate | date:'dd/MM/yy' }}</div>
+              </div>
+              <span class="pill pill-accent"><span class="pill-dot"></span>Abierta</span>
             </div>
-            <div class="liq-period">{{ l.startDate | date:'dd/MM/yy' }} — {{ l.endDate | date:'dd/MM/yy' }}</div>
-            <div class="liq-ventas">{{ l.totalVentas }} ventas</div>
-            <div class="liq-neto">
-              <span>Neto peluquero</span>
-              <strong class="stylist-color">{{ l.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
-            </div>
-            <div class="liq-actions">
-              <button class="btn-sm" (click)="verDetalle(l)">Ver detalle</button>
-              <button class="btn-sm btn-sm-ok" (click)="cerrar(l)">Cerrar</button>
+            <div style="font-size:12px;color:var(--ink-3);margin-bottom:4px">{{ l.totalVentas }} ventas</div>
+            <div class="serif tnum" style="font-size:24px;color:var(--accent-deep)">{{ l.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+            <div style="font-size:11px;color:var(--ink-4);margin-bottom:14px">Neto peluquero</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" style="flex:1" (click)="verDetalle(l)">Ver detalle</button>
+              <button class="btn btn-primary btn-sm" (click)="cerrar(l)"><sp-icon name="check" [size]="12" /> Cerrar</button>
             </div>
           </div>
         }
@@ -39,113 +56,143 @@
     }
 
     @if (cerradas().length > 0) {
-      <h2 class="section-sub">Cerradas</h2>
-      <div class="table-wrap card">
-        <table class="data-table">
-          <thead>
-            <tr><th>Peluquero</th><th>Período</th><th class="text-right">Ventas</th><th class="text-right">Bruto servicios</th><th class="text-right">Neto peluquero</th><th></th></tr>
-          </thead>
-          <tbody>
-            @for (l of cerradas(); track l.id) {
-              <tr>
-                <td class="name-cell">{{ l.stylistName }}</td>
-                <td>{{ l.startDate | date:'dd/MM/yy' }} — {{ l.endDate | date:'dd/MM/yy' }}</td>
-                <td class="text-right">{{ l.totalVentas }}</td>
-                <td class="text-right">{{ l.grossServices | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-                <td class="text-right stylist-color"><strong>{{ l.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></td>
-                <td><button class="btn-sm" (click)="verDetalle(l)">Ver</button></td>
-              </tr>
-            }
-          </tbody>
-        </table>
+      <div class="eyebrow" style="margin-bottom:10px">Historial</div>
+      <div class="card" style="overflow:hidden">
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Peluquero</th><th>Período</th><th>Ventas</th><th style="text-align:right">Bruto servicios</th><th style="text-align:right">Neto peluquero</th><th>Estado</th><th></th></tr></thead>
+            <tbody>
+              @for (l of cerradas(); track l.id) {
+                <tr>
+                  <td style="font-weight:500">{{ l.stylistName }}</td>
+                  <td style="font-size:12px;color:var(--ink-3)">{{ l.startDate | date:'dd/MM/yy' }} — {{ l.endDate | date:'dd/MM/yy' }}</td>
+                  <td>{{ l.totalVentas }}</td>
+                  <td class="tnum" style="text-align:right">{{ l.grossServices | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                  <td class="tnum serif" style="text-align:right;font-size:16px;color:var(--accent-deep);font-weight:600">{{ l.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                  <td><span class="pill pill-success"><span class="pill-dot"></span>Cerrada</span></td>
+                  <td><button class="btn btn-icon btn-ghost" (click)="verDetalle(l)"><sp-icon name="eye" [size]="14" /></button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </div>
     }
   }
 
-  <!-- ── NUEVA LIQUIDACIÓN ── -->
+  <!-- NUEVA -->
   @if (vista() === 'nueva') {
-    <div class="form-container">
-      <button class="btn-back" (click)="volver()">← Volver</button>
-      <div class="card form-card" style="max-width: 500px">
-        <h2 class="form-title">Nueva liquidación</h2>
-        <div [formGroup]="form" class="form-grid">
-          <div class="field-group full-width">
-            <label class="field-label">Peluquero *</label>
-            <select formControlName="stylistId" class="field-input">
-              <option [ngValue]="null">— Selecciona —</option>
+    <div style="max-width:520px">
+      <button class="btn btn-ghost" style="margin-bottom:20px" (click)="volver()">
+        <sp-icon name="arrow-left" [size]="14" /> Volver
+      </button>
+      <div class="card" style="padding:28px">
+        <div class="eyebrow" style="margin-bottom:4px">Nueva</div>
+        <h3 class="serif" style="margin:4px 0 24px;font-size:28px;font-weight:400">Nueva <span class="serif-italic">liquidación</span></h3>
+        <div [formGroup]="form">
+          <label class="field" style="margin-bottom:14px">
+            <span class="label">Peluquero *</span>
+            <select class="select" formControlName="stylistId">
+              <option [ngValue]="null">— Selecciona peluquero —</option>
               @for (p of peluqueros(); track p.id) {
                 <option [ngValue]="p.id">{{ p.fullName }}</option>
               }
             </select>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Desde *</label>
-            <input type="date" formControlName="startDate" class="field-input" />
-          </div>
-          <div class="field-group">
-            <label class="field-label">Hasta *</label>
-            <input type="date" formControlName="endDate" class="field-input" />
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+            <label class="field">
+              <span class="label">Desde *</span>
+              <input class="input" type="date" formControlName="startDate" />
+            </label>
+            <label class="field">
+              <span class="label">Hasta *</span>
+              <input class="input" type="date" formControlName="endDate" />
+            </label>
           </div>
         </div>
-        <div class="form-actions">
-          <button class="btn-secondary" (click)="volver()">Cancelar</button>
-          <button class="btn-primary" (click)="crear()" [disabled]="form.invalid || guardando()">
-            {{ guardando() ? 'Creando...' : 'Crear liquidación' }}
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" (click)="volver()">Cancelar</button>
+          <button class="btn btn-accent btn-lg" style="flex:1" (click)="crear()" [disabled]="form.invalid || guardando()">
+            <sp-icon name="check" [size]="14" /> {{ guardando() ? 'Creando…' : 'Crear liquidación' }}
           </button>
         </div>
       </div>
     </div>
   }
 
-  <!-- ── DETALLE ── -->
+  <!-- DETALLE -->
   @if (vista() === 'detalle' && detalle()) {
-    <div class="detalle-container">
-      <button class="btn-back" (click)="volver()">← Volver</button>
-      <div class="detalle-header card">
-        <div class="detalle-title-row">
-          <h2>{{ detalle()!.stylistName }}</h2>
-          <span class="liq-status" [class.open]="detalle()!.status==='Open'" [class.closed]="detalle()!.status==='Closed'">
-            {{ detalle()!.status === 'Open' ? 'Abierta' : 'Cerrada' }}
-          </span>
-        </div>
-        <p class="detalle-period">{{ detalle()!.startDate | date:'dd/MM/yyyy' }} — {{ detalle()!.endDate | date:'dd/MM/yyyy' }}</p>
+    <div>
+      <button class="btn btn-ghost" style="margin-bottom:20px" (click)="volver()">
+        <sp-icon name="arrow-left" [size]="14" /> Volver
+      </button>
 
-        <div class="resumen-grid">
-          <div class="res-item"><span>Ventas</span><strong>{{ detalle()!.totalVentas }}</strong></div>
-          <div class="res-item"><span>Bruto servicios</span><strong>{{ detalle()!.grossServices | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
-          <div class="res-item"><span>Bruto productos</span><strong>{{ detalle()!.grossProducts | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
-          <div class="res-item text-danger"><span>Deducciones</span><strong>−{{ detalle()!.totalDeductions | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
-          <div class="res-item"><span>Comisión servicios</span><strong>{{ detalle()!.commServices | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
-          <div class="res-item"><span>Comisión productos</span><strong>{{ detalle()!.commProducts | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
-          <div class="res-item"><span>Propinas</span><strong>{{ detalle()!.totalTips | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
-          <div class="res-item text-danger"><span>Consumo interno</span><strong>−{{ detalle()!.internalConsumption | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
-          <div class="res-item text-danger"><span>Anticipos aplicados</span><strong>−{{ detalle()!.anticiposAplicados | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
-          <div class="res-item res-neto"><span>NETO PELUQUERO</span><strong class="stylist-color">{{ detalle()!.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
+      <div class="card" style="padding:28px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
+          <div>
+            <div class="eyebrow">Liquidación · {{ detalle()!.startDate | date:'dd MMM' }} — {{ detalle()!.endDate | date:'dd MMM yyyy' }}</div>
+            <h2 class="serif" style="font-size:32px;font-weight:400;margin:6px 0 4px">{{ detalle()!.stylistName }}</h2>
+            <div style="color:var(--ink-3);font-size:13px">{{ detalle()!.totalVentas }} servicios</div>
+          </div>
+          @if (detalle()!.status === 'Open') {
+            <span class="pill pill-accent"><span class="pill-dot"></span>Abierta</span>
+          } @else {
+            <span class="pill pill-success"><span class="pill-dot"></span>Cerrada</span>
+          }
         </div>
 
-        @if (detalle()!.status === 'Open') {
-          <button class="btn-primary" style="margin-top:1rem" (click)="cerrar(detalle()!)">Cerrar liquidación</button>
-        }
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px">
+          <div style="padding:16px;background:var(--bone);border-radius:6px">
+            <div class="eyebrow">Total facturado</div>
+            <div class="serif tnum" style="font-size:26px;margin-top:4px">{{ (detalle()!.grossServices + detalle()!.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+          </div>
+          <div style="padding:16px;background:var(--bone);border-radius:6px">
+            <div class="eyebrow">Comisión</div>
+            <div class="serif tnum" style="font-size:26px;margin-top:4px">{{ (detalle()!.commServices + detalle()!.commProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+          </div>
+          <div style="padding:16px;background:var(--ink);color:var(--bone);border-radius:6px">
+            <div class="eyebrow" style="color:var(--ink-5)">Neto a pagar</div>
+            <div class="serif tnum" style="font-size:26px;margin-top:4px">{{ detalle()!.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+          </div>
+        </div>
+
+        <div class="receipt" style="background:var(--bone)">
+          <div class="row"><span style="color:var(--ink-3)">Facturado en período</span><span class="tnum">{{ (detalle()!.grossServices + detalle()!.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+          <div class="row"><span style="color:var(--ink-3)">Comisión servicios</span><span class="tnum">{{ detalle()!.commServices | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+          <div class="row"><span style="color:var(--ink-3)">Comisión productos</span><span class="tnum">{{ detalle()!.commProducts | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+          <div class="row"><span style="color:var(--ink-3)">Propinas</span><span class="tnum">{{ detalle()!.totalTips | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+          <hr class="hr-dotted" style="margin:8px 0" />
+          <div class="row"><span style="color:var(--ink-3)">(−) Consumo interno</span><span class="tnum" style="color:var(--danger)">−{{ detalle()!.internalConsumption | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+          <div class="row"><span style="color:var(--ink-3)">(−) Anticipos aplicados</span><span class="tnum" style="color:var(--danger)">−{{ detalle()!.anticiposAplicados | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+          <div class="row"><span style="color:var(--ink-3)">(−) Deducciones</span><span class="tnum" style="color:var(--danger)">−{{ detalle()!.totalDeductions | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+          <div class="row total"><span>Neto a pagar</span><span class="tnum serif" style="font-size:22px">{{ detalle()!.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">
+          <button class="btn btn-ghost"><sp-icon name="download" [size]="14" /> Exportar PDF</button>
+          @if (detalle()!.status === 'Open') {
+            <button class="btn btn-primary" (click)="cerrar(detalle()!)">
+              <sp-icon name="check" [size]="14" /> Aprobar y cerrar
+            </button>
+          }
+        </div>
       </div>
 
       @if (detalle()!.ventas.length > 0) {
-        <div class="card" style="margin-top:1rem">
-          <h3 class="section-sub" style="margin-bottom:0.75rem">Detalle de ventas</h3>
+        <div class="card" style="padding:24px">
+          <div class="eyebrow" style="margin-bottom:12px">Detalle de ventas en período · {{ detalle()!.ventas.length }} servicios</div>
           <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr><th>Fecha</th><th>Cliente</th><th class="text-right">Bruto</th><th class="text-right">Deducción</th><th class="text-right">Comisión</th><th class="text-right">Propina</th><th class="text-right">Consumo int.</th></tr>
-              </thead>
+            <table class="tbl">
+              <thead><tr><th>Fecha</th><th>Cliente</th><th style="text-align:right">Total</th><th style="text-align:right">Deducción</th><th style="text-align:right">Comisión</th><th style="text-align:right">Propina</th></tr></thead>
               <tbody>
                 @for (v of detalle()!.ventas; track v.saleId) {
                   <tr>
-                    <td>{{ v.saleDateTime | date:'dd/MM HH:mm' }}</td>
+                    <td style="font-size:12px;color:var(--ink-3)">{{ v.saleDateTime | date:'dd/MM HH:mm' }}</td>
                     <td>{{ v.clientName }}</td>
-                    <td class="text-right">{{ (v.grossServices + v.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-                    <td class="text-right text-danger">−{{ v.deduction | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-                    <td class="text-right stylist-color">{{ (v.commServices + v.commProducts) | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-                    <td class="text-right">{{ v.tip | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-                    <td class="text-right text-danger">−{{ v.internalConsumption | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                    <td class="tnum" style="text-align:right">{{ (v.grossServices + v.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                    <td class="tnum" style="text-align:right;color:var(--danger)">−{{ v.deduction | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                    <td class="tnum" style="text-align:right;color:var(--accent-deep);font-weight:500">{{ (v.commServices + v.commProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                    <td class="tnum" style="text-align:right">{{ v.tip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
                   </tr>
                 }
               </tbody>
@@ -155,5 +202,4 @@
       }
     </div>
   }
-
 </div>

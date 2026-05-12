@@ -1,0 +1,112 @@
+<div class="page fade-in">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Operación</div>
+      <h1><span class="serif">Historial de</span> <span class="serif-italic">ventas</span></h1>
+      <div class="deck">{{ ventas().length }} transacciones registradas</div>
+    </div>
+    <button class="btn btn-ghost"><sp-icon name="download" [size]="14" /> CSV</button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card" style="padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <sp-icon name="filter" [size]="14" />
+    <span class="eyebrow">Filtros</span>
+    <select class="select" style="width:auto" (change)="filtroStylist.set($any($event.target).value)">
+      <option value="all">Todos los peluqueros</option>
+      @for (s of stylists(); track s) {
+        <option [value]="s">{{ s }}</option>
+      }
+    </select>
+    <select class="select" style="width:auto" (change)="filtroEstado.set($any($event.target).value)">
+      <option value="all">Todos los estados</option>
+      <option value="Active">Activa</option>
+      <option value="Voided">Anulada</option>
+    </select>
+    <div style="flex:1"></div>
+    @if (filtroEstado() !== 'all' || filtroStylist() !== 'all') {
+      <span class="eyebrow" style="color:var(--ink-3)">{{ ventasFiltradas().length }} resultados · {{ totalFiltrado() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+    }
+  </div>
+
+  @if (loading()) {
+    <div style="padding:60px;text-align:center;color:var(--ink-4)">Cargando ventas…</div>
+  } @else {
+    <div class="card" style="overflow:hidden">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Folio</th><th>Fecha</th><th>Peluquero</th><th>Cliente</th><th>Método</th><th style="text-align:right">Total</th><th>Estado</th><th></th></tr></thead>
+          <tbody>
+            @for (v of ventasFiltradas(); track v.id) {
+              <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'">
+                <td class="mono" style="font-size:11px">{{ v.id }}</td>
+                <td>{{ v.saleDateTime | date:'dd/MM HH:mm' }}</td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span class="avatar avatar-sm">{{ v.stylistName.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() }}</span>
+                    {{ v.stylistName }}
+                  </div>
+                </td>
+                <td>{{ v.clientName }}</td>
+                <td>{{ v.paymentMethodName }}</td>
+                <td class="tnum serif" style="text-align:right;font-size:16px;font-weight:500">{{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td>
+                  @if (v.status === 'Active') {
+                    <span class="pill pill-success"><span class="pill-dot"></span>Activa</span>
+                  } @else {
+                    <span class="pill pill-danger"><span class="pill-dot"></span>Anulada</span>
+                  }
+                </td>
+                <td>
+                  <button class="btn btn-icon btn-ghost" (click)="abrirDetalle(v)">
+                    <sp-icon name="eye" [size]="14" />
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    @if (ventasFiltradas().length === 0) {
+      <div class="card" style="padding:40px;text-align:center;color:var(--ink-4)">Sin resultados para los filtros aplicados</div>
+    }
+  }
+
+  <!-- Modal detalle -->
+  @if (ventaSeleccionada()) {
+    <div class="modal-back" (click)="cerrarDetalle()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div style="padding:32px">
+          <div class="eyebrow">Detalle</div>
+          <h3 class="serif" style="font-size:28px;font-weight:400;margin:4px 0 18px">#{{ ventaSeleccionada()!.id }}</h3>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            @if (ventaSeleccionada()!.status === 'Active') {
+              <span class="pill pill-success"><span class="pill-dot"></span>Activa</span>
+            } @else {
+              <span class="pill pill-danger"><span class="pill-dot"></span>Anulada</span>
+            }
+            <span class="pill">{{ ventaSeleccionada()!.paymentMethodName }}</span>
+          </div>
+          <div style="font-size:13px;color:var(--ink-3);margin-bottom:14px">
+            {{ ventaSeleccionada()!.saleDateTime | date:'dd/MM/yyyy HH:mm' }} · {{ ventaSeleccionada()!.stylistName }}
+          </div>
+          <hr class="hr" />
+          <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:600">
+            <span>Cliente</span><span>{{ ventaSeleccionada()!.clientName }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:600">
+            <span>Total</span><span class="tnum serif" style="font-size:20px">{{ ventaSeleccionada()!.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;color:var(--accent-deep)">
+            <span>Comisión peluquero</span><span class="tnum">{{ ventaSeleccionada()!.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">
+            <button class="btn btn-primary" (click)="cerrarDetalle()">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

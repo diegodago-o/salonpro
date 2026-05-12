@@ -1,12 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { environment } from '../../../../environments/environment';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule],
+  standalone: true,
+  imports: [ReactiveFormsModule, IconComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss'
 })
@@ -15,44 +16,34 @@ export class LoginComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
-  readonly isProd = environment.production;
+  readonly step = signal<'login' | 'loading'>('login');
+  readonly error = signal<string | null>(null);
   readonly loading = signal(false);
-  readonly errorMessage = signal<string | null>(null);
-  readonly showPassword = signal(false);
 
   readonly form = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]]
+    email:    ['dueno@demo.com', [Validators.required, Validators.email]],
+    password: ['Owner2026!', Validators.required],
   });
 
-  get email() { return this.form.get('email')!; }
-  get password() { return this.form.get('password')!; }
-
-  togglePassword(): void {
-    this.showPassword.update(v => !v);
-  }
-
-  onSubmit(): void {
-    if (this.form.invalid || this.loading()) return;
-
+  submit(): void {
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.loading.set(true);
-    this.errorMessage.set(null);
+    this.error.set(null);
 
     this.authService.login({
-      email: this.email.value!,
-      password: this.password.value!
+      email:    this.form.value.email!,
+      password: this.form.value.password!,
     }).subscribe({
-      next: response => {
-        if (response.success) {
+      next: (res) => {
+        if (res.success) {
           this.router.navigate(['/dashboard']);
         } else {
-          this.errorMessage.set(response.message || 'Error al iniciar sesión');
+          this.error.set(res.message ?? 'Credenciales inválidas');
           this.loading.set(false);
         }
       },
-      error: err => {
-        const msg = err?.error?.message || 'Error de conexión. Intenta de nuevo.';
-        this.errorMessage.set(msg);
+      error: () => {
+        this.error.set('Error de conexión. Verifica que el servidor esté activo.');
         this.loading.set(false);
       }
     });

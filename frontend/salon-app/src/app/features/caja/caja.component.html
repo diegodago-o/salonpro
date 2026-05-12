@@ -1,143 +1,157 @@
-<div class="caja-page">
-
-  <div class="page-header">
-    <h1 class="page-title">🏧 Caja</h1>
+<div class="page fade-in">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">Caja</div>
+      <h1><span class="serif">Apertura y</span> <span class="serif-italic">cierre</span></h1>
+      @if (cajaActual()) {
+        <div class="deck">Turno abierto · {{ cajaActual()!.openedAt | date:'HH:mm' }}</div>
+      } @else {
+        <div class="deck">No hay turno activo</div>
+      }
+    </div>
   </div>
 
   @if (successMsg()) {
-    <div class="alert alert-success">✅ {{ successMsg() }}</div>
-  }
-  @if (errorMsg()) {
-    <div class="alert alert-error">⚠ {{ errorMsg() }}</div>
+    <div class="toast" style="position:static;transform:none;margin-bottom:20px;display:inline-flex">
+      <sp-icon name="check" [size]="14" /> {{ successMsg() }}
+    </div>
   }
 
   <!-- LOADING -->
   @if (vista() === 'loading') {
-    <div class="estado-card">
-      <div class="spinner-lg"></div>
-      <p>Verificando estado de caja...</p>
-    </div>
+    <div style="padding:60px;text-align:center;color:var(--ink-4)">Cargando estado de caja…</div>
   }
 
-  <!-- SIN CAJA ABIERTA -->
+  <!-- SIN CAJA -->
   @if (vista() === 'sin-caja') {
-    <div class="grid-layout">
-      <div class="estado-card sin-caja">
-        <div class="estado-icon">🔒</div>
-        <h2>No hay caja abierta</h2>
-        <p class="estado-desc">Debes abrir la caja antes de registrar ventas del día.</p>
-
-        <form [formGroup]="formAbrir" (ngSubmit)="abrirCaja()" class="form-abrir">
-          <div class="field-group">
-            <label class="field-label">Base de caja (efectivo inicial)</label>
-            <div class="input-prefix-wrap">
-              <span class="input-prefix">$</span>
-              <input
-                type="number"
-                formControlName="openingBalance"
-                class="field-input"
-                [class.is-invalid]="formAbrir.get('openingBalance')!.invalid && formAbrir.get('openingBalance')!.touched"
-                min="0"
-                placeholder="0"
-              />
-            </div>
-            @if (formAbrir.get('openingBalance')!.touched && formAbrir.get('openingBalance')!.invalid) {
-              <span class="field-error">Ingresa un valor válido (mínimo 0)</span>
-            }
-          </div>
-
-          <div class="field-group">
-            <label class="field-label">Observaciones (opcional)</label>
-            <input type="text" formControlName="notes" class="field-input" placeholder="Ej: Apertura lunes..." />
-          </div>
-
-          <button type="submit" class="btn-primary btn-lg" [disabled]="guardando()">
-            @if (guardando()) { <span class="spinner-sm"></span> }
-            Abrir caja
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px">
+      <div class="card" style="padding:28px">
+        <div class="eyebrow" style="margin-bottom:12px">Sin turno activo</div>
+        <h3 class="serif" style="margin:0 0 20px;font-size:24px;font-weight:400">Abrir caja</h3>
+        <form [formGroup]="formAbrir" (ngSubmit)="abrirCaja()">
+          <label class="field" style="margin-bottom:14px">
+            <span class="label">Efectivo inicial en caja</span>
+            <input class="input mono" type="number" formControlName="openingBalance" style="font-size:18px" />
+          </label>
+          <label class="field" style="margin-bottom:20px">
+            <span class="label">Observaciones (opcional)</span>
+            <input class="input" formControlName="notes" placeholder="Ej: turno mañana" />
+          </label>
+          @if (errorMsg()) {
+            <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-bottom:16px">{{ errorMsg() }}</div>
+          }
+          <button type="submit" class="btn btn-accent btn-lg" style="width:100%" [disabled]="guardando()">
+            <sp-icon name="cash" [size]="14" /> {{ guardando() ? 'Abriendo…' : 'Abrir turno' }}
           </button>
         </form>
       </div>
 
-      <div class="historial-panel">
-        <ng-container *ngTemplateOutlet="historialTpl"></ng-container>
+      <!-- Historial -->
+      <div class="card" style="padding:24px">
+        <div class="eyebrow" style="margin-bottom:12px">Historial reciente</div>
+        @for (c of historial().slice(0,5); track c.id) {
+          <div (click)="verDetalle(c)" style="padding:10px 12px;border-radius:6px;cursor:pointer;border:1px solid var(--hair-2);margin-bottom:8px;background:var(--paper)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:13px;font-weight:500">{{ c.openedAt | date:'dd/MM/yyyy' }}</span>
+              @if (c.status==='Closed') {
+                <span class="pill pill-success"><span class="pill-dot"></span>Cerrada</span>
+              }
+            </div>
+            <div style="font-size:12px;color:var(--ink-3);margin-top:4px">
+              {{ totalVentas(c) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }} en ventas
+            </div>
+          </div>
+        }
+        @if (historial().length === 0) {
+          <div style="color:var(--ink-4);font-size:13px">Sin registros previos</div>
+        }
       </div>
     </div>
   }
 
   <!-- CAJA ABIERTA -->
-  @if (vista() === 'caja-abierta') {
-    <div class="grid-layout">
-      <div class="estado-card caja-abierta">
-        <div class="estado-icon">🟢</div>
-        <div class="caja-info">
-          <h2>Caja abierta</h2>
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">Cajero</span>
-              <span class="info-value">{{ cajaActual()?.cashierName }}</span>
+  @if (vista() === 'caja-abierta' && cajaActual()) {
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px">
+      <div>
+        <div class="card" style="padding:28px;margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+            <h3 class="serif" style="margin:0;font-size:24px;font-weight:400">Resumen del turno</h3>
+            <span class="pill pill-success"><span class="pill-dot"></span>Abierto</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
+            <div style="padding:14px;background:var(--bone);border-radius:6px">
+              <div class="eyebrow">Apertura</div>
+              <div class="serif tnum" style="font-size:22px;margin-top:4px">{{ cajaActual()!.openingBalance | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+              <div style="font-size:11px;color:var(--ink-4)">{{ cajaActual()!.openedAt | date:'HH:mm' }}</div>
             </div>
-            <div class="info-item">
-              <span class="info-label">Apertura</span>
-              <span class="info-value">{{ cajaActual()?.openedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+            <div style="padding:14px;background:var(--bone);border-radius:6px">
+              <div class="eyebrow">Ventas</div>
+              <div class="serif tnum" style="font-size:22px;margin-top:4px">{{ totalVentas(cajaActual()!) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+              <div style="font-size:11px;color:var(--ink-4)">{{ cajaActual()!.details.length }} métodos</div>
             </div>
-            <div class="info-item">
-              <span class="info-label">Base inicial</span>
-              <span class="info-value highlight">{{ cajaActual()?.openingBalance | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Sede</span>
-              <span class="info-value">{{ cajaActual()?.branchName }}</span>
+            <div style="padding:14px;background:var(--ink);color:var(--bone);border-radius:6px">
+              <div class="eyebrow" style="color:var(--ink-5)">Esperado en caja</div>
+              <div class="serif tnum" style="font-size:22px;margin-top:4px">{{ expectedCash | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+              <div style="font-size:11px;color:var(--ink-5)">Efectivo + apertura</div>
             </div>
           </div>
-        </div>
 
-        <button class="btn-danger btn-lg" (click)="irACerrarCaja()">
-          Cerrar caja del día
-        </button>
+          <div class="eyebrow" style="margin-bottom:10px">Desglose por método</div>
+          @for (d of cajaActual()!.details; track d.paymentMethodId) {
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bone);border-radius:6px;margin-bottom:8px">
+              <span style="font-size:13px">{{ d.paymentMethodName }}</span>
+              <span class="tnum serif" style="font-size:16px">{{ d.totalAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+            </div>
+          }
+          @if (cajaActual()!.details.length === 0) {
+            <div style="color:var(--ink-4);font-size:13px;padding:10px 0">Sin ventas registradas aún en este turno</div>
+          }
+        </div>
       </div>
 
-      <div class="historial-panel">
-        <ng-container *ngTemplateOutlet="historialTpl"></ng-container>
+      <div class="card" style="padding:28px;position:sticky;top:28px;align-self:flex-start">
+        <div class="eyebrow">Cierre de caja</div>
+        <h3 class="serif" style="margin:4px 0 18px;font-size:22px;font-weight:400">Declarar efectivo</h3>
+        <button class="btn btn-accent btn-lg" style="width:100%" (click)="irACerrar()">
+          <sp-icon name="x" [size]="14" /> Cerrar turno
+        </button>
       </div>
     </div>
   }
 
-  <!-- FORMULARIO CIERRE -->
+  <!-- CERRAR CAJA -->
   @if (vista() === 'cerrar-caja') {
-    <div class="cierre-container">
-      <div class="estado-card">
-        <h2>Cierre de caja</h2>
-        <p class="estado-desc">Cuenta el efectivo físico que hay en la caja y regístralo.</p>
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px">
+      <div class="card" style="padding:28px">
+        <h3 class="serif" style="margin:0 0 20px;font-size:24px;font-weight:400">Cerrar turno</h3>
+        <form [formGroup]="formCerrar" (ngSubmit)="cerrarCaja()">
+          <label class="field" style="margin-bottom:14px">
+            <span class="label">Efectivo contado</span>
+            <input class="input mono" type="number" formControlName="declaredCash" style="font-size:18px" />
+          </label>
+          <label class="field" style="margin-bottom:20px">
+            <span class="label">Observaciones (opcional)</span>
+            <input class="input" formControlName="notes" />
+          </label>
 
-        <form [formGroup]="formCerrar" (ngSubmit)="cerrarCaja()" class="form-abrir">
-          <div class="field-group">
-            <label class="field-label">Efectivo físico declarado</label>
-            <div class="input-prefix-wrap">
-              <span class="input-prefix">$</span>
-              <input
-                type="number"
-                formControlName="declaredCash"
-                class="field-input"
-                [class.is-invalid]="formCerrar.get('declaredCash')!.invalid && formCerrar.get('declaredCash')!.touched"
-                min="0"
-                placeholder="0"
-              />
+          <div style="padding:14px;background:var(--bone);border-radius:6px;margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--ink-3)">Esperado</span><span class="tnum">{{ expectedCash | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span style="color:var(--ink-3)">Declarado</span><span class="tnum">{{ formCerrar.value.declaredCash! | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+            <hr class="hr-dotted" style="margin:8px 0" />
+            <div style="display:flex;justify-content:space-between;font-weight:600" [style.color]="diff === 0 ? 'var(--success)' : diff > 0 ? 'var(--accent-deep)' : 'var(--danger)'">
+              <span>{{ diff > 0 ? 'Sobrante' : diff < 0 ? 'Faltante' : 'Cuadrado' }}</span>
+              <span class="tnum">{{ (diff < 0 ? -diff : diff) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
             </div>
-            @if (formCerrar.get('declaredCash')!.touched && formCerrar.get('declaredCash')!.invalid) {
-              <span class="field-error">Ingresa un valor válido</span>
-            }
           </div>
 
-          <div class="field-group">
-            <label class="field-label">Observaciones (opcional)</label>
-            <input type="text" formControlName="notes" class="field-input" placeholder="Ej: Faltante por cambio..." />
-          </div>
-
-          <div class="cierre-actions">
-            <button type="button" class="btn-secondary" (click)="cancelarCierre()">Cancelar</button>
-            <button type="submit" class="btn-danger" [disabled]="guardando()">
-              @if (guardando()) { <span class="spinner-sm"></span> }
-              Confirmar cierre
+          @if (errorMsg()) {
+            <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-bottom:12px">{{ errorMsg() }}</div>
+          }
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn btn-ghost" (click)="cancelarCierre()">Cancelar</button>
+            <button type="submit" class="btn btn-accent btn-lg" style="flex:1" [disabled]="guardando()">
+              <sp-icon name="check" [size]="14" /> {{ guardando() ? 'Cerrando…' : 'Confirmar cierre' }}
             </button>
           </div>
         </form>
@@ -145,152 +159,55 @@
     </div>
   }
 
-  <!-- DETALLE DE CIERRE -->
-  @if (vista() === 'detalle-historial' && cajaDetalle()) {
-    <div class="detalle-container">
-      <div class="detalle-header">
-        <button class="btn-back" (click)="volverAEstado()">← Volver</button>
-        <h2>Detalle de caja #{{ cajaDetalle()!.id }}</h2>
-        <span class="badge" [class.badge-open]="cajaDetalle()!.status === 'Open'" [class.badge-closed]="cajaDetalle()!.status === 'Closed'">
-          {{ cajaDetalle()!.status === 'Open' ? 'Abierta' : 'Cerrada' }}
-        </span>
-      </div>
-
-      <div class="detalle-grid">
-
-        <div class="detalle-card">
-          <h3>Información general</h3>
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">Cajero</span>
-              <span class="info-value">{{ cajaDetalle()!.cashierName }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Sede</span>
-              <span class="info-value">{{ cajaDetalle()!.branchName }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Apertura</span>
-              <span class="info-value">{{ cajaDetalle()!.openedAt | date:'dd/MM/yyyy HH:mm' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Cierre</span>
-              <span class="info-value">{{ cajaDetalle()!.closedAt | date:'dd/MM/yyyy HH:mm' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Base inicial</span>
-              <span class="info-value">{{ cajaDetalle()!.openingBalance | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+  <!-- DETALLE -->
+  @if (vista() === 'detalle' && cajaDetalle()) {
+    <div>
+      <button class="btn btn-ghost" style="margin-bottom:20px" (click)="volverAEstado()">
+        <sp-icon name="arrow-left" [size]="14" /> Volver
+      </button>
+      <div class="card" style="padding:28px">
+        <div class="eyebrow" style="margin-bottom:4px">Registro de caja</div>
+        <h3 class="serif" style="margin:4px 0 20px;font-size:24px;font-weight:400">
+          {{ cajaDetalle()!.openedAt | date:'dd/MM/yyyy' }} · {{ cajaDetalle()!.cashierName }}
+        </h3>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+          <div style="padding:14px;background:var(--bone);border-radius:6px">
+            <div class="eyebrow">Apertura</div>
+            <div class="serif tnum" style="font-size:22px;margin-top:4px">{{ cajaDetalle()!.openingBalance | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+          </div>
+          <div style="padding:14px;background:var(--bone);border-radius:6px">
+            <div class="eyebrow">Ventas totales</div>
+            <div class="serif tnum" style="font-size:22px;margin-top:4px">{{ totalVentas(cajaDetalle()!) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+          </div>
+          <div style="padding:14px;background:var(--bone);border-radius:6px">
+            <div class="eyebrow">Declarado</div>
+            <div class="serif tnum" style="font-size:22px;margin-top:4px">{{ cajaDetalle()!.declaredCash ?? 0 | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+          </div>
+          <div style="padding:14px;border-radius:6px" [style.background]="(cajaDetalle()!.difference ?? 0) === 0 ? 'var(--success-soft)' : 'var(--danger-soft)'">
+            <div class="eyebrow">Diferencia</div>
+            <div class="serif tnum" style="font-size:22px;margin-top:4px" [style.color]="(cajaDetalle()!.difference ?? 0) === 0 ? 'var(--success)' : 'var(--danger)'">
+              {{ cajaDetalle()!.difference ?? 0 | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
             </div>
           </div>
         </div>
 
-        <div class="detalle-card">
-          <h3>Ventas por método de pago</h3>
-          <table class="detalle-table">
-            <thead>
-              <tr>
-                <th>Método</th>
-                <th class="text-right">Total ventas</th>
-                <th class="text-right">Deducciones</th>
-                <th class="text-right">Neto</th>
-              </tr>
-            </thead>
+        <div class="eyebrow" style="margin-bottom:10px">Desglose</div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Método</th><th style="text-align:right">Total</th><th style="text-align:right">Deducciones</th><th style="text-align:right">Neto</th></tr></thead>
             <tbody>
               @for (d of cajaDetalle()!.details; track d.paymentMethodId) {
                 <tr>
                   <td>{{ d.paymentMethodName }}</td>
-                  <td class="text-right">{{ d.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-                  <td class="text-right text-danger">{{ d.totalDeductions | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-                  <td class="text-right">{{ d.netAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                  <td class="tnum" style="text-align:right">{{ d.totalAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                  <td class="tnum" style="text-align:right;color:var(--danger)">{{ d.totalDeductions | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                  <td class="tnum" style="text-align:right;font-weight:500">{{ d.netAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
                 </tr>
               }
             </tbody>
-            <tfoot>
-              <tr class="totals-row">
-                <td><strong>Total</strong></td>
-                <td class="text-right"><strong>{{ totalVentas(cajaDetalle()!) | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></td>
-                <td class="text-right text-danger"><strong>{{ totalDeducciones(cajaDetalle()!) | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></td>
-                <td class="text-right"><strong>{{ (totalVentas(cajaDetalle()!) - totalDeducciones(cajaDetalle()!)) | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></td>
-              </tr>
-            </tfoot>
           </table>
         </div>
-
-        <div class="detalle-card resumen-cierre">
-          <h3>Resumen de efectivo</h3>
-          <div class="resumen-row">
-            <span>Base inicial</span>
-            <span>{{ cajaDetalle()!.openingBalance | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
-          </div>
-          <div class="resumen-row">
-            <span>Ventas en efectivo</span>
-            <span>{{ (cajaDetalle()!.expectedCash! - cajaDetalle()!.openingBalance) | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
-          </div>
-          <div class="resumen-row resumen-total">
-            <span>Efectivo esperado</span>
-            <span>{{ cajaDetalle()!.expectedCash | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
-          </div>
-          <div class="resumen-row">
-            <span>Efectivo declarado</span>
-            <span>{{ cajaDetalle()!.declaredCash | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
-          </div>
-          <div class="resumen-row resumen-diferencia" [class]="diferenciaColor">
-            <span>Diferencia</span>
-            <span [class.text-success]="cajaDetalle()!.difference! >= 0" [class.text-danger]="cajaDetalle()!.difference! < 0">
-              {{ cajaDetalle()!.difference! >= 0 ? '+' : '' }}{{ cajaDetalle()!.difference | currency:'COP':'symbol-narrow':'1.0-0' }}
-            </span>
-          </div>
-        </div>
-
       </div>
     </div>
   }
-
 </div>
-
-<!-- Template del historial (reutilizable) -->
-<ng-template #historialTpl>
-  <div class="historial-card">
-    <h3>Historial de cajas</h3>
-    @if (historial().length === 0) {
-      <p class="empty-state">Sin registros anteriores.</p>
-    } @else {
-      <table class="historial-table">
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Cajero</th>
-            <th class="text-right">Base</th>
-            <th class="text-right">Diferencia</th>
-            <th>Estado</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (caja of historial(); track caja.id) {
-            <tr>
-              <td>{{ caja.openedAt | date:'dd/MM/yy' }}</td>
-              <td>{{ caja.cashierName }}</td>
-              <td class="text-right">{{ caja.openingBalance | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-              <td class="text-right">
-                @if (caja.difference !== null) {
-                  <span [class.text-success]="caja.difference >= 0" [class.text-danger]="caja.difference < 0">
-                    {{ caja.difference >= 0 ? '+' : '' }}{{ caja.difference | currency:'COP':'symbol-narrow':'1.0-0' }}
-                  </span>
-                } @else { — }
-              </td>
-              <td>
-                <span class="badge" [class.badge-open]="caja.status === 'Open'" [class.badge-closed]="caja.status === 'Closed'">
-                  {{ caja.status === 'Open' ? 'Abierta' : 'Cerrada' }}
-                </span>
-              </td>
-              <td>
-                <button class="btn-link" (click)="verDetalle(caja)">Ver</button>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    }
-  </div>
-</ng-template>

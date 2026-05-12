@@ -1,56 +1,61 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
-interface NavItem {
-  label: string;
-  icon: string;
-  route: string;
-  roles?: string[];
-}
+interface NavItem { id: string; label: string; icon: string; route: string; roles?: string[]; badge?: string; }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',     icon: '📊', route: '/dashboard' },
-  { label: 'Caja',          icon: '🏧', route: '/caja' },
-  { label: 'Ventas (POS)',  icon: '🛒', route: '/ventas' },
-  { label: 'Clientes',      icon: '👤', route: '/clientes' },
-  { label: 'Servicios',     icon: '✂',  route: '/servicios',   roles: ['TenantOwner'] },
-  { label: 'Productos',     icon: '📦', route: '/productos',   roles: ['TenantOwner'] },
-  { label: 'Anticipos',     icon: '💵', route: '/anticipos' },
-  { label: 'Liquidaciones', icon: '📋', route: '/liquidaciones', roles: ['TenantOwner'] },
-  { label: 'Reportes',      icon: '📈', route: '/reportes',    roles: ['TenantOwner'] },
+const NAV_OWNER: NavItem[] = [
+  { id:'dashboard',      label:'Dashboard',       icon:'home',     route:'/dashboard' },
+  { id:'ventas',         label:'Punto de venta',  icon:'pos',      route:'/ventas' },
+  { id:'historial',      label:'Historial',        icon:'history',  route:'/historial' },
+  { id:'servicios',      label:'Servicios',        icon:'scissors', route:'/servicios' },
+  { id:'inventario',     label:'Inventario',       icon:'box',      route:'/inventario', badge:'Stock bajo' },
+  { id:'liquidaciones',  label:'Liquidaciones',    icon:'wallet',   route:'/liquidaciones' },
+  { id:'caja',           label:'Caja',             icon:'cash',     route:'/caja' },
+  { id:'reportes',       label:'Reportes',         icon:'chart',    route:'/reportes' },
+  { id:'configuracion',  label:'Configuración',    icon:'gear',     route:'/configuracion' },
+];
+
+const NAV_CASHIER: NavItem[] = [
+  { id:'ventas',         label:'Punto de venta',  icon:'pos',      route:'/ventas' },
+  { id:'historial',      label:'Historial',        icon:'history',  route:'/historial' },
+  { id:'inventario',     label:'Inventario',       icon:'box',      route:'/inventario' },
+  { id:'caja',           label:'Caja',             icon:'cash',     route:'/caja' },
+];
+
+const NAV_STYLIST: NavItem[] = [
+  { id:'mi-resumen',     label:'Mi resumen',       icon:'home',     route:'/mi-resumen' },
 ];
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  standalone: true,
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss'
 })
 export class ShellComponent {
   private readonly authService = inject(AuthService);
-
   readonly user = this.authService.currentUser;
-  readonly sidebarOpen = signal(true);
-  readonly navItems = NAV_ITEMS;
 
-  get visibleNavItems(): NavItem[] {
-    const role = this.user()?.role;
-    return this.navItems.filter(item =>
-      !item.roles || (role && item.roles.includes(role))
-    );
-  }
-
-  toggleSidebar(): void {
-    this.sidebarOpen.update(v => !v);
-  }
-
-  logout(): void {
-    this.authService.logout();
-  }
+  readonly navItems = computed<NavItem[]>(() => {
+    const role = this.user()?.role ?? '';
+    if (role === 'TenantOwner') return NAV_OWNER;
+    if (role === 'Cashier') return NAV_CASHIER;
+    if (role === 'Stylist') return NAV_STYLIST;
+    return NAV_OWNER;
+  });
 
   get userInitials(): string {
-    const name = this.user()?.fullName ?? '';
-    return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    return (this.user()?.fullName ?? '').split(' ').slice(0,2).map((w:string) => w[0]).join('').toUpperCase();
   }
+
+  get avatarColor(): string {
+    const colors = ['oklch(0.45 0.10 30)','oklch(0.55 0.07 25)','oklch(0.50 0.09 115)','oklch(0.50 0.16 250)'];
+    const idx = (this.user()?.id ?? 0) % colors.length;
+    return colors[idx];
+  }
+
+  logout(): void { this.authService.logout(); }
 }

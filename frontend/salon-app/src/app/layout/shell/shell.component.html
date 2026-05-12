@@ -1,69 +1,54 @@
-<div class="app-layout" [class.sidebar-collapsed]="!sidebarOpen()">
-
-  <!-- Sidebar -->
+<div class="app">
   <aside class="sidebar">
-    <div class="sidebar-header">
-      <span class="logo-icon">✂</span>
-      @if (sidebarOpen()) {
-        <span class="logo-text">SalonPro</span>
-      }
+    <div class="sidebar-brand">
+      <div class="brand-mark">Salon<em>Pro</em></div>
     </div>
 
-    <nav class="sidebar-nav">
-      @for (item of visibleNavItems; track item.route) {
-        <a
-          [routerLink]="item.route"
-          routerLinkActive="active"
-          class="nav-item"
-          [title]="!sidebarOpen() ? item.label : ''"
-        >
-          <span class="nav-icon">{{ item.icon }}</span>
-          @if (sidebarOpen()) {
-            <span class="nav-label">{{ item.label }}</span>
+    <div style="margin-bottom:14px;padding:0 8px">
+      <div class="eyebrow" style="font-size:9px;margin-bottom:6px">Salón actual</div>
+      <div style="font-size:12px;font-weight:500;color:var(--ink-2);padding:6px 8px;background:var(--paper);border:1px solid var(--hair);border-radius:6px">
+        {{ user()?.branchName || 'Sede Principal' }}
+      </div>
+    </div>
+
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      @for (item of navItems(); track item.id) {
+        <a [routerLink]="item.route" routerLinkActive="active" class="nav-item">
+          <sp-icon [name]="item.icon" [size]="15" />
+          <span class="label">{{ item.label }}</span>
+          @if (item.badge) {
+            <span class="badge">{{ item.badge }}</span>
           }
         </a>
       }
     </nav>
 
-    <div class="sidebar-footer">
-      <button class="toggle-btn" (click)="toggleSidebar()" [title]="sidebarOpen() ? 'Colapsar' : 'Expandir'">
-        {{ sidebarOpen() ? '◀' : '▶' }}
-      </button>
+    <div style="flex:1"></div>
+
+    <div style="padding:12px;border-top:1px solid var(--hair-2);margin-top:16px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="avatar" [style.background]="avatarColor">{{ userInitials }}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ user()?.fullName }}</div>
+          <div style="font-size:10px;color:var(--ink-4)">{{ user()?.role }}</div>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="logout()" title="Cerrar sesión">
+          <sp-icon name="logout" [size]="14" />
+        </button>
+      </div>
     </div>
   </aside>
 
-  <!-- Main area -->
-  <div class="main-area">
-
-    <!-- Header -->
-    <header class="top-header">
-      <div class="header-left">
-        @if (user()?.branchName) {
-          <span class="branch-badge">📍 {{ user()?.branchName }}</span>
-        }
-      </div>
-
-      <div class="header-right">
-        <div class="user-info">
-          <div class="user-avatar">{{ userInitials }}</div>
-          @if (true) {
-            <div class="user-details">
-              <span class="user-name">{{ user()?.fullName }}</span>
-              <span class="user-role">{{ user()?.role }}</span>
-            </div>
-          }
-        </div>
-
-        <button class="logout-btn" (click)="logout()" title="Cerrar sesión">
-          🚪
-        </button>
-      </div>
+  <main class="main">
+    <header class="topbar">
+      <div class="eyebrow" style="font-size:10px">{{ user()?.tenantName }} · {{ user()?.branchName }}</div>
+      <div style="flex:1"></div>
+      <button class="btn btn-icon btn-ghost"><sp-icon name="bell" [size]="15" /></button>
+      <button class="btn btn-icon btn-ghost"><sp-icon name="search" [size]="15" /></button>
     </header>
 
-    <!-- Page content -->
-    <main class="page-content">
+    <div class="scroll-area">
       <router-outlet />
-    </main>
-
-  </div>
+    </div>
+  </main>
 </div>

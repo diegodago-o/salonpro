@@ -1,54 +1,45 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { CajaService } from '../../core/services/caja.service';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 import { VentasService } from '../../core/services/ventas.service';
 import { Sale } from '../../core/models/ventas.models';
-import { CashRegister } from '../../core/models/caja.models';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CurrencyPipe, DatePipe, RouterLink],
+  standalone: true,
+  imports: [CurrencyPipe, DatePipe, IconComponent, RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
 export class DashboardComponent implements OnInit {
-  private readonly auth = inject(AuthService);
-  private readonly cajaService = inject(CajaService);
+  private readonly authService = inject(AuthService);
   private readonly ventasService = inject(VentasService);
+  private readonly router = inject(Router);
 
-  readonly user = this.auth.currentUser;
-  readonly cargando = signal(true);
-  readonly caja = signal<CashRegister | null>(null);
+  readonly user = this.authService.currentUser;
   readonly ventas = signal<Sale[]>([]);
+  readonly today = new Date();
 
-  readonly totalBruto = computed(() =>
-    this.ventas().filter(v => v.status === 'Active').reduce((s, v) => s + v.grossTotal, 0)
-  );
-  readonly totalSalon = computed(() =>
-    this.ventas().filter(v => v.status === 'Active').reduce((s, v) => s + v.salonTotal, 0)
-  );
-  readonly totalPeluqueros = computed(() =>
-    this.ventas().filter(v => v.status === 'Active').reduce((s, v) => s + v.stylistTotal, 0)
-  );
-  readonly countActivas = computed(() => this.ventas().filter(v => v.status === 'Active').length);
-  readonly ultimasVentas = computed(() => this.ventas().slice(0, 5));
-
-  readonly saludo = computed(() => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Buenos días';
-    if (h < 18) return 'Buenas tardes';
-    return 'Buenas noches';
+  readonly kpiHoy = computed(() => this.ventas().reduce((s, v) => s + v.grossTotal, 0));
+  readonly ticketPromedio = computed(() => {
+    const active = this.ventas().filter(v => v.status === 'Active');
+    return active.length ? Math.round(this.kpiHoy() / active.length) : 0;
   });
+  readonly ventasCount = computed(() => this.ventas().filter(v => v.status === 'Active').length);
 
-  readonly esPropietario = computed(() => this.user()?.role === 'TenantOwner');
+  readonly helloName = computed(() => this.user()?.fullName?.split(' ')[0] ?? 'Usuario');
+
+  readonly dayOfWeek = computed(() =>
+    this.today.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
+  );
 
   ngOnInit(): void {
-    this.cajaService.getCajaActual().subscribe(r => this.caja.set(r.data));
     this.ventasService.getVentasHoy().subscribe(r => {
-      this.ventas.set(r.data);
-      this.cargando.set(false);
+      if (r.success && r.data) this.ventas.set(r.data);
     });
   }
+
+  irAlPOS(): void { this.router.navigate(['/ventas']); }
 }

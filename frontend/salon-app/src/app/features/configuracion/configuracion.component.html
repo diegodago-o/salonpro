@@ -1,0 +1,171 @@
+<div class="page fade-in">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Sistema</div>
+      <h1><span class="serif">Configuración del</span> <span class="serif-italic">salón</span></h1>
+      <div class="deck">Datos · usuarios · políticas</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:220px 1fr;gap:24px">
+    <!-- Sidebar nav -->
+    <div>
+      @for (t of tabs; track t.key) {
+        <div [class]="'nav-item' + (tab() === t.key ? ' active' : '')" (click)="tab.set(t.key)" style="cursor:pointer">
+          <sp-icon [name]="t.icon" [size]="14" /><span>{{ t.label }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- Content -->
+    <div class="card" style="padding:32px">
+
+      <!-- DATOS DEL SALÓN -->
+      @if (tab() === 'salon') {
+        <div class="eyebrow">Datos del salón</div>
+        <h3 class="serif" style="margin:4px 0 24px;font-size:26px;font-weight:400">Información general</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <label class="field">
+            <span class="label">Nombre comercial</span>
+            <input class="input" [(ngModel)]="salonForm.nombre" />
+          </label>
+          <label class="field">
+            <span class="label">Razón social</span>
+            <input class="input" [(ngModel)]="salonForm.razonSocial" />
+          </label>
+          <label class="field">
+            <span class="label">Dirección</span>
+            <input class="input" [(ngModel)]="salonForm.direccion" />
+          </label>
+          <label class="field">
+            <span class="label">Ciudad</span>
+            <input class="input" [(ngModel)]="salonForm.ciudad" />
+          </label>
+          <label class="field">
+            <span class="label">Teléfono</span>
+            <input class="input" [(ngModel)]="salonForm.telefono" />
+          </label>
+          <label class="field">
+            <span class="label">NIT</span>
+            <input class="input mono" [(ngModel)]="salonForm.nit" />
+          </label>
+        </div>
+        <hr class="hr" style="margin:24px 0" />
+        <div class="eyebrow" style="margin-bottom:12px">Logo</div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="width:80px;height:80px;background:var(--ink);color:var(--bone);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:Fraunces,serif;font-size:24px;font-weight:300">
+            S<span style="color:var(--accent)">54</span>
+          </div>
+          <button class="btn btn-ghost"><sp-icon name="download" [size]="14" /> Cambiar logo</button>
+        </div>
+        <div style="margin-top:24px;display:flex;justify-content:flex-end">
+          <button class="btn btn-primary"><sp-icon name="check" [size]="14" /> Guardar cambios</button>
+        </div>
+      }
+
+      <!-- USUARIOS -->
+      @if (tab() === 'users') {
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px">
+          <div>
+            <div class="eyebrow">Equipo</div>
+            <h3 class="serif" style="margin:4px 0 0;font-size:26px;font-weight:400">Usuarios y accesos</h3>
+          </div>
+          <button class="btn btn-primary"><sp-icon name="plus" [size]="14" /> Invitar usuario</button>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Nombre</th><th>Rol</th><th>Comisión</th><th>Estado</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div style="display:flex;align-items:center;gap:10px"><span class="avatar">SM</span>Sofía Mejía</div></td>
+              <td>Dueña</td><td>—</td>
+              <td><span class="pill pill-success"><span class="pill-dot"></span>Activa</span></td>
+              <td><button class="btn btn-icon btn-ghost"><sp-icon name="edit" [size]="14" /></button></td>
+            </tr>
+            <tr>
+              <td><div style="display:flex;align-items:center;gap:10px"><span class="avatar">MF</span>María Fernández</div></td>
+              <td>Cajera</td><td>—</td>
+              <td><span class="pill pill-success"><span class="pill-dot"></span>Activa</span></td>
+              <td><button class="btn btn-icon btn-ghost"><sp-icon name="edit" [size]="14" /></button></td>
+            </tr>
+          </tbody>
+        </table>
+      }
+
+      <!-- COMISIONES -->
+      @if (tab() === 'commissions') {
+        <div class="eyebrow">Reglas</div>
+        <h3 class="serif" style="margin:4px 0 24px;font-size:26px;font-weight:400">Comisiones</h3>
+        <div style="padding:16px;background:var(--bone);border-radius:6px;margin-bottom:24px">
+          <div class="eyebrow" style="margin-bottom:8px">Por defecto</div>
+          <div style="font-size:13px;margin-bottom:8px">Salón / Peluquero</div>
+          <div class="bar" style="height:28px;border-radius:4px">
+            <div class="bar-fill" style="width:60%;background:var(--ink)"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--ink-3)">
+            <span>60% Salón</span><span>40% Peluquero</span>
+          </div>
+        </div>
+        <div class="eyebrow" style="margin-bottom:12px">Ajuste por peluquero</div>
+        <div style="padding:12px 14px;border-bottom:1px dashed var(--hair-2);display:flex;align-items:center;gap:14px;color:var(--ink-4);font-size:12px">
+          <span style="flex:1">Configura comisiones individuales en la sección de Usuarios</span>
+        </div>
+      }
+
+      <!-- POLÍTICAS -->
+      @if (tab() === 'policies') {
+        <div class="eyebrow">Reglas operativas</div>
+        <h3 class="serif" style="margin:4px 0 24px;font-size:26px;font-weight:400">Políticas</h3>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--bone);border-radius:6px">
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:500">Descontar consumo interno en liquidación</div>
+              <div style="font-size:12px;color:var(--ink-3);margin-top:2px">Restar el costo de los productos aplicados al calcular la comisión</div>
+            </div>
+            <div [class]="'toggle' + (policies().descontarConsumoInterno ? ' on' : '')"
+              (click)="togglePolicy('descontarConsumoInterno')"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--bone);border-radius:6px">
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:500">Cliente obligatorio en cada venta</div>
+              <div style="font-size:12px;color:var(--ink-3);margin-top:2px">Forzar registro de nombre o teléfono del cliente</div>
+            </div>
+            <div [class]="'toggle' + (policies().clienteObligatorio ? ' on' : '')"
+              (click)="togglePolicy('clienteObligatorio')"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--bone);border-radius:6px">
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:500">Permitir editar precio de servicios en el POS</div>
+              <div style="font-size:12px;color:var(--ink-3);margin-top:2px">El cajero puede ajustar el precio precargado en cada venta</div>
+            </div>
+            <div [class]="'toggle' + (policies().editarPrecioEnPOS ? ' on' : '')"
+              (click)="togglePolicy('editarPrecioEnPOS')"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--bone);border-radius:6px">
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:500">Imprimir recibo automáticamente</div>
+              <div style="font-size:12px;color:var(--ink-3);margin-top:2px">Al confirmar una venta, enviar a la impresora térmica</div>
+            </div>
+            <div [class]="'toggle' + (policies().imprimirReciboAuto ? ' on' : '')"
+              (click)="togglePolicy('imprimirReciboAuto')"></div>
+          </div>
+        </div>
+      }
+
+      <!-- MÉTODOS DE PAGO -->
+      @if (tab() === 'payments') {
+        <div class="eyebrow">Métodos habilitados</div>
+        <h3 class="serif" style="margin:4px 0 24px;font-size:26px;font-weight:400">Pagos aceptados</h3>
+        @for (m of [{label:'Efectivo',icon:'cash'},{label:'Tarjeta débito',icon:'card'},{label:'Tarjeta crédito',icon:'card'},{label:'Transferencia',icon:'transfer'},{label:'Nequi / Daviplata',icon:'phone'}]; track m.label) {
+          <div style="display:flex;align-items:center;gap:14px;padding:14px;border-bottom:1px dashed var(--hair-2)">
+            <div style="width:36px;height:36px;background:var(--bone);border-radius:6px;display:flex;align-items:center;justify-content:center">
+              <sp-icon [name]="m.icon" [size]="16" />
+            </div>
+            <div style="flex:1;font-size:13px;font-weight:500">{{ m.label }}</div>
+            <div class="toggle on"></div>
+          </div>
+        }
+      }
+
+    </div>
+  </div>
+</div>

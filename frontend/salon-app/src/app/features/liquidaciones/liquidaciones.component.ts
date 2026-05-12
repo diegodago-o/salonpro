@@ -5,12 +5,13 @@ import { LiquidacionesService } from '../../core/services/liquidaciones.service'
 import { VentasService } from '../../core/services/ventas.service';
 import { LiquidacionDetalle, LiquidacionResumen } from '../../core/models/liquidaciones.models';
 import { StylistOption } from '../../core/models/ventas.models';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 type Vista = 'lista' | 'nueva' | 'detalle';
 
 @Component({
   selector: 'app-liquidaciones',
-  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe],
+  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, IconComponent],
   templateUrl: './liquidaciones.component.html',
   styleUrl: './liquidaciones.component.scss'
 })

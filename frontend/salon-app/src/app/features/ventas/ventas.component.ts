@@ -9,12 +9,13 @@ import {
   ServiceOption, StylistOption, Sale
 } from '../../core/models/ventas.models';
 import { calculateSale } from '../../core/utils/sale-calculator';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 type Vista = 'lista' | 'nueva-venta' | 'anular';
 
 @Component({
   selector: 'app-ventas',
-  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, DecimalPipe],
+  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, DecimalPipe, IconComponent],
   templateUrl: './ventas.component.html',
   styleUrl: './ventas.component.scss'
 })
@@ -118,6 +119,12 @@ export class VentasComponent implements OnInit {
 
   readonly hayServicios = computed(() => this.items().some(i => i.type === 'Service'));
 
+  // ── Step wizard ───────────────────────────────────────
+  readonly step = signal(0);
+  readonly ventaExitosa = signal(false);
+  readonly folioVenta = signal('');
+  readonly ventaExitosaData = signal<{ total: number; stylistTotal: number; salonTotal: number; stylistName: string } | null>(null);
+
   readonly puedeRegistrar = computed(() =>
     this.formClienteValido()
     && this.formVentaValido()
@@ -191,6 +198,8 @@ export class VentasComponent implements OnInit {
 
   nuevaVenta(): void {
     this.resetFormulario();
+    this.step.set(0);
+    this.ventaExitosa.set(false);
     this.vista.set('nueva-venta');
     this.errorMsg.set(null);
   }
@@ -343,12 +352,17 @@ export class VentasComponent implements OnInit {
     };
 
     this.ventasService.crearVenta(request).subscribe({
-      next: () => {
+      next: (r: any) => {
         this.cargarVentas();
-        this.successMsg.set('Venta registrada correctamente');
-        this.vista.set('lista');
+        this.ventaExitosaData.set({
+          total: this.totalACobrar(),
+          stylistTotal: this.calculo().stylistTotal,
+          salonTotal: this.calculo().salonTotal,
+          stylistName: this.peluqueroSeleccionado()?.fullName ?? ''
+        });
+        this.folioVenta.set('V-' + Date.now());
+        this.ventaExitosa.set(true);
         this.guardando.set(false);
-        setTimeout(() => this.successMsg.set(null), 4000);
       },
       error: () => {
         this.errorMsg.set('Error al guardar la venta. Intenta de nuevo.');
@@ -384,6 +398,24 @@ export class VentasComponent implements OnInit {
     this.vista.set('lista');
   }
 
+  // ── Step navigation ───────────────────────────────────
+  canNext(): boolean {
+    if (this.step() === 0) return !!this.peluqueroSeleccionado();
+    if (this.step() === 1) return this.hayServicios();
+    if (this.step() === 3) return this.pagosValidos();
+    return true;
+  }
+
+  nextStep(): void { if (this.canNext()) this.step.update(s => Math.min(4, s + 1)); }
+  prevStep(): void { this.step.update(s => Math.max(0, s - 1)); }
+
+  nuevaVentaDesdeExito(): void {
+    this.resetFormulario();
+    this.step.set(0);
+    this.ventaExitosa.set(false);
+    this.ventaExitosaData.set(null);
+  }
+
   // ── Helpers ───────────────────────────────────────────
   private resetFormulario(): void {
     this.formCliente.reset({ documentType: 'CC' });
@@ -396,6 +428,10 @@ export class VentasComponent implements OnInit {
     this.peluqueroSeleccionado.set(null);
     this.filtroServicio.set('');
     this.categoriaServicio.set('Todos');
+    this.filtroProductoVenta.set('');
+    this.ventaExitosa.set(false);
+    this.ventaExitosaData.set(null);
+    this.folioVenta.set('');
   }
 
   itemsServicio()        { return this.items().filter(i => i.type === 'Service') as SaleServiceItem[]; }
