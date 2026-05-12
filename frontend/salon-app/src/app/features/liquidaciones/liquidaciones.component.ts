@@ -62,7 +62,8 @@ export class LiquidacionesComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.guardando.set(true);
     const { stylistId, startDate, endDate } = this.form.value;
-    this.liqService.crearLiquidacion({ stylistId: stylistId!, startDate: startDate!, endDate: endDate! }).subscribe({
+    const stylistName = this.peluqueros().find(p => p.id === stylistId)?.fullName ?? '';
+    this.liqService.crearLiquidacion({ stylistId: stylistId!, stylistName, startDate: startDate!, endDate: endDate! }).subscribe({
       next: () => {
         this.cargar();
         this.mostrarMsg('ok', 'Liquidación creada');

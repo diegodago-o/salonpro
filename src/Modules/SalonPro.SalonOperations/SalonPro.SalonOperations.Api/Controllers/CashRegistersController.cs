@@ -14,9 +14,11 @@ namespace SalonPro.SalonOperations.Api.Controllers;
 public class CashRegistersController(IMediator mediator) : ControllerBase
 {
     private int GetTenantId() => int.Parse(User.FindFirst("tenantId")?.Value ?? "0");
+    private int GetBranchId() => int.Parse(User.FindFirst("branchId")?.Value ?? "0");
+    private string GetBranchName() => User.FindFirst("branchName")?.Value ?? "";
     private int GetUserId() => int.Parse(User.FindFirst("sub")?.Value
         ?? User.FindFirst("userId")?.Value ?? "0");
-    private string GetUserName() => User.FindFirst("name")?.Value
+    private string GetUserName() => User.FindFirst("fullName")?.Value
         ?? User.Identity?.Name ?? "Unknown";
 
     [HttpGet("current")]
@@ -45,7 +47,7 @@ public class CashRegistersController(IMediator mediator) : ControllerBase
         [FromBody] OpenCashRegisterRequest request, CancellationToken ct)
     {
         var result = await mediator.Send(
-            new OpenCashRegisterCommand(GetTenantId(), GetUserId(), GetUserName(), request), ct);
+            new OpenCashRegisterCommand(GetTenantId(), GetBranchId(), GetBranchName(), GetUserId(), GetUserName(), request), ct);
         return CreatedAtAction(nameof(GetCurrent), ApiResponse<CashRegisterDto>.Ok(result, "Caja abierta."));
     }
 

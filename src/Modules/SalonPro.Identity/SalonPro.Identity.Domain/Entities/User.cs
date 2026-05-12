@@ -60,6 +60,13 @@ public class User
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void SetLocationInfo(string? branchName, string? tenantName)
+    {
+        BranchName = branchName;
+        TenantName = tenantName;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void UpdateCommission(decimal commissionPercent)
     {
         CommissionPercent = commissionPercent;

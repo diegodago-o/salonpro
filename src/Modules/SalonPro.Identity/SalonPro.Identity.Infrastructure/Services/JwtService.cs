@@ -35,6 +35,12 @@ public class JwtService(IConfiguration config) : IJwtService
         if (user.BranchId.HasValue)
             claims.Add(new Claim("branchId", user.BranchId.Value.ToString()));
 
+        if (!string.IsNullOrEmpty(user.BranchName))
+            claims.Add(new Claim("branchName", user.BranchName));
+
+        if (!string.IsNullOrEmpty(user.TenantName))
+            claims.Add(new Claim("tenantName", user.TenantName));
+
         var token = new JwtSecurityToken(
             issuer: config["Jwt:Issuer"],
             audience: config["Jwt:Audience"],

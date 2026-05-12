@@ -331,6 +331,7 @@ export class VentasComponent implements OnInit {
 
     const request = {
       stylistId: vv.stylistId!,
+      stylistName: this.peluqueroSeleccionado()?.fullName ?? '',
       clientDocumentType: cv.documentType!, clientDocumentNumber: cv.documentNumber!,
       clientFullName: cv.fullName!, clientEmail: cv.email!, clientPhone: cv.phone!,
       payments: this.pagos().filter(p => p.paymentMethodId && p.amount > 0).map(p => ({ paymentMethodId: p.paymentMethodId!, amount: p.amount })),
@@ -338,7 +339,7 @@ export class VentasComponent implements OnInit {
       notes: vv.notes ?? undefined,
       services: expandir('Service', i => ({ serviceId: (i as SaleServiceItem).serviceId, price: i.price })),
       productsSold: expandir('ProductSale', i => ({ productId: (i as SaleProductItem).productId, price: i.price })),
-      productsInternal: expandir('ProductInternal', i => ({ productId: (i as SaleProductItem).productId, purchasePrice: i.price })),
+      productsInternal: expandir('ProductInternal', i => ({ productId: (i as SaleProductItem).productId, price: i.price })),
     };
 
     this.ventasService.crearVenta(request).subscribe({

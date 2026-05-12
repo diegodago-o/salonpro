@@ -38,6 +38,7 @@ export interface LiquidacionDetalle extends LiquidacionResumen {
 
 export interface CreateLiquidacionRequest {
   stylistId: number;
+  stylistName: string;
   startDate: string;
   endDate: string;
 }

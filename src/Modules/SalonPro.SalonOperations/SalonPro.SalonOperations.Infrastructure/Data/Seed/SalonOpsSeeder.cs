@@ -70,11 +70,11 @@ public static class SalonOpsSeeder
         int branchId = mainBranch.Id;
 
         // ── 2. Usuarios demo ─────────────────────────────────────────────────
+        const string branchName = "Sede Principal";
+        const string tenantName = "Salón Demo";
+
         if (!await identityDb.Users.AnyAsync(u => u.TenantId == tenantId))
         {
-            const string branchName = "Sede Principal";
-            const string tenantName = "Salón Demo";
-
             var users = new[]
             {
                 User.Create("Dueño Demo",      "dueno@demo.com",   hasher.Hash("Owner2026!"),   UserRole.TenantOwner, tenantId, branchId, branchName: branchName, tenantName: tenantName),
@@ -87,6 +87,21 @@ public static class SalonOpsSeeder
             await identityDb.Users.AddRangeAsync(users);
             await identityDb.SaveChangesAsync();
             logger.LogInformation("✓ Usuarios demo creados para tenant {Id}", tenantId);
+        }
+        else
+        {
+            // Patch existing users that were created before BranchName/TenantName columns existed
+            var usersToFix = await identityDb.Users
+                .Where(u => u.TenantId == tenantId && (u.BranchName == null || u.TenantName == null))
+                .ToListAsync();
+
+            if (usersToFix.Count > 0)
+            {
+                foreach (var u in usersToFix)
+                    u.SetLocationInfo(branchName, tenantName);
+                await identityDb.SaveChangesAsync();
+                logger.LogInformation("✓ Actualizados {Count} usuarios con BranchName/TenantName", usersToFix.Count);
+            }
         }
 
         // ── 3. Métodos de pago ───────────────────────────────────────────────

@@ -6,9 +6,9 @@ using SalonPro.Shared.Exceptions;
 
 namespace SalonPro.SalonOperations.Application.Commands;
 
-public record OpenCashRegisterRequest(int BranchId, string BranchName, decimal OpeningBalance, string? Notes);
+public record OpenCashRegisterRequest(decimal OpeningBalance, string? Notes);
 
-public record OpenCashRegisterCommand(int TenantId, int CashierId, string CashierName, OpenCashRegisterRequest Request)
+public record OpenCashRegisterCommand(int TenantId, int BranchId, string BranchName, int CashierId, string CashierName, OpenCashRegisterRequest Request)
     : IRequest<CashRegisterDto>;
 
 public class OpenCashRegisterHandler(ICashRegisterRepository repo)
@@ -22,7 +22,7 @@ public class OpenCashRegisterHandler(ICashRegisterRepository repo)
             throw new ConflictException("Ya existe una caja abierta para este tenant.");
 
         var req = cmd.Request;
-        var cr = CashRegister.Open(cmd.TenantId, req.BranchId, req.BranchName,
+        var cr = CashRegister.Open(cmd.TenantId, cmd.BranchId, cmd.BranchName,
             cmd.CashierId, cmd.CashierName, req.OpeningBalance, req.Notes);
         await repo.AddAsync(cr, ct);
         await repo.SaveChangesAsync(ct);

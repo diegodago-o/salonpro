@@ -105,6 +105,7 @@ export interface PaymentEntry {
 // Request para crear venta
 export interface CreateSaleRequest {
   stylistId: number;
+  stylistName: string;
   clientDocumentType: string;
   clientDocumentNumber: string;
   clientFullName: string;
@@ -115,7 +116,7 @@ export interface CreateSaleRequest {
   notes?: string;
   services: { serviceId: number; price: number }[];
   productsSold: { productId: number; price: number }[];
-  productsInternal: { productId: number; purchasePrice: number }[];
+  productsInternal: { productId: number; price: number }[];
 }
 
 // Venta completa (response)
