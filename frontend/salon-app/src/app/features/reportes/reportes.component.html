@@ -1,0 +1,108 @@
+<div class="page">
+
+  <div class="page-header">
+    <h1 class="page-title">📊 Reportes</h1>
+  </div>
+
+  <!-- Filtro de período -->
+  <div class="periodo-card card" [formGroup]="form">
+    <div class="periodo-row">
+      <div class="field-group">
+        <label class="field-label">Desde</label>
+        <input type="date" formControlName="desde" class="field-input" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Hasta</label>
+        <input type="date" formControlName="hasta" class="field-input" />
+      </div>
+      <button class="btn-primary" (click)="buscar()" [disabled]="cargando()">
+        {{ cargando() ? 'Cargando...' : '🔍 Buscar' }}
+      </button>
+    </div>
+  </div>
+
+  @if (!cargando() && ventas().length > 0) {
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Ventas</div><div class="kpi-value">{{ countVentas() }}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Total bruto</div><div class="kpi-value">{{ totalBruto() | currency:'COP':'symbol-narrow':'1.0-0' }}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Deducciones</div><div class="kpi-value text-danger">−{{ totalDeduciones() | currency:'COP':'symbol-narrow':'1.0-0' }}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Neto salón</div><div class="kpi-value salon-color">{{ totalSalon() | currency:'COP':'symbol-narrow':'1.0-0' }}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Neto peluqueros</div><div class="kpi-value stylist-color">{{ totalPeluqueros() | currency:'COP':'symbol-narrow':'1.0-0' }}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Total propinas</div><div class="kpi-value">{{ totalPropinas() | currency:'COP':'symbol-narrow':'1.0-0' }}</div></div>
+    </div>
+
+    <div class="reportes-grid">
+
+      <!-- Por peluquero -->
+      <div class="card reporte-card">
+        <h3 class="reporte-title">Por peluquero</h3>
+        <table class="data-table">
+          <thead>
+            <tr><th>Peluquero</th><th class="text-right">Ventas</th><th class="text-right">Bruto</th><th class="text-right">Comisión</th></tr>
+          </thead>
+          <tbody>
+            @for (p of porPeluquero(); track p.name) {
+              <tr>
+                <td class="name-cell">{{ p.name }}</td>
+                <td class="text-right">{{ p.ventas }}</td>
+                <td class="text-right">{{ p.bruto | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                <td class="text-right stylist-color">{{ p.comision | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Por método de pago -->
+      <div class="card reporte-card">
+        <h3 class="reporte-title">Por método de pago</h3>
+        <table class="data-table">
+          <thead>
+            <tr><th>Método</th><th class="text-right">Ventas</th><th class="text-right">Monto total</th></tr>
+          </thead>
+          <tbody>
+            @for (m of porMetodoPago(); track m.name) {
+              <tr>
+                <td>{{ m.name }}</td>
+                <td class="text-right">{{ m.ventas }}</td>
+                <td class="text-right">{{ m.monto | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- Detalle de ventas -->
+    <div class="card" style="margin-top:1.5rem">
+      <h3 class="reporte-title" style="margin-bottom:0.75rem">Detalle de ventas</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Fecha</th><th>Cliente</th><th>Peluquero</th><th>Método pago</th><th class="text-right">Bruto</th><th class="text-right">Salón</th><th>Estado</th></tr>
+          </thead>
+          <tbody>
+            @for (v of activas(); track v.id) {
+              <tr>
+                <td>{{ v.saleDateTime | date:'dd/MM HH:mm' }}</td>
+                <td>{{ v.clientName }}</td>
+                <td>{{ v.stylistName }}</td>
+                <td>{{ v.paymentMethodName }}</td>
+                <td class="text-right">{{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                <td class="text-right salon-color">{{ v.salonTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                <td><span class="badge badge-active">Activa</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  } @else if (!cargando() && ventas().length === 0) {
+    <div class="empty card">Sin ventas en el período seleccionado.</div>
+  }
+
+</div>

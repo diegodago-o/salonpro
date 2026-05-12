@@ -1,0 +1,128 @@
+<div class="page">
+
+  <div class="page-header">
+    <h1 class="page-title">📦 Productos</h1>
+    @if (vista() === 'lista' && esPropietario()) {
+      <button class="btn-primary" (click)="abrirNuevo()">+ Nuevo producto</button>
+    }
+  </div>
+
+  @if (msg()) {
+    <div class="alert" [class.alert-ok]="msg()!.type==='ok'" [class.alert-err]="msg()!.type==='err'">{{ msg()!.text }}</div>
+  }
+
+  <!-- ── LISTA ── -->
+  @if (vista() === 'lista') {
+    <div class="card">
+      <div class="toolbar">
+        <input type="text" class="search-input" placeholder="Buscar producto, marca o categoría..."
+          [value]="filtro()" (input)="filtro.set($any($event.target).value)" />
+        <label class="toggle-label">
+          <input type="checkbox" [checked]="soloActivos()" (change)="soloActivos.set($any($event.target).checked)" />
+          Solo activos
+        </label>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre</th><th>Marca</th><th>Categoría</th>
+              <th class="text-right">Costo</th><th class="text-right">Precio venta</th>
+              <th class="text-right">Stock</th><th>Venta</th><th>Estado</th>
+              @if (esPropietario()) { <th></th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of productosFiltrados(); track p.id) {
+              <tr [class.inactive]="!p.isActive">
+                <td class="name-cell">{{ p.name }}</td>
+                <td>{{ p.brand }}</td>
+                <td><span class="cat-badge">{{ p.category }}</span></td>
+                <td class="text-right">{{ p.purchasePrice | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                <td class="text-right">{{ p.isForSale ? (p.salePrice | currency:'COP':'symbol-narrow':'1.0-0') : '—' }}</td>
+                <td class="text-right" [class.stock-low]="p.stock <= 3">{{ p.stock }}</td>
+                <td><span class="status-dot" [class.active]="p.isForSale">{{ p.isForSale ? 'Sí' : 'No' }}</span></td>
+                <td><span class="status-dot" [class.active]="p.isActive">{{ p.isActive ? 'Activo' : 'Inactivo' }}</span></td>
+                @if (esPropietario()) {
+                  <td class="actions-cell">
+                    <button class="btn-sm" (click)="abrirEditar(p)">Editar</button>
+                    <button class="btn-sm" (click)="abrirStock(p)">Stock</button>
+                    <button class="btn-sm btn-sm-danger" (click)="toggleActivo(p)">{{ p.isActive ? 'Desact.' : 'Activar' }}</button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ── FORM producto ── -->
+  @if (vista() === 'form') {
+    <div class="form-container">
+      <button class="btn-back" (click)="volver()">← Volver</button>
+      <div class="card form-card">
+        <h2 class="form-title">{{ editando() ? 'Editar producto' : 'Nuevo producto' }}</h2>
+        <div [formGroup]="form" class="form-grid">
+          <div class="field-group full-width">
+            <label class="field-label">Nombre *</label>
+            <input type="text" formControlName="name" class="field-input" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Marca *</label>
+            <input type="text" formControlName="brand" class="field-input" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Categoría *</label>
+            <input type="text" formControlName="category" class="field-input" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Precio de compra *</label>
+            <div class="prefix-wrap"><span class="prefix">$</span><input type="number" formControlName="purchasePrice" class="field-input" min="0" /></div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Stock *</label>
+            <input type="number" formControlName="stock" class="field-input" min="0" />
+          </div>
+          <div class="field-group">
+            <label class="toggle-label field-label">
+              <input type="checkbox" formControlName="isForSale" /> ¿Se vende al público?
+            </label>
+          </div>
+          @if (form.get('isForSale')!.value) {
+            <div class="field-group">
+              <label class="field-label">Precio de venta</label>
+              <div class="prefix-wrap"><span class="prefix">$</span><input type="number" formControlName="salePrice" class="field-input" min="0" /></div>
+            </div>
+          }
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="volver()">Cancelar</button>
+          <button class="btn-primary" (click)="guardar()" [disabled]="form.invalid || guardando()">{{ guardando() ? 'Guardando...' : 'Guardar' }}</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── AJUSTE STOCK ── -->
+  @if (vista() === 'stock' && editando()) {
+    <div class="form-container">
+      <button class="btn-back" (click)="volver()">← Volver</button>
+      <div class="card form-card" style="max-width: 400px">
+        <h2 class="form-title">Ajustar stock — {{ editando()!.name }}</h2>
+        <p class="stock-actual">Stock actual: <strong>{{ editando()!.stock }}</strong> unidades</p>
+        <div class="field-group">
+          <label class="field-label">Nuevo stock</label>
+          <input type="number" class="field-input" [value]="nuevoStock()"
+            (input)="nuevoStock.set(+$any($event.target).value)" min="0" />
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="volver()">Cancelar</button>
+          <button class="btn-primary" (click)="guardarStock()">Guardar stock</button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

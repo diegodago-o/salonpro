@@ -1,0 +1,159 @@
+<div class="page">
+
+  <div class="page-header">
+    <h1 class="page-title">📋 Liquidaciones</h1>
+    @if (vista() === 'lista') {
+      <button class="btn-primary" (click)="abrirNueva()">+ Nueva liquidación</button>
+    }
+  </div>
+
+  @if (msg()) {
+    <div class="alert" [class.alert-ok]="msg()!.type==='ok'" [class.alert-err]="msg()!.type==='err'">{{ msg()!.text }}</div>
+  }
+
+  <!-- ── LISTA ── -->
+  @if (vista() === 'lista') {
+
+    @if (abiertas().length > 0) {
+      <h2 class="section-sub">Abiertas</h2>
+      <div class="liq-grid">
+        @for (l of abiertas(); track l.id) {
+          <div class="liq-card open">
+            <div class="liq-header">
+              <span class="liq-stylist">{{ l.stylistName }}</span>
+              <span class="liq-status open">Abierta</span>
+            </div>
+            <div class="liq-period">{{ l.startDate | date:'dd/MM/yy' }} — {{ l.endDate | date:'dd/MM/yy' }}</div>
+            <div class="liq-ventas">{{ l.totalVentas }} ventas</div>
+            <div class="liq-neto">
+              <span>Neto peluquero</span>
+              <strong class="stylist-color">{{ l.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+            </div>
+            <div class="liq-actions">
+              <button class="btn-sm" (click)="verDetalle(l)">Ver detalle</button>
+              <button class="btn-sm btn-sm-ok" (click)="cerrar(l)">Cerrar</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (cerradas().length > 0) {
+      <h2 class="section-sub">Cerradas</h2>
+      <div class="table-wrap card">
+        <table class="data-table">
+          <thead>
+            <tr><th>Peluquero</th><th>Período</th><th class="text-right">Ventas</th><th class="text-right">Bruto servicios</th><th class="text-right">Neto peluquero</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (l of cerradas(); track l.id) {
+              <tr>
+                <td class="name-cell">{{ l.stylistName }}</td>
+                <td>{{ l.startDate | date:'dd/MM/yy' }} — {{ l.endDate | date:'dd/MM/yy' }}</td>
+                <td class="text-right">{{ l.totalVentas }}</td>
+                <td class="text-right">{{ l.grossServices | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                <td class="text-right stylist-color"><strong>{{ l.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></td>
+                <td><button class="btn-sm" (click)="verDetalle(l)">Ver</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <!-- ── NUEVA LIQUIDACIÓN ── -->
+  @if (vista() === 'nueva') {
+    <div class="form-container">
+      <button class="btn-back" (click)="volver()">← Volver</button>
+      <div class="card form-card" style="max-width: 500px">
+        <h2 class="form-title">Nueva liquidación</h2>
+        <div [formGroup]="form" class="form-grid">
+          <div class="field-group full-width">
+            <label class="field-label">Peluquero *</label>
+            <select formControlName="stylistId" class="field-input">
+              <option [ngValue]="null">— Selecciona —</option>
+              @for (p of peluqueros(); track p.id) {
+                <option [ngValue]="p.id">{{ p.fullName }}</option>
+              }
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Desde *</label>
+            <input type="date" formControlName="startDate" class="field-input" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Hasta *</label>
+            <input type="date" formControlName="endDate" class="field-input" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="volver()">Cancelar</button>
+          <button class="btn-primary" (click)="crear()" [disabled]="form.invalid || guardando()">
+            {{ guardando() ? 'Creando...' : 'Crear liquidación' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── DETALLE ── -->
+  @if (vista() === 'detalle' && detalle()) {
+    <div class="detalle-container">
+      <button class="btn-back" (click)="volver()">← Volver</button>
+      <div class="detalle-header card">
+        <div class="detalle-title-row">
+          <h2>{{ detalle()!.stylistName }}</h2>
+          <span class="liq-status" [class.open]="detalle()!.status==='Open'" [class.closed]="detalle()!.status==='Closed'">
+            {{ detalle()!.status === 'Open' ? 'Abierta' : 'Cerrada' }}
+          </span>
+        </div>
+        <p class="detalle-period">{{ detalle()!.startDate | date:'dd/MM/yyyy' }} — {{ detalle()!.endDate | date:'dd/MM/yyyy' }}</p>
+
+        <div class="resumen-grid">
+          <div class="res-item"><span>Ventas</span><strong>{{ detalle()!.totalVentas }}</strong></div>
+          <div class="res-item"><span>Bruto servicios</span><strong>{{ detalle()!.grossServices | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
+          <div class="res-item"><span>Bruto productos</span><strong>{{ detalle()!.grossProducts | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
+          <div class="res-item text-danger"><span>Deducciones</span><strong>−{{ detalle()!.totalDeductions | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
+          <div class="res-item"><span>Comisión servicios</span><strong>{{ detalle()!.commServices | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
+          <div class="res-item"><span>Comisión productos</span><strong>{{ detalle()!.commProducts | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
+          <div class="res-item"><span>Propinas</span><strong>{{ detalle()!.totalTips | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
+          <div class="res-item text-danger"><span>Consumo interno</span><strong>−{{ detalle()!.internalConsumption | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
+          <div class="res-item text-danger"><span>Anticipos aplicados</span><strong>−{{ detalle()!.anticiposAplicados | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
+          <div class="res-item res-neto"><span>NETO PELUQUERO</span><strong class="stylist-color">{{ detalle()!.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
+        </div>
+
+        @if (detalle()!.status === 'Open') {
+          <button class="btn-primary" style="margin-top:1rem" (click)="cerrar(detalle()!)">Cerrar liquidación</button>
+        }
+      </div>
+
+      @if (detalle()!.ventas.length > 0) {
+        <div class="card" style="margin-top:1rem">
+          <h3 class="section-sub" style="margin-bottom:0.75rem">Detalle de ventas</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Fecha</th><th>Cliente</th><th class="text-right">Bruto</th><th class="text-right">Deducción</th><th class="text-right">Comisión</th><th class="text-right">Propina</th><th class="text-right">Consumo int.</th></tr>
+              </thead>
+              <tbody>
+                @for (v of detalle()!.ventas; track v.saleId) {
+                  <tr>
+                    <td>{{ v.saleDateTime | date:'dd/MM HH:mm' }}</td>
+                    <td>{{ v.clientName }}</td>
+                    <td class="text-right">{{ (v.grossServices + v.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                    <td class="text-right text-danger">−{{ v.deduction | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                    <td class="text-right stylist-color">{{ (v.commServices + v.commProducts) | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                    <td class="text-right">{{ v.tip | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                    <td class="text-right text-danger">−{{ v.internalConsumption | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+</div>

@@ -1,0 +1,125 @@
+<div class="dashboard-page">
+
+  <div class="dash-header">
+    <div>
+      <h1 class="dash-title">{{ saludo() }}, {{ user()?.fullName?.split(' ')?.[0] }} 👋</h1>
+      <p class="dash-sub">{{ user()?.branchName }} · Hoy {{ ('' | date:'EEEE d MMMM':'':'es') ?? '' }}</p>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card" [class.kpi-ok]="caja()?.status === 'Open'" [class.kpi-warn]="!caja()">
+      <div class="kpi-icon">🏦</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Caja</div>
+        <div class="kpi-value kpi-text">{{ caja()?.status === 'Open' ? 'Abierta' : 'Cerrada' }}</div>
+      </div>
+      <a routerLink="/caja" class="kpi-link">Ir a caja →</a>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon">🛒</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Ventas hoy</div>
+        <div class="kpi-value">{{ countActivas() }}</div>
+      </div>
+      <a routerLink="/ventas" class="kpi-link">Ver ventas →</a>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Total bruto</div>
+        <div class="kpi-value">{{ totalBruto() | currency:'COP':'symbol-narrow':'1.0-0' }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon">🏪</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Neto salón</div>
+        <div class="kpi-value salon-color">{{ totalSalon() | currency:'COP':'symbol-narrow':'1.0-0' }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon">💇</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Neto peluqueros</div>
+        <div class="kpi-value stylist-color">{{ totalPeluqueros() | currency:'COP':'symbol-narrow':'1.0-0' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accesos rápidos -->
+  <div class="accesos-section">
+    <h2 class="section-title">Accesos rápidos</h2>
+    <div class="accesos-grid">
+      <a routerLink="/ventas" class="acceso-card acceso-primary">
+        <span class="acceso-icon">🛒</span>
+        <span class="acceso-label">Nueva venta</span>
+      </a>
+      <a routerLink="/clientes" class="acceso-card">
+        <span class="acceso-icon">👥</span>
+        <span class="acceso-label">Clientes</span>
+      </a>
+      <a routerLink="/anticipos" class="acceso-card">
+        <span class="acceso-icon">💵</span>
+        <span class="acceso-label">Anticipos</span>
+      </a>
+      @if (esPropietario()) {
+        <a routerLink="/liquidaciones" class="acceso-card">
+          <span class="acceso-icon">📋</span>
+          <span class="acceso-label">Liquidaciones</span>
+        </a>
+        <a routerLink="/reportes" class="acceso-card">
+          <span class="acceso-icon">📊</span>
+          <span class="acceso-label">Reportes</span>
+        </a>
+      }
+    </div>
+  </div>
+
+  <!-- Últimas ventas -->
+  <div class="ventas-section">
+    <div class="section-header">
+      <h2 class="section-title">Ventas de hoy</h2>
+      <a routerLink="/ventas" class="ver-mas">Ver todas →</a>
+    </div>
+    @if (cargando()) {
+      <div class="loading-state">Cargando...</div>
+    } @else if (ultimasVentas().length === 0) {
+      <div class="empty-state">Sin ventas registradas hoy.</div>
+    } @else {
+      <div class="ventas-tabla-wrap">
+        <table class="ventas-tabla">
+          <thead>
+            <tr>
+              <th>#</th><th>Hora</th><th>Cliente</th><th>Peluquero</th>
+              <th class="text-right">Bruto</th><th class="text-right">Salón</th><th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of ultimasVentas(); track v.id) {
+              <tr [class.voided]="v.status === 'Voided'">
+                <td class="id-cell">{{ v.id }}</td>
+                <td>{{ v.saleDateTime | date:'HH:mm' }}</td>
+                <td>{{ v.clientName }}</td>
+                <td>{{ v.stylistName }}</td>
+                <td class="text-right">{{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                <td class="text-right salon-color">{{ v.salonTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                <td>
+                  <span class="badge" [class.badge-active]="v.status==='Active'" [class.badge-voided]="v.status==='Voided'">
+                    {{ v.status === 'Active' ? 'Activa' : 'Anulada' }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+</div>

@@ -1,0 +1,81 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="logo">
+        <span class="logo-icon">✂</span>
+        <span class="logo-text">SalonPro</span>
+      </div>
+      <p class="login-subtitle">Inicia sesión para continuar</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form" novalidate>
+
+      @if (errorMessage()) {
+        <div class="alert alert-error">
+          <span class="alert-icon">⚠</span>
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <div class="field-group">
+        <label for="email" class="field-label">Correo electrónico</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          class="field-input"
+          [class.is-invalid]="email.invalid && email.touched"
+          placeholder="usuario@salon.com"
+          autocomplete="email"
+        />
+        @if (email.touched && email.hasError('required')) {
+          <span class="field-error">El correo es obligatorio</span>
+        } @else if (email.touched && email.hasError('email')) {
+          <span class="field-error">Ingresa un correo válido</span>
+        }
+      </div>
+
+      <div class="field-group">
+        <label for="password" class="field-label">Contraseña</label>
+        <div class="input-wrapper">
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            class="field-input"
+            [class.is-invalid]="password.invalid && password.touched"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          />
+          <button type="button" class="toggle-password" (click)="togglePassword()">
+            {{ showPassword() ? '🙈' : '👁' }}
+          </button>
+        </div>
+        @if (password.touched && password.hasError('required')) {
+          <span class="field-error">La contraseña es obligatoria</span>
+        }
+      </div>
+
+      <button
+        type="submit"
+        class="btn-login"
+        [disabled]="loading()"
+      >
+        @if (loading()) {
+          <span class="spinner"></span>
+          Iniciando sesión...
+        } @else {
+          Iniciar sesión
+        }
+      </button>
+
+    </form>
+
+    @if (!isProd) {
+      <div class="dev-hint">
+        <strong>Modo desarrollo</strong><br>
+        admin&#64;demo.com / demo123
+      </div>
+    }
+  </div>
+</div>

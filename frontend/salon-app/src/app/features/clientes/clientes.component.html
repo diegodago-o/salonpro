@@ -1,0 +1,107 @@
+<div class="page">
+
+  <div class="page-header">
+    <h1 class="page-title">👥 Clientes</h1>
+    @if (vista() === 'lista') {
+      <button class="btn-primary" (click)="abrirNuevo()">+ Nuevo cliente</button>
+    }
+  </div>
+
+  @if (msg()) {
+    <div class="alert" [class.alert-ok]="msg()!.type==='ok'" [class.alert-err]="msg()!.type==='err'">
+      {{ msg()!.text }}
+    </div>
+  }
+
+  <!-- ── LISTA ── -->
+  @if (vista() === 'lista') {
+    <div class="card">
+      <div class="toolbar">
+        <input type="text" class="search-input" placeholder="Buscar por nombre, documento o teléfono..."
+          [value]="filtro()" (input)="filtro.set($any($event.target).value)" />
+        <span class="count-badge">{{ clientesFiltrados().length }} clientes</span>
+      </div>
+
+      @if (clientesFiltrados().length === 0) {
+        <div class="empty">Sin clientes que coincidan.</div>
+      } @else {
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nombre</th><th>Documento</th><th>Teléfono</th>
+                <th class="text-right">Visitas</th><th class="text-right">Total gastado</th>
+                <th>Última visita</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of clientesFiltrados(); track c.id) {
+                <tr class="clickable" (click)="abrirDetalle(c)">
+                  <td class="name-cell">{{ c.fullName }}</td>
+                  <td class="doc-cell">{{ c.documentType }} {{ c.documentNumber }}</td>
+                  <td>{{ c.phone }}</td>
+                  <td class="text-right">{{ c.totalVisits }}</td>
+                  <td class="text-right">{{ c.totalSpent | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                  <td>{{ c.lastVisit ? (c.lastVisit | date:'dd/MM/yyyy') : '—' }}</td>
+                  <td><button class="btn-sm" (click)="$event.stopPropagation(); abrirDetalle(c)">Editar</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── FORM (Nuevo / Editar) ── -->
+  @if (vista() === 'nuevo' || vista() === 'detalle') {
+    <div class="form-container">
+      <button class="btn-back" (click)="volver()">← Volver</button>
+      <div class="card form-card">
+        <h2 class="form-title">{{ vista() === 'nuevo' ? 'Nuevo cliente' : 'Editar cliente' }}</h2>
+
+        @if (vista() === 'detalle' && clienteSeleccionado()) {
+          <div class="cliente-stats">
+            <div class="stat"><span class="stat-label">Visitas</span><strong>{{ clienteSeleccionado()!.totalVisits }}</strong></div>
+            <div class="stat"><span class="stat-label">Total gastado</span><strong>{{ clienteSeleccionado()!.totalSpent | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
+            <div class="stat"><span class="stat-label">Última visita</span><strong>{{ clienteSeleccionado()!.lastVisit ? (clienteSeleccionado()!.lastVisit! | date:'dd/MM/yyyy') : '—' }}</strong></div>
+          </div>
+        }
+
+        <div [formGroup]="form" class="form-grid">
+          <div class="field-group">
+            <label class="field-label">Tipo de documento *</label>
+            <select formControlName="documentType" class="field-input">
+              <option value="CC">CC</option><option value="CE">CE</option>
+              <option value="NIT">NIT</option><option value="PP">PP</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Número de documento *</label>
+            <input type="text" formControlName="documentNumber" class="field-input" placeholder="Ej: 1234567890" />
+          </div>
+          <div class="field-group full-width">
+            <label class="field-label">Nombre completo *</label>
+            <input type="text" formControlName="fullName" class="field-input" placeholder="Nombre y apellidos" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Teléfono *</label>
+            <input type="tel" formControlName="phone" class="field-input" placeholder="3001234567" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Correo <span class="opt">(opcional)</span></label>
+            <input type="email" formControlName="email" class="field-input" placeholder="correo@email.com" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="volver()">Cancelar</button>
+          <button class="btn-primary" (click)="guardar()" [disabled]="form.invalid || guardando()">
+            {{ guardando() ? 'Guardando...' : (vista() === 'nuevo' ? 'Crear cliente' : 'Guardar cambios') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

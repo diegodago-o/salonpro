@@ -1,0 +1,129 @@
+<div class="page">
+
+  <div class="page-header">
+    <h1 class="page-title">💵 Anticipos</h1>
+    @if (vista() === 'lista') {
+      <button class="btn-primary" (click)="abrirNuevo()">+ Registrar anticipo</button>
+    }
+  </div>
+
+  @if (msg()) {
+    <div class="alert" [class.alert-ok]="msg()!.type==='ok'" [class.alert-err]="msg()!.type==='err'">{{ msg()!.text }}</div>
+  }
+
+  <!-- ── LISTA ── -->
+  @if (vista() === 'lista') {
+
+    @if (totalActivos() > 0) {
+      <div class="kpi-strip">
+        <div class="kpi-item">
+          <span class="kpi-label">Total anticipos activos</span>
+          <span class="kpi-value">{{ totalActivos() | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+        </div>
+      </div>
+    }
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="filtro-tabs">
+          @for (f of [['todos','Todos'],['Active','Activos'],['Applied','Aplicados'],['Voided','Anulados']] ; track f[0]) {
+            <button class="ftab" [class.active]="filtroStatus() === f[0]" (click)="filtroStatus.set($any(f[0]))">{{ f[1] }}</button>
+          }
+        </div>
+      </div>
+      @if (anticiposFiltrados().length === 0) {
+        <div class="empty">Sin anticipos en esta categoría.</div>
+      } @else {
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Fecha</th><th>Cliente</th><th>Documento</th><th>Método pago</th><th class="text-right">Monto</th><th>Notas</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (a of anticiposFiltrados(); track a.id) {
+                <tr [class.voided]="a.status==='Voided'" [class.applied]="a.status==='Applied'">
+                  <td>{{ a.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td class="name-cell">{{ a.clientName }}</td>
+                  <td class="doc-cell">{{ a.clientDocument }}</td>
+                  <td>{{ a.paymentMethodName }}</td>
+                  <td class="text-right price-cell">{{ a.amount | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                  <td class="notes-cell">{{ a.notes || '—' }}</td>
+                  <td>
+                    <span class="status-badge"
+                      [class.status-active]="a.status==='Active'"
+                      [class.status-applied]="a.status==='Applied'"
+                      [class.status-voided]="a.status==='Voided'">
+                      {{ labelStatus(a.status) }}
+                    </span>
+                  </td>
+                  <td>
+                    @if (a.status === 'Active') {
+                      <button class="btn-sm btn-sm-danger" (click)="anular(a)">Anular</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── NUEVO ANTICIPO ── -->
+  @if (vista() === 'nuevo') {
+    <div class="form-container">
+      <button class="btn-back" (click)="volver()">← Volver</button>
+      <div class="card form-card">
+        <h2 class="form-title">Registrar anticipo</h2>
+        <div [formGroup]="form" class="form-grid">
+          <div class="field-group">
+            <label class="field-label">Tipo de documento</label>
+            <select formControlName="clientDocumentType" class="field-input">
+              <option value="CC">CC</option><option value="CE">CE</option><option value="NIT">NIT</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Número documento *</label>
+            <input type="text" formControlName="clientDocumentNumber" class="field-input" />
+          </div>
+          <div class="field-group full-width">
+            <label class="field-label">Nombre del cliente *</label>
+            <input type="text" formControlName="clientFullName" class="field-input" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Teléfono *</label>
+            <input type="tel" formControlName="clientPhone" class="field-input" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Monto anticipo *</label>
+            <div class="prefix-wrap">
+              <span class="prefix">$</span>
+              <input type="number" formControlName="amount" class="field-input" min="1000" />
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Método de pago *</label>
+            <select formControlName="paymentMethodId" class="field-input">
+              <option [ngValue]="null">— Selecciona —</option>
+              @for (m of metodosPago(); track m.id) {
+                <option [value]="m.id">{{ m.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field-group full-width">
+            <label class="field-label">Notas <span class="opt">(opcional)</span></label>
+            <input type="text" formControlName="notes" class="field-input" placeholder="Ej: Reserva alisado el viernes" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="volver()">Cancelar</button>
+          <button class="btn-primary" (click)="guardar()" [disabled]="!formValido() || guardando()">
+            {{ guardando() ? 'Registrando...' : 'Registrar anticipo' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

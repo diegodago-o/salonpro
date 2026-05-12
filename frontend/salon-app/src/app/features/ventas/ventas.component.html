@@ -1,0 +1,445 @@
+<div class="ventas-page">
+
+  <div class="page-header">
+    <h1 class="page-title">🛒 Ventas (POS)</h1>
+    @if (vista() === 'lista') {
+      <button class="btn-primary" (click)="nuevaVenta()" [disabled]="!cajaAbierta()">+ Nueva venta</button>
+    }
+  </div>
+
+  @if (!cajaAbierta() && vista() === 'lista') {
+    <div class="alert alert-warning">⚠ No hay caja abierta. Debes abrir la caja antes de registrar ventas.</div>
+  }
+  @if (successMsg()) { <div class="alert alert-success">✅ {{ successMsg() }}</div> }
+  @if (errorMsg())   { <div class="alert alert-error">⚠ {{ errorMsg() }}</div> }
+
+  <!-- ══════════════ LISTA DE VENTAS ══════════════ -->
+  @if (vista() === 'lista') {
+    <div class="ventas-card">
+      <h3>Ventas de hoy</h3>
+      @if (ventas().length === 0) {
+        <div class="empty-state">Sin ventas registradas hoy.</div>
+      } @else {
+        <table class="ventas-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Hora</th><th>Cliente</th><th>Peluquero</th>
+              <th>Método pago</th><th class="text-right">Total</th>
+              <th class="text-right">Peluquero</th><th>Estado</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (venta of ventas(); track venta.id) {
+              <tr [class.voided]="venta.status === 'Voided'">
+                <td>{{ venta.id }}</td>
+                <td>{{ venta.saleDateTime | date:'HH:mm' }}</td>
+                <td>{{ venta.clientName }}</td>
+                <td>{{ venta.stylistName }}</td>
+                <td>{{ venta.paymentMethodName }}</td>
+                <td class="text-right">{{ venta.grossTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                <td class="text-right">{{ venta.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                <td>
+                  <span class="badge" [class.badge-active]="venta.status==='Active'" [class.badge-voided]="venta.status==='Voided'">
+                    {{ venta.status === 'Active' ? 'Activa' : 'Anulada' }}
+                  </span>
+                </td>
+                <td>
+                  @if (venta.status === 'Active') {
+                    <button class="btn-link-danger" (click)="iniciarAnulacion(venta)">Anular</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+  <!-- ══════════════ FORMULARIO NUEVA VENTA ══════════════ -->
+  @if (vista() === 'nueva-venta') {
+    <div class="pos-layout">
+
+      <!-- Columna izquierda -->
+      <div class="pos-form">
+        <button class="btn-back" (click)="volverALista()">← Volver</button>
+
+        <!-- Cliente -->
+        <section class="form-section">
+          <h3 class="section-title">👤 Cliente</h3>
+          <div [formGroup]="formCliente">
+            <div class="buscar-cliente-row">
+              <div class="field-group" style="flex:1">
+                <label class="field-label">Documento</label>
+                <div class="doc-row">
+                  <select formControlName="documentType" class="select-doc">
+                    <option value="CC">CC</option><option value="CE">CE</option>
+                    <option value="NIT">NIT</option><option value="PP">PP</option>
+                  </select>
+                  <input type="text" formControlName="documentNumber"
+                    class="field-input" placeholder="Número de documento" (keyup.enter)="buscarCliente()" />
+                </div>
+              </div>
+              <button type="button" class="btn-buscar" (click)="buscarCliente()" [disabled]="buscandoCliente()">
+                @if (buscandoCliente()) { <span class="spinner-sm"></span> } @else { 🔍 }
+              </button>
+            </div>
+            @if (clienteEncontrado()) {
+              <div class="cliente-encontrado">✅ Cliente encontrado: <strong>{{ clienteEncontrado()!.fullName }}</strong></div>
+            }
+            <div class="form-grid">
+              <div class="field-group">
+                <label class="field-label">Nombre completo *</label>
+                <input type="text" formControlName="fullName" class="field-input"
+                  [class.is-invalid]="formCliente.get('fullName')!.invalid && formCliente.get('fullName')!.touched" placeholder="Nombre completo" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Correo <span class="opcional">(opcional)</span></label>
+                <input type="email" formControlName="email" class="field-input"
+                  [class.is-invalid]="formCliente.get('email')!.invalid && formCliente.get('email')!.touched" placeholder="correo@email.com" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Teléfono *</label>
+                <input type="tel" formControlName="phone" class="field-input"
+                  [class.is-invalid]="formCliente.get('phone')!.invalid && formCliente.get('phone')!.touched" placeholder="3001234567" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Peluquero -->
+        <section class="form-section" [formGroup]="formVenta">
+          <h3 class="section-title">⚙ Configuración de venta</h3>
+          <div class="form-grid">
+            <div class="field-group">
+              <label class="field-label">Peluquero *</label>
+              <select formControlName="stylistId" class="field-input select-input"
+                [class.is-invalid]="formVenta.get('stylistId')!.invalid && formVenta.get('stylistId')!.touched">
+                <option [ngValue]="null">Selecciona peluquero</option>
+                @for (p of peluqueros(); track p.id) {
+                  <option [ngValue]="p.id">{{ p.fullName }} ({{ p.commissionPercent }}%)</option>
+                }
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Servicios -->
+        <section class="form-section">
+          <h3 class="section-title">✂ Servicios prestados *</h3>
+          @if (itemsServicio().length > 0) {
+            <div class="items-list">
+              <div class="items-list-header">
+                <span>Servicio</span><span>Cant.</span><span>Precio unit.</span><span>Subtotal</span><span></span>
+              </div>
+              @for (item of itemsServicio(); track trackItem($index, item)) {
+                <div class="item-row-edit">
+                  <span class="item-name">{{ item.name }}</span>
+                  <input type="number" class="input-qty" [value]="item.quantity" min="1"
+                    (change)="actualizarCantidad(item, $any($event.target).valueAsNumber)" />
+                  <div class="input-precio-wrap">
+                    <span class="precio-prefix">$</span>
+                    <input type="number" class="input-precio" [value]="item.price" min="0"
+                      (change)="actualizarPrecio(item, $any($event.target).valueAsNumber)" />
+                  </div>
+                  <span class="item-subtotal">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+                  <button class="btn-remove" (click)="quitarItem(item)">✕</button>
+                </div>
+              }
+            </div>
+          }
+          <div class="categoria-tabs">
+            @for (cat of categoriasServicio(); track cat) {
+              <button class="cat-tab" [class.active]="categoriaServicio() === cat" (click)="categoriaServicio.set(cat)">{{ cat }}</button>
+            }
+          </div>
+          <input type="text" class="field-input catalogo-search" placeholder="Buscar servicio..."
+            [value]="filtroServicio()" (input)="filtroServicio.set($any($event.target).value)" />
+          <div class="catalogo-grid">
+            @for (s of serviciosFiltrados(); track s.id) {
+              <button class="catalogo-item" [class.ya-agregado]="servicioYaAgregado(s.id)" (click)="agregarServicio(s)">
+                <div class="ci-top"><span class="ci-nombre">{{ s.name }}</span><span class="ci-precio">{{ s.price | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+                <div class="ci-bottom">
+                  <span class="ci-cat">{{ s.category }}</span>
+                  @if (s.hasSalonFee) { <span class="ci-badge">+{{ s.salonFeePercent }}% salón</span> }
+                  @if (servicioYaAgregado(s.id)) { <span class="ci-added">✓ agregado</span> }
+                </div>
+              </button>
+            }
+          </div>
+        </section>
+
+        <!-- Productos vendidos -->
+        <section class="form-section">
+          <h3 class="section-title">📦 Productos vendidos <span class="opcional">(opcional)</span></h3>
+          @if (itemsProductoVenta().length > 0) {
+            <div class="items-list">
+              <div class="items-list-header"><span>Producto</span><span>Cant.</span><span>Precio unit.</span><span>Subtotal</span><span></span></div>
+              @for (item of itemsProductoVenta(); track trackItem($index, item)) {
+                <div class="item-row-edit">
+                  <span class="item-name">{{ item.name }}</span>
+                  <input type="number" class="input-qty" [value]="item.quantity" min="1"
+                    (change)="actualizarCantidad(item, $any($event.target).valueAsNumber)" />
+                  <div class="input-precio-wrap">
+                    <span class="precio-prefix">$</span>
+                    <input type="number" class="input-precio" [value]="item.price" min="0"
+                      (change)="actualizarPrecio(item, $any($event.target).valueAsNumber)" />
+                  </div>
+                  <span class="item-subtotal">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+                  <button class="btn-remove" (click)="quitarItem(item)">✕</button>
+                </div>
+              }
+            </div>
+          }
+          <input type="text" class="field-input catalogo-search" placeholder="Buscar producto..."
+            [value]="filtroProductoVenta()" (input)="filtroProductoVenta.set($any($event.target).value)" />
+          <div class="catalogo-grid">
+            @for (p of productosVentaFiltrados(); track p.id) {
+              <button class="catalogo-item" [class.ya-agregado]="productoVentaYaAgregado(p.id)" (click)="agregarProductoVenta(p)">
+                <div class="ci-top"><span class="ci-nombre">{{ p.name }}</span><span class="ci-precio">{{ p.salePrice | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+                <div class="ci-bottom"><span class="ci-cat">{{ p.brand }}</span>@if (productoVentaYaAgregado(p.id)) { <span class="ci-added">✓ agregado</span> }</div>
+              </button>
+            }
+            @if (productosVentaFiltrados().length === 0) { <p class="empty-catalogo">Sin productos para venta.</p> }
+          </div>
+        </section>
+
+        <!-- Consumo interno -->
+        <section class="form-section">
+          <h3 class="section-title">🧪 Consumo interno <span class="opcional">(se descuenta en liquidación)</span></h3>
+          @if (itemsProductoInterno().length > 0) {
+            <div class="items-list">
+              <div class="items-list-header"><span>Producto</span><span>Cant.</span><span>Costo unit.</span><span>Total costo</span><span></span></div>
+              @for (item of itemsProductoInterno(); track trackItem($index, item)) {
+                <div class="item-row-edit item-interno">
+                  <span class="item-name">{{ item.name }}</span>
+                  <input type="number" class="input-qty" [value]="item.quantity" min="1"
+                    (change)="actualizarCantidad(item, $any($event.target).valueAsNumber)" />
+                  <div class="input-precio-wrap">
+                    <span class="precio-prefix">$</span>
+                    <input type="number" class="input-precio" [value]="item.price" min="0"
+                      (change)="actualizarPrecio(item, $any($event.target).valueAsNumber)" />
+                  </div>
+                  <span class="item-subtotal text-muted">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+                  <button class="btn-remove" (click)="quitarItem(item)">✕</button>
+                </div>
+              }
+            </div>
+          }
+          <input type="text" class="field-input catalogo-search" placeholder="Buscar producto..."
+            [value]="filtroProductoInterno()" (input)="filtroProductoInterno.set($any($event.target).value)" />
+          <div class="catalogo-grid">
+            @for (p of productosInternosFiltrados(); track p.id) {
+              <button class="catalogo-item catalogo-interno" [class.ya-agregado]="productoInternoYaAgregado(p.id)" (click)="agregarProductoInterno(p)">
+                <div class="ci-top"><span class="ci-nombre">{{ p.name }}</span><span class="ci-precio">{{ p.purchasePrice | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+                <div class="ci-bottom"><span class="ci-cat">{{ p.brand }}</span>@if (productoInternoYaAgregado(p.id)) { <span class="ci-added">✓ agregado</span> }</div>
+              </button>
+            }
+          </div>
+        </section>
+
+        <!-- Propina -->
+        <section class="form-section" [formGroup]="formVenta">
+          <h3 class="section-title">💰 Propina <span class="opcional">(opcional)</span></h3>
+          <div class="input-prefix-wrap" style="max-width:200px">
+            <span class="input-prefix">$</span>
+            <input type="number" formControlName="tipAmount" class="field-input" min="0" placeholder="0" />
+          </div>
+        </section>
+
+        <!-- ── PAGO ── -->
+        <section class="form-section">
+          <h3 class="section-title">💳 Método de pago *</h3>
+
+          <div class="pagos-list">
+            @for (pago of pagos(); track trackPago($index)) {
+              <div class="pago-row">
+                <select class="field-input select-input pago-select"
+                  [class.is-invalid]="!pago.paymentMethodId"
+                  (change)="actualizarPagoMetodo($index, +$any($event.target).value)">
+                  <option value="" [selected]="!pago.paymentMethodId">— Selecciona método —</option>
+                  @for (m of metodosPagoDisponibles($index); track m.id) {
+                    <option [value]="m.id" [selected]="pago.paymentMethodId === m.id">
+                      {{ m.name }}{{ m.hasDeduction ? ' (' + m.deductionPercent + '%)' : '' }}
+                    </option>
+                  }
+                </select>
+
+                <div class="input-prefix-wrap pago-monto-wrap">
+                  <span class="input-prefix">$</span>
+                  <input type="number" class="field-input" [value]="pago.amount" min="0"
+                    (change)="actualizarPagoMonto($index, $any($event.target).valueAsNumber)" placeholder="0" />
+                </div>
+
+                @if (diferenciaPago() !== 0 && pago.paymentMethodId) {
+                  <button class="btn-completar" type="button" (click)="completarConDiferencia($index)" title="Completar con el faltante">
+                    {{ diferenciaPago() > 0 ? '+' + (diferenciaPago() | currency:'COP':'symbol-narrow':'1.0-0') : '' }}
+                  </button>
+                }
+
+                @if (pagos().length > 1) {
+                  <button class="btn-remove" type="button" (click)="quitarPago($index)">✕</button>
+                }
+              </div>
+            }
+          </div>
+
+          @if (pagos().length < metodosPago().length) {
+            <button class="btn-pago-mixto" type="button" (click)="agregarPago()">+ Pago mixto</button>
+          }
+
+          <!-- Resumen de pago -->
+          <div class="pago-resumen" [class.pago-ok]="pagosValidos()" [class.pago-error]="diferenciaPago() !== 0 && totalRecibido() > 0">
+            <div class="pago-resumen-row">
+              <span>Total a cobrar</span>
+              <span>{{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+            </div>
+            <div class="pago-resumen-row">
+              <span>Recibido</span>
+              <span>{{ totalRecibido() | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+            </div>
+            <div class="pago-resumen-row pago-resumen-total">
+              <span>{{ diferenciaPago() === 0 ? 'Cuadrado ✓' : diferenciaPago() > 0 ? 'Falta' : 'Sobra' }}</span>
+              <span [class.text-success]="diferenciaPago() === 0" [class.text-danger]="diferenciaPago() !== 0">
+                {{ diferenciaPago() === 0 ? '$0' : (Math.abs(diferenciaPago()) | currency:'COP':'symbol-narrow':'1.0-0') }}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Botón registrar -->
+        <button class="btn-primary btn-guardar" (click)="guardarVenta()" [disabled]="!puedeRegistrar()">
+          @if (guardando()) { <span class="spinner-sm"></span> }
+          Registrar venta
+        </button>
+
+        @if (!puedeRegistrar() && razonBotonDeshabilitado()) {
+          <p class="hint-error">{{ razonBotonDeshabilitado() }}</p>
+        }
+      </div>
+
+      <!-- Panel resumen sticky -->
+      <aside class="pos-resumen">
+        <div class="resumen-card">
+          <h3>Resumen de venta</h3>
+
+          <!-- Items detallados -->
+          @if (items().length > 0) {
+            <div class="resumen-items">
+              @for (item of itemsServicio(); track trackItem($index, item)) {
+                <div class="resumen-item-row">
+                  <div class="ri-info">
+                    <span class="ri-nombre">{{ item.name }}</span>
+                    <span class="ri-tipo">SERVICIO{{ item.quantity > 1 ? ' ×' + item.quantity : '' }}</span>
+                  </div>
+                  <span class="ri-monto">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+                </div>
+              }
+              @for (item of itemsProductoVenta(); track trackItem($index, item)) {
+                <div class="resumen-item-row">
+                  <div class="ri-info">
+                    <span class="ri-nombre">{{ item.name }}</span>
+                    <span class="ri-tipo">PRODUCTO{{ item.quantity > 1 ? ' ×' + item.quantity : '' }}</span>
+                  </div>
+                  <span class="ri-monto">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+                </div>
+              }
+              @for (item of itemsProductoInterno(); track trackItem($index, item)) {
+                <div class="resumen-item-row interno">
+                  <div class="ri-info">
+                    <span class="ri-nombre">{{ item.name }}</span>
+                    <span class="ri-tipo">CONSUMO INTERNO{{ item.quantity > 1 ? ' ×' + item.quantity : '' }}</span>
+                  </div>
+                  <span class="ri-monto muted">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="resumen-section">
+            <div class="resumen-row"><span>Servicios (bruto)</span><span>{{ calculo().grossServices | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+            <div class="resumen-row"><span>Productos (bruto)</span><span>{{ calculo().grossProducts | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+            <div class="resumen-row"><span>Propina (bruta)</span><span>{{ calculo().grossTip | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+          </div>
+
+          @if (calculo().totalDeductions > 0) {
+            <div class="resumen-section">
+              <div class="resumen-row text-danger">
+                <span>Deducciones ({{ calculo().deductionPct | number:'1.1-1' }}%)</span>
+                <span>−{{ calculo().totalDeductions | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+              </div>
+            </div>
+          }
+
+          <div class="resumen-section">
+            <div class="resumen-row muted"><span>Base servicios</span><span>{{ calculo().baseServices | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+            <div class="resumen-row muted"><span>Base productos</span><span>{{ calculo().baseProducts | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+          </div>
+
+          <div class="resumen-section comisiones-section">
+            <div class="comisiones-header">Comisiones</div>
+            <div class="comisiones-grid">
+              <div class="comision-col peluquero">
+                <div class="comision-title">{{ peluqueroSeleccionado()?.fullName ?? 'Peluquero' }} ({{ calculo().stylistCommPct }}%)</div>
+                <div class="comision-row"><span>Servicios</span><span>{{ calculo().stylistCommServices | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+                <div class="comision-row"><span>Productos (10%)</span><span>{{ calculo().stylistCommProducts | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+                <div class="comision-row"><span>Propina neta</span><span>{{ calculo().netTip | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+              </div>
+              <div class="comision-col salon">
+                <div class="comision-title">Salón</div>
+                @if (calculo().salonFeeServices > 0) {
+                  <div class="comision-row fee-row"><span>Fee servicios</span><span>{{ calculo().salonFeeServices | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+                }
+                <div class="comision-row"><span>Servicios</span><span>{{ calculo().salonCommServices | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+                <div class="comision-row"><span>Productos (90%)</span><span>{{ calculo().salonCommProducts | currency:'COP':'symbol-narrow':'1.0-0' }}</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="resumen-totales">
+            <div class="total-row">
+              <span>Neto peluquero</span>
+              <span class="total-value peluquero-color">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+            </div>
+            <div class="total-row">
+              <span>Neto salón</span>
+              <span class="total-value salon-color">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+            </div>
+            @if (calculo().internalConsumption > 0) {
+              <div class="total-row muted-small">
+                <span>Consumo interno (desc. en liquidación)</span>
+                <span>{{ calculo().internalConsumption | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </aside>
+    </div>
+  }
+
+  <!-- ══════════════ ANULAR VENTA ══════════════ -->
+  @if (vista() === 'anular' && ventaAnular()) {
+    <div class="anular-container">
+      <div class="anular-card">
+        <h2>Anular venta #{{ ventaAnular()!.id }}</h2>
+        <p class="anular-desc">
+          Cliente: <strong>{{ ventaAnular()!.clientName }}</strong> —
+          Total: <strong>{{ ventaAnular()!.grossTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+        </p>
+        <div class="field-group" [formGroup]="formAnular">
+          <label class="field-label">Motivo de anulación *</label>
+          <input type="text" formControlName="reason" class="field-input"
+            [class.is-invalid]="formAnular.get('reason')!.invalid && formAnular.get('reason')!.touched"
+            placeholder="Ej: Error en el precio, cliente canceló..." />
+        </div>
+        <div class="anular-actions">
+          <button class="btn-secondary" (click)="cancelarAnulacion()">Cancelar</button>
+          <button class="btn-danger" (click)="confirmarAnulacion()" [disabled]="formAnular.invalid || guardando()">
+            @if (guardando()) { <span class="spinner-sm"></span> } Confirmar anulación
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

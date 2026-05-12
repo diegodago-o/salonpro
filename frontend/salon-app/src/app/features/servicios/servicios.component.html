@@ -1,0 +1,117 @@
+<div class="page">
+
+  <div class="page-header">
+    <h1 class="page-title">✂ Servicios</h1>
+    @if (vista() === 'lista' && esPropietario()) {
+      <button class="btn-primary" (click)="abrirNuevo()">+ Nuevo servicio</button>
+    }
+  </div>
+
+  @if (msg()) {
+    <div class="alert" [class.alert-ok]="msg()!.type==='ok'" [class.alert-err]="msg()!.type==='err'">{{ msg()!.text }}</div>
+  }
+
+  <!-- ── LISTA ── -->
+  @if (vista() === 'lista') {
+    <div class="card">
+      <div class="toolbar">
+        <input type="text" class="search-input" placeholder="Buscar servicio..."
+          [value]="filtro()" (input)="filtro.set($any($event.target).value)" />
+        <label class="toggle-label">
+          <input type="checkbox" [checked]="soloActivos()" (change)="soloActivos.set($any($event.target).checked)" />
+          Solo activos
+        </label>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre</th><th>Categoría</th><th class="text-right">Precio</th>
+              <th>Fee salón</th><th>Estado</th>
+              @if (esPropietario()) { <th></th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of serviciosFiltrados(); track s.id) {
+              <tr [class.inactive]="!s.isActive">
+                <td class="name-cell">{{ s.name }}</td>
+                <td><span class="cat-badge">{{ s.category }}</span></td>
+                <td class="text-right price-cell">{{ s.price | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                <td>
+                  @if (s.hasSalonFee) {
+                    <span class="fee-badge">+{{ s.salonFeePercent }}%</span>
+                  } @else {
+                    <span class="no-fee">—</span>
+                  }
+                </td>
+                <td>
+                  <span class="status-dot" [class.active]="s.isActive">{{ s.isActive ? 'Activo' : 'Inactivo' }}</span>
+                </td>
+                @if (esPropietario()) {
+                  <td class="actions-cell">
+                    <button class="btn-sm" (click)="abrirEditar(s)">Editar</button>
+                    <button class="btn-sm btn-sm-danger" (click)="toggleActivo(s)">
+                      {{ s.isActive ? 'Desactivar' : 'Activar' }}
+                    </button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ── FORM ── -->
+  @if (vista() === 'form') {
+    <div class="form-container">
+      <button class="btn-back" (click)="volver()">← Volver</button>
+      <div class="card form-card">
+        <h2 class="form-title">{{ editando() ? 'Editar servicio' : 'Nuevo servicio' }}</h2>
+        <div [formGroup]="form" class="form-grid">
+          <div class="field-group full-width">
+            <label class="field-label">Nombre del servicio *</label>
+            <input type="text" formControlName="name" class="field-input" placeholder="Ej: Corte dama" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Categoría *</label>
+            <input type="text" formControlName="category" class="field-input" placeholder="Ej: Corte, Tintura..." list="cats" />
+            <datalist id="cats">
+              @for (c of categorias(); track c) { <option [value]="c">{{ c }}</option> }
+            </datalist>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Precio *</label>
+            <div class="prefix-wrap">
+              <span class="prefix">$</span>
+              <input type="number" formControlName="price" class="field-input" min="0" />
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="toggle-label field-label">
+              <input type="checkbox" formControlName="hasSalonFee" /> ¿Tiene fee de salón?
+            </label>
+          </div>
+          @if (form.get('hasSalonFee')!.value) {
+            <div class="field-group">
+              <label class="field-label">% Fee salón</label>
+              <div class="prefix-wrap">
+                <input type="number" formControlName="salonFeePercent" class="field-input" min="0" max="100" step="0.5" />
+                <span class="suffix">%</span>
+              </div>
+            </div>
+          }
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="volver()">Cancelar</button>
+          <button class="btn-primary" (click)="guardar()" [disabled]="form.invalid || guardando()">
+            {{ guardando() ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>
