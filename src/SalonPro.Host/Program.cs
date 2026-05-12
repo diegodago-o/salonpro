@@ -6,6 +6,9 @@ using SalonPro.Identity.Api;
 using SalonPro.Identity.Application;
 using SalonPro.Identity.Infrastructure;
 using SalonPro.Identity.Infrastructure.Data.Seed;
+using SalonPro.SalonOperations.Api;
+using SalonPro.SalonOperations.Application;
+using SalonPro.SalonOperations.Infrastructure;
 using SalonPro.Tenants.Api;
 using SalonPro.Tenants.Application;
 using SalonPro.Tenants.Infrastructure;
@@ -63,10 +66,13 @@ try
     builder.Services.AddTenantsInfrastructure(builder.Configuration);
     builder.Services.AddIdentityApplication();
     builder.Services.AddIdentityInfrastructure(builder.Configuration);
+    builder.Services.AddSalonOperationsApplication();
+    builder.Services.AddSalonOperationsInfrastructure(builder.Configuration);
 
     builder.Services.AddControllers()
         .AddTenantsApi()
-        .AddIdentityApi();
+        .AddIdentityApi()
+        .AddSalonOperationsApi();
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
