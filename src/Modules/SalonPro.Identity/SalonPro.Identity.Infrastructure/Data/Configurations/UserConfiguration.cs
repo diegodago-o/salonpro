@@ -17,6 +17,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.DocumentType).HasMaxLength(20);
         builder.Property(u => u.DocumentNumber).HasMaxLength(20);
         builder.Property(u => u.Phone).HasMaxLength(20);
+        builder.Property(u => u.BranchName).HasMaxLength(150);
+        builder.Property(u => u.TenantName).HasMaxLength(200);
         builder.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
         builder.Property(u => u.CommissionPercent).HasColumnType("decimal(5,2)");
         builder.Property(u => u.RefreshToken).HasMaxLength(500);

@@ -13,6 +13,8 @@ public class User
     public string? DocumentType { get; private set; }
     public string? DocumentNumber { get; private set; }
     public string? Phone { get; private set; }
+    public string? BranchName { get; private set; }
+    public string? TenantName { get; private set; }
     public UserRole Role { get; private set; }
     public decimal CommissionPercent { get; private set; }
     public bool IsActive { get; private set; }
@@ -26,7 +28,8 @@ public class User
     public static User Create(string fullName, string email, string passwordHash,
         UserRole role, int? tenantId = null, int? branchId = null,
         string? documentType = null, string? documentNumber = null,
-        string? phone = null, decimal commissionPercent = 0)
+        string? phone = null, decimal commissionPercent = 0,
+        string? branchName = null, string? tenantName = null)
     {
         return new User
         {
@@ -40,6 +43,8 @@ public class User
             DocumentNumber = documentNumber,
             Phone = phone,
             CommissionPercent = commissionPercent,
+            BranchName = branchName,
+            TenantName = tenantName,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow

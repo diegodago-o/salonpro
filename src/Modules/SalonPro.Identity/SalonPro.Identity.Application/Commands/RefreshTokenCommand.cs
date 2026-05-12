@@ -20,13 +20,14 @@ public class RefreshTokenHandler(IUserRepository userRepo, IJwtService jwtServic
 
         var accessToken = jwtService.GenerateAccessToken(user);
         var newRefreshToken = jwtService.GenerateRefreshToken();
-        var expiresAt = DateTime.UtcNow.AddMinutes(jwtService.AccessTokenExpirationMinutes);
+        var expiresIn = jwtService.AccessTokenExpirationMinutes * 60;
 
         user.SetRefreshToken(newRefreshToken, DateTime.UtcNow.AddDays(jwtService.RefreshTokenExpirationDays));
         await userRepo.SaveChangesAsync(ct);
 
-        return new AuthResponse(accessToken, newRefreshToken, expiresAt,
+        return new AuthResponse(accessToken, newRefreshToken, expiresIn,
             new UserDto(user.Id, user.FullName, user.Email, user.Role.ToString(),
-                user.TenantId, user.BranchId, user.CommissionPercent));
+                user.TenantId, user.BranchId, user.CommissionPercent,
+                user.BranchName, user.TenantName));
     }
 }

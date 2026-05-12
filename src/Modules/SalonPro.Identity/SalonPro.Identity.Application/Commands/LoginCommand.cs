@@ -23,13 +23,14 @@ public class LoginHandler(IUserRepository userRepo, IJwtService jwtService, IPas
 
         var accessToken = jwtService.GenerateAccessToken(user);
         var refreshToken = jwtService.GenerateRefreshToken();
-        var expiresAt = DateTime.UtcNow.AddMinutes(jwtService.AccessTokenExpirationMinutes);
+        var expiresIn = jwtService.AccessTokenExpirationMinutes * 60; // segundos
 
         user.SetRefreshToken(refreshToken, DateTime.UtcNow.AddDays(jwtService.RefreshTokenExpirationDays));
         await userRepo.SaveChangesAsync(ct);
 
-        return new AuthResponse(accessToken, refreshToken, expiresAt,
+        return new AuthResponse(accessToken, refreshToken, expiresIn,
             new UserDto(user.Id, user.FullName, user.Email, user.Role.ToString(),
-                user.TenantId, user.BranchId, user.CommissionPercent));
+                user.TenantId, user.BranchId, user.CommissionPercent,
+                user.BranchName, user.TenantName));
     }
 }

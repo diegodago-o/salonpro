@@ -72,13 +72,16 @@ public static class SalonOpsSeeder
         // ── 2. Usuarios demo ─────────────────────────────────────────────────
         if (!await identityDb.Users.AnyAsync(u => u.TenantId == tenantId))
         {
+            const string branchName = "Sede Principal";
+            const string tenantName = "Salón Demo";
+
             var users = new[]
             {
-                User.Create("Dueño Demo",      "dueno@demo.com",   hasher.Hash("Owner2026!"),   UserRole.TenantOwner, tenantId, branchId),
-                User.Create("Cajero Demo",      "cajero@demo.com",  hasher.Hash("Cajero2026!"),  UserRole.Cashier,     tenantId, branchId),
-                User.Create("Carlos Restrepo", "carlos@demo.com",  hasher.Hash("Stylist2026!"), UserRole.Stylist,     tenantId, branchId, commissionPercent: 50),
-                User.Create("María López",     "maria@demo.com",   hasher.Hash("Stylist2026!"), UserRole.Stylist,     tenantId, branchId, commissionPercent: 45),
-                User.Create("Andrés Gómez",    "andres@demo.com",  hasher.Hash("Stylist2026!"), UserRole.Stylist,     tenantId, branchId, commissionPercent: 40),
+                User.Create("Dueño Demo",      "dueno@demo.com",   hasher.Hash("Owner2026!"),   UserRole.TenantOwner, tenantId, branchId, branchName: branchName, tenantName: tenantName),
+                User.Create("Cajero Demo",      "cajero@demo.com",  hasher.Hash("Cajero2026!"),  UserRole.Cashier,     tenantId, branchId, branchName: branchName, tenantName: tenantName),
+                User.Create("Carlos Restrepo", "carlos@demo.com",  hasher.Hash("Stylist2026!"), UserRole.Stylist,     tenantId, branchId, commissionPercent: 50,  branchName: branchName, tenantName: tenantName),
+                User.Create("María López",     "maria@demo.com",   hasher.Hash("Stylist2026!"), UserRole.Stylist,     tenantId, branchId, commissionPercent: 45,  branchName: branchName, tenantName: tenantName),
+                User.Create("Andrés Gómez",    "andres@demo.com",  hasher.Hash("Stylist2026!"), UserRole.Stylist,     tenantId, branchId, commissionPercent: 40,  branchName: branchName, tenantName: tenantName),
             };
 
             await identityDb.Users.AddRangeAsync(users);

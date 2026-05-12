@@ -7,7 +7,7 @@ public record RefreshTokenRequest(string RefreshToken);
 public record AuthResponse(
     string AccessToken,
     string RefreshToken,
-    DateTime ExpiresAt,
+    int ExpiresIn,   // segundos
     UserDto User
 );
 
@@ -18,7 +18,9 @@ public record UserDto(
     string Role,
     int? TenantId,
     int? BranchId,
-    decimal CommissionPercent
+    decimal CommissionPercent,
+    string? BranchName,
+    string? TenantName
 );
 
 public record CreateUserRequest(
@@ -31,7 +33,9 @@ public record CreateUserRequest(
     string? DocumentType,
     string? DocumentNumber,
     string? Phone,
-    decimal CommissionPercent = 0
+    decimal CommissionPercent = 0,
+    string? BranchName = null,
+    string? TenantName = null
 );
 
 public record UpdateUserRequest(

@@ -19,6 +19,7 @@ public class GetUsersByRoleHandler(IUserRepository userRepo)
 
         return users.Select(u => new UserDto(
             u.Id, u.FullName, u.Email, u.Role.ToString(),
-            u.TenantId, u.BranchId, u.CommissionPercent));
+            u.TenantId, u.BranchId, u.CommissionPercent,
+            u.BranchName, u.TenantName));
     }
 }
