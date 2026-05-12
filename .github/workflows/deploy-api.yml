@@ -1,0 +1,69 @@
+name: Deploy API → VM (systemd)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  PROJECT_PATH:   'src/SalonPro.Host/SalonPro.Host.csproj'
+  DEPLOY_PATH:    '/var/www/salonpro-api'
+  SERVICE_NAME:   'salonpro-api'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish
+        run: >
+          dotnet publish ${{ env.PROJECT_PATH }}
+          -c Release
+          -o ./publish
+          --no-restore
+
+      - name: Copiar artefactos a la VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host:     ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key:      ${{ secrets.VM_SSH_KEY }}
+          port:     22
+          source:   "publish/*"
+          target:   "/tmp/salonpro-deploy"
+
+      - name: Desplegar y reiniciar servicio
+        uses: appleboy/ssh-action@v1
+        with:
+          host:     ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key:      ${{ secrets.VM_SSH_KEY }}
+          port:     22
+          script: |
+            set -e
+            echo "→ Deteniendo servicio..."
+            sudo systemctl stop ${{ env.SERVICE_NAME }} || true
+
+            echo "→ Sincronizando archivos..."
+            sudo rsync -a --delete /tmp/salonpro-deploy/publish/ ${{ env.DEPLOY_PATH }}/
+            sudo chown -R salonpro:salonpro ${{ env.DEPLOY_PATH }}
+
+            echo "→ Iniciando servicio..."
+            sudo systemctl start ${{ env.SERVICE_NAME }}
+            sleep 3
+            sudo systemctl status ${{ env.SERVICE_NAME }} --no-pager
+
+            echo "→ Limpiando temporal..."
+            rm -rf /tmp/salonpro-deploy

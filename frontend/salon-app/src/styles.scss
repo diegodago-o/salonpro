@@ -226,6 +226,8 @@ table.tbl {
 .fade-in { animation:fadeIn 240ms ease both; }
 @keyframes scaleIn { from { opacity:0; transform:scale(0.97); } to { opacity:1; transform:none; } }
 .scale-in { animation:scaleIn 200ms cubic-bezier(.2,.8,.2,1) both; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.45; } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* POS */
 .pos-stage { background:var(--bone); min-height:100%; padding:32px 40px 60px; }

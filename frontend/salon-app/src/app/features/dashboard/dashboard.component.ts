@@ -36,8 +36,9 @@ export class DashboardComponent implements OnInit {
   );
 
   ngOnInit(): void {
-    this.ventasService.getVentasHoy().subscribe(r => {
-      if (r.success && r.data) this.ventas.set(r.data);
+    this.ventasService.getVentasHoy().subscribe({
+      next: r => { if (r.success && r.data) this.ventas.set(r.data); },
+      error: () => {}
     });
   }
 

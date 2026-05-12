@@ -6,57 +6,217 @@
       <div class="deck">{{ productos().length }} productos · {{ conStockBajo() }} con stock bajo</div>
     </div>
     <div style="display:flex;gap:10px">
-      <button class="btn btn-ghost"><sp-icon name="download" [size]="14" /> Entrada</button>
-      <button class="btn btn-primary"><sp-icon name="plus" [size]="14" /> Nuevo producto</button>
+      <button class="btn btn-ghost" (click)="abrirEntrada()">
+        <sp-icon name="upload" [size]="14" /> Entrada stock
+      </button>
+      <button class="btn btn-primary" (click)="abrirNuevo()">
+        <sp-icon name="plus" [size]="14" /> Nuevo producto
+      </button>
     </div>
   </div>
 
+  <!-- Tabs -->
   <div style="display:flex;gap:6px;margin-bottom:16px">
-    <button [class]="'btn btn-sm ' + (tab() === 'all' ? 'btn-primary' : 'btn-ghost')" (click)="tab.set('all')">Todos</button>
-    <button [class]="'btn btn-sm ' + (tab() === 'sale' ? 'btn-primary' : 'btn-ghost')" (click)="tab.set('sale')">Venta a cliente</button>
+    <button [class]="'btn btn-sm ' + (tab() === 'all'      ? 'btn-primary' : 'btn-ghost')" (click)="tab.set('all')">Todos</button>
+    <button [class]="'btn btn-sm ' + (tab() === 'sale'     ? 'btn-primary' : 'btn-ghost')" (click)="tab.set('sale')">Venta a cliente</button>
     <button [class]="'btn btn-sm ' + (tab() === 'internal' ? 'btn-primary' : 'btn-ghost')" (click)="tab.set('internal')">Consumo interno</button>
   </div>
 
-  <div class="card" style="overflow:hidden">
-    <table class="tbl">
-      <thead><tr><th>Producto</th><th>Marca</th><th>Tipo</th><th style="text-align:right">Compra</th><th style="text-align:right">Venta</th><th style="text-align:right">Margen</th><th>Stock</th><th></th></tr></thead>
-      <tbody>
-        @for (p of lista(); track p.id) {
-          <tr>
-            <td>
-              <div style="font-weight:500">{{ p.name }}</div>
-              <div style="font-size:11px;color:var(--ink-4)">{{ p.category }}</div>
-            </td>
-            <td>{{ p.brand }}</td>
-            <td>
-              @if (p.isForSale) {
-                <span class="pill pill-accent">Venta</span>
-              } @else {
-                <span class="pill">Consumo</span>
-              }
-            </td>
-            <td class="tnum" style="text-align:right;color:var(--ink-3)">{{ p.purchasePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
-            <td class="tnum" style="text-align:right">{{ p.salePrice ? (p.salePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}</td>
-            <td class="tnum" style="text-align:right" [style.color]="margen(p) > 40 ? 'var(--success)' : 'var(--ink-3)'">
-              {{ p.salePrice ? (margen(p) | number:'1.0-0') + '%' : '—' }}
-            </td>
-            <td>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span class="serif tnum" style="font-size:17px" [style.color]="p.stock <= lowStockThreshold ? 'var(--warn)' : 'var(--ink)'">{{ p.stock }}</span>
-                @if (p.stock <= lowStockThreshold) {
-                  <span class="pill pill-warn">Bajo</span>
-                }
-              </div>
-              <div class="bar" style="width:80px;margin-top:4px">
-                <div class="bar-fill"
-                  [style.width]="Math.min(100, p.stock / 20 * 100) + '%'"
-                  [style.background]="p.stock <= lowStockThreshold ? 'var(--warn)' : 'var(--ink-3)'"></div>
-              </div>
-            </td>
-            <td><button class="btn btn-icon btn-ghost"><sp-icon name="edit" [size]="14" /></button></td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  </div>
+  @if (cargando()) {
+    <div style="padding:40px;text-align:center;color:var(--ink-4)">Cargando productos…</div>
+  } @else {
+    <div class="card" style="overflow:hidden">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Producto</th><th>Marca</th><th>Tipo</th>
+              <th style="text-align:right">Compra</th>
+              <th style="text-align:right">Venta</th>
+              <th style="text-align:right">Margen</th>
+              <th>Stock</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of lista(); track p.id) {
+              <tr>
+                <td>
+                  <div style="font-weight:500">{{ p.name }}</div>
+                  <div style="font-size:11px;color:var(--ink-4)">{{ p.category }}</div>
+                </td>
+                <td>{{ p.brand }}</td>
+                <td>
+                  @if (p.isForSale) {
+                    <span class="pill pill-accent">Venta</span>
+                  } @else {
+                    <span class="pill">Consumo</span>
+                  }
+                </td>
+                <td class="tnum" style="text-align:right;color:var(--ink-3)">
+                  {{ p.purchasePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right">
+                  {{ p.salePrice ? (p.salePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}
+                </td>
+                <td class="tnum" style="text-align:right"
+                  [style.color]="margen(p) > 40 ? 'var(--success)' : 'var(--ink-3)'">
+                  {{ p.salePrice ? (margen(p) | number:'1.0-0') + '%' : '—' }}
+                </td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span class="serif tnum" style="font-size:17px"
+                      [style.color]="p.stock <= LOW ? 'var(--warn)' : 'var(--ink)'">{{ p.stock }}</span>
+                    @if (p.stock <= LOW) {
+                      <span class="pill pill-warn">Bajo</span>
+                    }
+                  </div>
+                  <div style="width:80px;height:3px;background:var(--hair-2);border-radius:99px;margin-top:5px">
+                    <div [style.width]="Math.min(100, p.stock / 30 * 100) + '%'"
+                         [style.height]="'100%'"
+                         [style.border-radius]="'99px'"
+                         [style.background]="p.stock <= LOW ? 'var(--warn)' : 'var(--ink-4)'"></div>
+                  </div>
+                </td>
+                <td>
+                  <div style="display:flex;gap:4px;justify-content:flex-end">
+                    <button class="btn btn-icon btn-ghost" title="Entrada de stock" (click)="abrirEntrada(p)">
+                      <sp-icon name="upload" [size]="14" />
+                    </button>
+                    <button class="btn btn-icon btn-ghost" title="Editar" (click)="abrirEditar(p)">
+                      <sp-icon name="edit" [size]="14" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    @if (lista().length === 0) {
+      <div class="card" style="padding:60px;text-align:center;color:var(--ink-4)">
+        <div style="font-size:14px;margin-top:12px">No hay productos en esta categoría</div>
+        <button class="btn btn-primary" style="margin-top:20px" (click)="abrirNuevo()">
+          <sp-icon name="plus" [size]="14" /> Crear primer producto
+        </button>
+      </div>
+    }
+  }
 </div>
+
+<!-- ── Modal Producto (crear / editar) ──────────────────── -->
+@if (modalProducto()) {
+  <div class="modal-back" (click)="cerrarModalProducto()">
+    <div class="modal" (click)="$event.stopPropagation()" [formGroup]="formProducto">
+      <div style="padding:32px">
+        <div class="eyebrow">{{ modoEdicion() ? 'Editar' : 'Nuevo' }} producto</div>
+        <h3 class="serif" style="font-size:26px;font-weight:400;margin:4px 0 24px">
+          {{ modoEdicion() ? 'Modificar producto' : 'Agregar producto' }}
+        </h3>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <label class="field">
+            <span class="label">Nombre *</span>
+            <input class="input" formControlName="name" placeholder="Ej: Shampoo Loreal" />
+          </label>
+          <label class="field">
+            <span class="label">Marca</span>
+            <input class="input" formControlName="brand" placeholder="Ej: Loreal" />
+          </label>
+          <label class="field">
+            <span class="label">Categoría *</span>
+            <input class="input" formControlName="category" placeholder="Ej: Cabello, Tintura…" />
+          </label>
+          <label class="field">
+            <span class="label">Stock inicial</span>
+            <input class="input mono" type="number" formControlName="stock" min="0" />
+          </label>
+          <label class="field">
+            <span class="label">Precio compra (COP) *</span>
+            <input class="input mono" type="number" formControlName="purchasePrice" min="0" />
+          </label>
+          <label class="field">
+            <span class="label">Precio venta (COP)</span>
+            <input class="input mono" type="number" formControlName="salePrice" min="0"
+              [attr.disabled]="!formProducto.get('isForSale')?.value ? true : null" />
+          </label>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;margin-top:14px;padding:14px;background:var(--bone);border-radius:8px">
+          <input type="checkbox" id="chk-venta" formControlName="isForSale"
+            style="width:16px;height:16px;accent-color:var(--accent)" />
+          <label for="chk-venta" style="font-size:13px;font-weight:500;cursor:pointer">
+            Se vende al cliente (habilita precio de venta)
+          </label>
+        </div>
+
+        @if (errorMsg()) {
+          <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-top:14px">
+            {{ errorMsg() }}
+          </div>
+        }
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+          <button class="btn btn-ghost" (click)="cerrarModalProducto()" [disabled]="guardando()">Cancelar</button>
+          <button class="btn btn-primary" (click)="guardarProducto()"
+            [disabled]="formProducto.invalid || guardando()">
+            @if (guardando()) { Guardando… } @else { <sp-icon name="check" [size]="14" /> Guardar }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Modal Entrada de stock ────────────────────────────── -->
+@if (modalEntrada()) {
+  <div class="modal-back" (click)="cerrarModalEntrada()">
+    <div class="modal" style="max-width:420px" (click)="$event.stopPropagation()" [formGroup]="formEntrada">
+      <div style="padding:32px">
+        <div class="eyebrow">Inventario</div>
+        <h3 class="serif" style="font-size:26px;font-weight:400;margin:4px 0 6px">Entrada de stock</h3>
+
+        @if (entradaProducto()) {
+          <div style="font-size:13px;color:var(--ink-3);margin-bottom:20px">
+            {{ entradaProducto()!.name }} · Stock actual:
+            <strong>{{ entradaProducto()!.stock }}</strong>
+          </div>
+        } @else {
+          <!-- Sin producto preseleccionado: selección libre -->
+          <div style="font-size:13px;color:var(--ink-3);margin-bottom:20px">
+            Entrada general — selecciona el producto desde la tabla
+          </div>
+        }
+
+        <label class="field" style="margin-bottom:14px">
+          <span class="label">Unidades a ingresar</span>
+          <input class="input mono" type="number" formControlName="cantidad" min="1" placeholder="0" autofocus />
+        </label>
+
+        @if (entradaProducto()) {
+          <div style="padding:12px;background:var(--bone);border-radius:8px;font-size:13px;display:flex;justify-content:space-between">
+            <span style="color:var(--ink-3)">Nuevo stock total</span>
+            <span class="serif tnum" style="font-size:18px;font-weight:500">
+              {{ entradaProducto()!.stock + (formEntrada.get('cantidad')?.value || 0) }}
+            </span>
+          </div>
+        }
+
+        @if (errorMsg()) {
+          <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-top:14px">
+            {{ errorMsg() }}
+          </div>
+        }
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+          <button class="btn btn-ghost" (click)="cerrarModalEntrada()" [disabled]="guardando()">Cancelar</button>
+          <button class="btn btn-primary" (click)="guardarEntrada()"
+            [disabled]="formEntrada.invalid || guardando() || !entradaProducto()">
+            @if (guardando()) { Guardando… } @else { <sp-icon name="check" [size]="14" /> Confirmar entrada }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

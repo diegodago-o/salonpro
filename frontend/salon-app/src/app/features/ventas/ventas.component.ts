@@ -43,7 +43,16 @@ export class VentasComponent implements OnInit {
   readonly items = signal<SaleItem[]>([]);
   readonly peluqueroSeleccionado = signal<StylistOption | null>(null);
   readonly cajaAbierta = signal(false);
+  readonly cargandoCatalogos = signal(true);
   readonly Math = Math;
+
+  readonly wizardSteps = [
+    { n: '01', t: 'Peluquero',  sub: '¿Quién prestará el servicio?' },
+    { n: '02', t: 'Servicios',  sub: 'Agrega los servicios a facturar' },
+    { n: '03', t: 'Productos',  sub: 'Venta a cliente o consumo interno' },
+    { n: '04', t: 'Pago',       sub: 'Método y desglose' },
+    { n: '05', t: 'Confirmar',  sub: 'Revisa antes de registrar' },
+  ];
 
   // Signals que reflejan la validez de los reactive forms (computed no detecta cambios en .valid)
   readonly formClienteValido = signal(false);
@@ -60,11 +69,11 @@ export class VentasComponent implements OnInit {
 
   // ── Formularios ───────────────────────────────────────
   readonly formCliente = this.fb.group({
-    documentType: ['CC', Validators.required],
-    documentNumber: ['', Validators.required],
-    fullName: ['', Validators.required],
+    documentType: ['CC'],
+    documentNumber: [''],
+    fullName: [''],
     email: ['', [Validators.email]],
-    phone: ['', Validators.required],
+    phone: [''],
   });
 
   readonly formVenta = this.fb.group({
@@ -126,8 +135,7 @@ export class VentasComponent implements OnInit {
   readonly ventaExitosaData = signal<{ total: number; stylistTotal: number; salonTotal: number; stylistName: string } | null>(null);
 
   readonly puedeRegistrar = computed(() =>
-    this.formClienteValido()
-    && this.formVentaValido()
+    this.formVentaValido()
     && this.hayServicios()
     && this.pagosValidos()
     && !this.guardando()
@@ -180,11 +188,21 @@ export class VentasComponent implements OnInit {
   }
 
   private cargarCatalogos(): void {
-    this.ventasService.getServicios().subscribe(r => this.servicios.set(r.data));
-    this.ventasService.getProductos().subscribe(r => this.productos.set(r.data));
-    this.ventasService.getPeluqueros().subscribe(r => this.peluqueros.set(r.data));
-    this.ventasService.getMetodosPago().subscribe(r => {
-      this.metodosPago.set(r.data);
+    this.ventasService.getServicios().subscribe({
+      next: r => this.servicios.set(r.data),
+      error: () => {}
+    });
+    this.ventasService.getProductos().subscribe({
+      next: r => this.productos.set(r.data),
+      error: () => {}
+    });
+    this.ventasService.getPeluqueros().subscribe({
+      next: r => { this.peluqueros.set(r.data); this.cargandoCatalogos.set(false); },
+      error: () => this.cargandoCatalogos.set(false)
+    });
+    this.ventasService.getMetodosPago().subscribe({
+      next: r => this.metodosPago.set(r.data),
+      error: () => {}
     });
   }
 
@@ -338,11 +356,19 @@ export class VentasComponent implements OnInit {
         Array.from({ length: i.quantity }, () => mapper(i))
       );
 
+    // Clientes anónimos (sin documento) reciben un id único para evitar colisiones en BD
+    const docNumber = cv.documentNumber?.trim() || `WALK-${Date.now()}`;
+    const fullName  = cv.fullName?.trim()       || 'Consumidor final';
+    const phone     = cv.phone?.trim()          || '';
+
     const request = {
       stylistId: vv.stylistId!,
       stylistName: this.peluqueroSeleccionado()?.fullName ?? '',
-      clientDocumentType: cv.documentType!, clientDocumentNumber: cv.documentNumber!,
-      clientFullName: cv.fullName!, clientEmail: cv.email!, clientPhone: cv.phone!,
+      clientDocumentType: cv.documentType || 'CC',
+      clientDocumentNumber: docNumber,
+      clientFullName: fullName,
+      clientEmail: cv.email || '',
+      clientPhone: phone,
       payments: this.pagos().filter(p => p.paymentMethodId && p.amount > 0).map(p => ({ paymentMethodId: p.paymentMethodId!, amount: p.amount })),
       tipAmount: vv.tipAmount ?? 0,
       notes: vv.notes ?? undefined,
@@ -408,6 +434,11 @@ export class VentasComponent implements OnInit {
 
   nextStep(): void { if (this.canNext()) this.step.update(s => Math.min(4, s + 1)); }
   prevStep(): void { this.step.update(s => Math.max(0, s - 1)); }
+
+  seleccionarPeluquero(p: StylistOption): void {
+    this.peluqueroSeleccionado.set(p);
+    this.formVenta.get('stylistId')!.setValue(p.id);
+  }
 
   nuevaVentaDesdeExito(): void {
     this.resetFormulario();

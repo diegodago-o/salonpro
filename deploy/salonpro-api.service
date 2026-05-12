@@ -1,0 +1,34 @@
+[Unit]
+Description=SalonPro API (.NET 8)
+After=network.target mssql-server.service
+Requires=mssql-server.service
+
+[Service]
+Type=simple
+User=salonpro
+Group=salonpro
+WorkingDirectory=/var/www/salonpro-api
+
+# Binario publicado
+ExecStart=/usr/bin/dotnet /var/www/salonpro-api/SalonPro.Host.dll
+
+# Reinicio automático ante fallo
+Restart=always
+RestartSec=10
+
+# Variables de entorno — los SECRETOS van en /etc/salonpro-api/env (fuera del repo)
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+EnvironmentFile=-/etc/salonpro-api/env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=salonpro-api
+
+# Seguridad
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

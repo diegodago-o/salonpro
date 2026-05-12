@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.salonpro.com.co/api/v1'
+  apiUrl: 'https://api.hubfusioncore.com.co/api/v1'
 };

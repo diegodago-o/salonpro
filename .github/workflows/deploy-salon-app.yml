@@ -1,0 +1,61 @@
+name: Deploy salon-app → VM (nginx)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/salon-app/**'
+      - '.github/workflows/deploy-salon-app.yml'
+  workflow_dispatch:
+
+env:
+  APP_DIR:     frontend/salon-app
+  NODE_VERSION: '20'
+  DEPLOY_PATH: '/var/www/salon-app'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
+
+      - name: Install & Build
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          npm ci
+          npx ng build --configuration=production
+
+      - name: Copiar dist a la VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host:     ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key:      ${{ secrets.VM_SSH_KEY }}
+          port:     22
+          source:   "${{ env.APP_DIR }}/dist/salon-app/browser/*"
+          target:   "/tmp/salon-deploy"
+
+      - name: Publicar en nginx root
+        uses: appleboy/ssh-action@v1
+        with:
+          host:     ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key:      ${{ secrets.VM_SSH_KEY }}
+          port:     22
+          script: |
+            set -e
+            sudo rsync -a --delete \
+              "/tmp/salon-deploy/${{ env.APP_DIR }}/dist/salon-app/browser/" \
+              ${{ env.DEPLOY_PATH }}/
+            sudo chown -R www-data:www-data ${{ env.DEPLOY_PATH }}
+            rm -rf /tmp/salon-deploy
+            echo "✓ salon-app desplegada"

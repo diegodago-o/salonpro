@@ -12,8 +12,14 @@
             <sp-icon name="alert" [size]="13" /> Sin caja abierta
           </div>
         }
-        <button class="btn btn-primary" (click)="nuevaVenta()" [disabled]="!cajaAbierta()">
-          <sp-icon name="plus" [size]="14" /> Nueva venta
+        <button class="btn btn-primary" (click)="nuevaVenta()"
+          [disabled]="!cajaAbierta() || cargandoCatalogos()">
+          @if (cargandoCatalogos()) {
+            <span style="display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite"></span>
+            Cargando…
+          } @else {
+            <sp-icon name="plus" [size]="14" /> Nueva venta
+          }
         </button>
       </div>
     </div>
@@ -23,7 +29,8 @@
       <div class="card" style="padding:60px;text-align:center">
         <div class="eyebrow" style="margin-bottom:8px">Sin ventas</div>
         <div style="color:var(--ink-4);font-size:14px">No hay ventas registradas hoy.</div>
-        <button class="btn btn-primary btn-lg" style="margin-top:20px" (click)="nuevaVenta()" [disabled]="!cajaAbierta()">
+        <button class="btn btn-primary btn-lg" style="margin-top:20px" (click)="nuevaVenta()"
+          [disabled]="!cajaAbierta() || cargandoCatalogos()">
           <sp-icon name="plus" [size]="14" /> Registrar primera venta
         </button>
       </div>
@@ -141,7 +148,7 @@
 
       <!-- Step trail -->
       <div class="step-trail" style="margin-bottom:28px">
-        @for (s of [{n:'01',t:'Peluquero'},{n:'02',t:'Servicios'},{n:'03',t:'Productos'},{n:'04',t:'Pago'},{n:'05',t:'Confirmar'}]; track s.n; let i = $index) {
+        @for (s of wizardSteps; track s.n; let i = $index) {
           <div style="display:flex;align-items:center;gap:10px">
             <div [class]="'step-dot' + (step() === i ? ' active' : step() > i ? ' done' : '')">
               @if (step() > i) { <sp-icon name="check" [size]="12" /> } @else { {{ s.n }} }
@@ -158,34 +165,48 @@
         <!-- LEFT: step content -->
         <div class="card" style="padding:32px;min-height:400px">
           <div style="margin-bottom:24px">
-            <div class="eyebrow">Paso {{ ['01','02','03','04','05'][step()] }}</div>
+            <div class="eyebrow">Paso {{ wizardSteps[step()].n }}</div>
             <h2 class="serif" style="font-size:30px;font-weight:400;margin:4px 0;letter-spacing:-0.02em">
-              {{ ['Peluquero','Servicios','Productos','Pago','Confirmar'][step()] }}
+              {{ wizardSteps[step()].t }}
             </h2>
             <div style="color:var(--ink-3);font-size:13px">
-              {{ ['¿Quién prestará el servicio?','Agrega los servicios a facturar','Venta a cliente o consumo interno','Método y desglose','Revisa antes de registrar'][step()] }}
+              {{ wizardSteps[step()].sub }}
             </div>
           </div>
 
           <!-- STEP 0: Peluquero -->
           @if (step() === 0) {
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
-              @for (p of peluqueros(); track p.id) {
-                <button [class]="'tile' + (peluqueroSeleccionado()?.id === p.id ? ' selected' : '')"
-                  (click)="formVenta.get('stylistId')!.setValue(p.id)"
-                  style="display:flex;align-items:center;gap:14px;padding:18px">
-                  <span class="avatar avatar-lg">{{ p.fullName.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() }}</span>
-                  <div style="flex:1">
-                    <div class="serif" style="font-size:18px;line-height:1.1">{{ p.fullName }}</div>
-                    <div class="tile-meta" style="margin-top:4px">desde el salón</div>
-                  </div>
-                  <div style="text-align:right">
-                    <div class="tile-meta">Comisión</div>
-                    <div class="serif tnum" style="font-size:18px">{{ p.commissionPercent }}%</div>
-                  </div>
-                </button>
-              }
-            </div>
+            @if (cargandoCatalogos()) {
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+                @for (s of [1,2,3,4]; track s) {
+                  <div style="height:88px;background:var(--bone);border-radius:8px;border:1px solid var(--hair-2);animation:pulse 1.4s ease-in-out infinite"></div>
+                }
+              </div>
+              <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--ink-4)">Cargando equipo…</div>
+            } @else if (peluqueros().length === 0) {
+              <div style="padding:32px;text-align:center;color:var(--ink-4)">
+                <div style="font-size:14px">No hay peluqueros registrados.</div>
+                <div style="font-size:12px;margin-top:6px">Agrégalos en Configuración → Usuarios.</div>
+              </div>
+            } @else {
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+                @for (p of peluqueros(); track p.id) {
+                  <button [class]="'tile' + (peluqueroSeleccionado()?.id === p.id ? ' selected' : '')"
+                    (click)="seleccionarPeluquero(p)"
+                    style="display:flex;align-items:center;gap:14px;padding:18px">
+                    <span class="avatar avatar-lg">{{ p.fullName.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() }}</span>
+                    <div style="flex:1">
+                      <div class="serif" style="font-size:18px;line-height:1.1">{{ p.fullName }}</div>
+                      <div class="tile-meta" style="margin-top:4px">desde el salón</div>
+                    </div>
+                    <div style="text-align:right">
+                      <div class="tile-meta">Comisión</div>
+                      <div class="serif tnum" style="font-size:18px">{{ p.commissionPercent }}%</div>
+                    </div>
+                  </button>
+                }
+              </div>
+            }
           }
 
           <!-- STEP 1: Servicios -->
@@ -389,20 +410,37 @@
           }
 
           <hr class="hr" style="margin:32px 0 20px" />
-          <div style="display:flex;justify-content:space-between">
+          <div style="display:flex;justify-content:space-between;align-items:center">
             <button class="btn btn-ghost" [disabled]="step() === 0" (click)="prevStep()">
               <sp-icon name="arrow-left" [size]="14" /> Atrás
             </button>
-            @if (step() < 4) {
-              <button class="btn btn-primary btn-lg" [disabled]="!canNext()" (click)="nextStep()"
-                [style.opacity]="canNext() ? '1' : '0.4'">
-                Continuar <sp-icon name="arrow-right" [size]="14" />
-              </button>
-            } @else {
-              <button class="btn btn-accent btn-lg" (click)="guardarVenta()" [disabled]="guardando()">
-                <sp-icon name="check" [size]="14" /> {{ guardando() ? 'Registrando…' : 'Registrar venta' }}
-              </button>
-            }
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+              @if (!canNext() && step() < 4) {
+                <div style="font-size:11px;color:var(--ink-4)">
+                  @if (step() === 0) { Selecciona un peluquero para continuar }
+                  @if (step() === 1) { Agrega al menos un servicio para continuar }
+                  @if (step() === 3) { El total recibido debe cuadrar con el total a cobrar }
+                </div>
+              }
+              @if (step() < 4) {
+                <button class="btn btn-primary btn-lg" [disabled]="!canNext()" (click)="nextStep()"
+                  [style.opacity]="canNext() ? '1' : '0.4'">
+                  Continuar <sp-icon name="arrow-right" [size]="14" />
+                </button>
+              } @else {
+                @if (!puedeRegistrar() && !guardando()) {
+                  <div style="font-size:11px;color:var(--danger);text-align:right">
+                    @if (!pagosValidos()) { El pago no cuadra con el total }
+                    @else if (!hayServicios()) { Agrega al menos un servicio }
+                    @else if (!formVentaValido()) { Selecciona un peluquero }
+                  </div>
+                }
+                <button class="btn btn-accent btn-lg" (click)="guardarVenta()"
+                  [disabled]="!puedeRegistrar()" [style.opacity]="puedeRegistrar() ? '1' : '0.5'">
+                  <sp-icon name="check" [size]="14" /> {{ guardando() ? 'Registrando…' : 'Registrar venta' }}
+                </button>
+              }
+            </div>
           </div>
         </div>
 

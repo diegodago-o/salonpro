@@ -1,13 +1,13 @@
 <div class="page fade-in">
   <div class="page-head">
     <div>
-      <div class="eyebrow" style="margin-bottom:8px">Catálogo</div>
+      <div class="eyebrow">Catálogo</div>
       <h1><span class="serif">Gestión de</span> <span class="serif-italic">servicios</span></h1>
       <div class="deck">{{ servicios().length }} servicios configurados</div>
     </div>
-    <div>
-      <button class="btn btn-primary"><sp-icon name="plus" [size]="14" /> Nuevo servicio</button>
-    </div>
+    <button class="btn btn-primary" (click)="abrirNuevo()">
+      <sp-icon name="plus" [size]="14" /> Nuevo servicio
+    </button>
   </div>
 
   @if (cargando()) {
@@ -16,20 +16,28 @@
     @for (cat of categorias(); track cat) {
       <div style="margin-bottom:28px">
         <div class="section-header">
-          <h2>{{ cat }}</h2>
-          <span class="sub">{{ serviciosPorCategoria(cat).length }} servicios</span>
+          <h2 class="serif" style="font-size:26px;font-weight:400">{{ cat }}</h2>
+          <span style="font-size:12px;color:var(--ink-4)">{{ serviciosPorCategoria(cat).length }} servicios</span>
         </div>
         <div class="card" style="overflow:hidden">
           <div class="table-wrap">
             <table class="tbl">
               <thead>
-                <tr><th>Servicio</th><th style="text-align:right">Precio</th><th>Fee salón</th><th>Estado</th><th></th></tr>
+                <tr>
+                  <th>Servicio</th>
+                  <th style="text-align:right">Precio</th>
+                  <th>Fee salón</th>
+                  <th>Estado</th>
+                  <th></th>
+                </tr>
               </thead>
               <tbody>
                 @for (s of serviciosPorCategoria(cat); track s.id) {
-                  <tr>
+                  <tr [style.opacity]="s.isActive ? '1' : '0.5'">
                     <td><div style="font-weight:500">{{ s.name }}</div></td>
-                    <td class="tnum serif" style="text-align:right;font-size:17px">{{ s.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                    <td class="tnum serif" style="text-align:right;font-size:17px">
+                      {{ s.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                    </td>
                     <td>
                       @if (s.hasSalonFee) {
                         <span class="pill pill-accent">{{ s.salonFeePercent }}%</span>
@@ -38,13 +46,23 @@
                       }
                     </td>
                     <td>
-                      @if (s.isActive !== false) {
+                      @if (s.isActive) {
                         <span class="pill pill-success"><span class="pill-dot"></span>Activo</span>
                       } @else {
                         <span class="pill"><span class="pill-dot"></span>Inactivo</span>
                       }
                     </td>
-                    <td><button class="btn btn-icon btn-ghost"><sp-icon name="edit" [size]="14" /></button></td>
+                    <td>
+                      <div style="display:flex;gap:4px;justify-content:flex-end">
+                        <button class="btn btn-icon btn-ghost" title="Editar" (click)="abrirEditar(s)">
+                          <sp-icon name="edit" [size]="14" />
+                        </button>
+                        <button class="btn btn-icon btn-ghost" [title]="s.isActive ? 'Desactivar' : 'Activar'"
+                          (click)="toggle(s)" [style.color]="s.isActive ? 'var(--danger)' : 'var(--success)'">
+                          <sp-icon [name]="s.isActive ? 'eye-off' : 'eye'" [size]="14" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 }
               </tbody>
@@ -53,11 +71,80 @@
         </div>
       </div>
     }
+
     @if (servicios().length === 0) {
-      <div style="padding:60px;text-align:center;color:var(--ink-4)">
-        <sp-icon name="scissors" [size]="32" />
-        <div style="margin-top:12px">No hay servicios configurados</div>
+      <div class="card" style="padding:60px;text-align:center;color:var(--ink-4)">
+        <div style="font-size:14px;margin-top:12px">No hay servicios configurados</div>
+        <button class="btn btn-primary" style="margin-top:20px" (click)="abrirNuevo()">
+          <sp-icon name="plus" [size]="14" /> Crear primer servicio
+        </button>
       </div>
     }
   }
 </div>
+
+<!-- Modal crear / editar servicio -->
+@if (modalAbierto()) {
+  <div class="modal-back" (click)="cerrarModal()">
+    <div class="modal" (click)="$event.stopPropagation()" [formGroup]="form">
+      <div style="padding:32px">
+
+        <div class="eyebrow">{{ modoEdicion() ? 'Editar' : 'Nuevo' }} servicio</div>
+        <h3 class="serif" style="font-size:26px;font-weight:400;margin:4px 0 24px">
+          {{ modoEdicion() ? 'Modificar servicio' : 'Agregar servicio' }}
+        </h3>
+
+        <!-- Nombre -->
+        <label class="field" style="margin-bottom:14px">
+          <span class="label">Nombre del servicio *</span>
+          <input class="input" formControlName="name" placeholder="Ej: Corte dama" />
+        </label>
+
+        <!-- Categoría -->
+        <label class="field" style="margin-bottom:14px">
+          <span class="label">Categoría *</span>
+          <input class="input" formControlName="category" placeholder="Ej: Corte, Tintura, Manos…" list="cats-list" />
+          <datalist id="cats-list">
+            @for (c of categorias(); track c) { <option [value]="c"></option> }
+          </datalist>
+        </label>
+
+        <!-- Precio -->
+        <label class="field" style="margin-bottom:14px">
+          <span class="label">Precio (COP) *</span>
+          <input class="input mono" type="number" formControlName="price" min="0" placeholder="0" />
+        </label>
+
+        <!-- Fee salón -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:14px;background:var(--bone);border-radius:8px">
+          <input type="checkbox" id="chk-fee" formControlName="hasSalonFee" style="width:16px;height:16px;accent-color:var(--accent)" />
+          <label for="chk-fee" style="font-size:13px;font-weight:500;cursor:pointer">
+            Aplica fee de salón (materiales, desgaste)
+          </label>
+        </div>
+
+        @if (form.get('hasSalonFee')?.value) {
+          <label class="field" style="margin-bottom:14px">
+            <span class="label">Porcentaje fee salón (%)</span>
+            <input class="input mono" type="number" formControlName="salonFeePercent" min="0" max="100" placeholder="4.5" />
+          </label>
+        }
+
+        @if (errorMsg()) {
+          <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-bottom:14px">
+            {{ errorMsg() }}
+          </div>
+        }
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+          <button class="btn btn-ghost" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+          <button class="btn btn-primary" (click)="guardar()"
+            [disabled]="form.invalid || guardando()">
+            @if (guardando()) { Guardando… } @else { <sp-icon name="check" [size]="14" /> Guardar }
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}

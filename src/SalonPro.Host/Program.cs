@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using SalonPro.Gateway.Middleware;
@@ -9,6 +11,7 @@ using SalonPro.Identity.Infrastructure.Data.Seed;
 using SalonPro.SalonOperations.Api;
 using SalonPro.SalonOperations.Application;
 using SalonPro.SalonOperations.Infrastructure;
+using SalonPro.SalonOperations.Infrastructure.Data;
 using SalonPro.SalonOperations.Infrastructure.Data.Seed;
 using SalonPro.Tenants.Api;
 using SalonPro.Tenants.Application;
@@ -103,11 +106,22 @@ try
 
     var app = builder.Build();
 
-    // Seed datos iniciales en desarrollo
+    // ── Migraciones + datos base ─────────────────────────────────────────────
+    // TenantsSeeder y IdentitySeeder llaman MigrateAsync() internamente
+    // y son idempotentes → seguros de correr siempre (incluso en producción).
+    await TenantsSeeder.SeedAsync(app.Services);   // migra TenantsDb   + crea planes
+    await IdentitySeeder.SeedAsync(app.Services);  // migra IdentityDb  + crea PlatformAdmin
+
+    // SalonOpsDbContext no tiene seeder en producción → migramos su esquema aquí.
+    await using (var sc = app.Services.CreateAsyncScope())
+    {
+        var salonDb = sc.ServiceProvider.GetRequiredService<SalonOpsDbContext>();
+        await salonDb.Database.MigrateAsync();
+    }
+
+    // Datos demo — solo en Development
     if (app.Environment.IsDevelopment())
     {
-        await TenantsSeeder.SeedAsync(app.Services);
-        await IdentitySeeder.SeedAsync(app.Services);
         await SalonOpsSeeder.SeedAsync(app.Services);
     }
 
