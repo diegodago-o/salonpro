@@ -42,7 +42,7 @@ public class ClientsController(IMediator mediator) : ControllerBase
     public async Task<ActionResult<ApiResponse<ClientDto>>> Update(
         int id, [FromBody] CreateClientRequest request, CancellationToken ct)
     {
-        var result = await mediator.Send(new UpdateClientCommand(id, request), ct);
+        var result = await mediator.Send(new UpdateClientCommand(id, GetTenantId(), request), ct);
         return Ok(ApiResponse<ClientDto>.Ok(result));
     }
 }

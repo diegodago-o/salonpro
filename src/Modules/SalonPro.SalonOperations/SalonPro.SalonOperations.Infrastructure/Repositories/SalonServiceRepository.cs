@@ -7,9 +7,9 @@ namespace SalonPro.SalonOperations.Infrastructure.Repositories;
 
 public class SalonServiceRepository(SalonOpsDbContext db) : ISalonServiceRepository
 {
-    public async Task<IEnumerable<SalonService>> GetAllByTenantAsync(int tenantId, CancellationToken ct = default) =>
+    public async Task<IEnumerable<SalonService>> GetAllByBranchAsync(int tenantId, int branchId, CancellationToken ct = default) =>
         await db.SalonServices
-            .Where(s => s.TenantId == tenantId)
+            .Where(s => s.TenantId == tenantId && s.BranchId == branchId)
             .OrderBy(s => s.Category).ThenBy(s => s.Name)
             .ToListAsync(ct);
 

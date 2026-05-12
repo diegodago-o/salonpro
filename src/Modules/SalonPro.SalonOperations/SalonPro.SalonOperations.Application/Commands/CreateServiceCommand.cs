@@ -12,7 +12,7 @@ public record CreateServiceRequest(
     bool HasSalonFee,
     decimal SalonFeePercent);
 
-public record CreateServiceCommand(int TenantId, CreateServiceRequest Request) : IRequest<SalonServiceDto>;
+public record CreateServiceCommand(int TenantId, int BranchId, CreateServiceRequest Request) : IRequest<SalonServiceDto>;
 
 public class CreateServiceHandler(ISalonServiceRepository repo)
     : IRequestHandler<CreateServiceCommand, SalonServiceDto>
@@ -20,7 +20,7 @@ public class CreateServiceHandler(ISalonServiceRepository repo)
     public async Task<SalonServiceDto> Handle(CreateServiceCommand cmd, CancellationToken ct)
     {
         var req = cmd.Request;
-        var service = SalonService.Create(cmd.TenantId, req.Name, req.Category,
+        var service = SalonService.Create(cmd.TenantId, cmd.BranchId, req.Name, req.Category,
             req.Price, req.HasSalonFee, req.SalonFeePercent);
         await repo.AddAsync(service, ct);
         await repo.SaveChangesAsync(ct);

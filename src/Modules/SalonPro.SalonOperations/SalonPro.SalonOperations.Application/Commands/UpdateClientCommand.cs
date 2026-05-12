@@ -5,7 +5,7 @@ using SalonPro.Shared.Exceptions;
 
 namespace SalonPro.SalonOperations.Application.Commands;
 
-public record UpdateClientCommand(int Id, CreateClientRequest Request) : IRequest<ClientDto>;
+public record UpdateClientCommand(int Id, int TenantId, CreateClientRequest Request) : IRequest<ClientDto>;
 
 public class UpdateClientHandler(IClientRepository repo)
     : IRequestHandler<UpdateClientCommand, ClientDto>
@@ -14,6 +14,7 @@ public class UpdateClientHandler(IClientRepository repo)
     {
         var client = await repo.GetByIdAsync(cmd.Id, ct)
             ?? throw new NotFoundException("Client", cmd.Id);
+        if (client.TenantId != cmd.TenantId) throw new ForbiddenException();
         var req = cmd.Request;
         client.Update(req.DocumentType, req.DocumentNumber, req.FullName, req.Email, req.Phone);
         await repo.SaveChangesAsync(ct);

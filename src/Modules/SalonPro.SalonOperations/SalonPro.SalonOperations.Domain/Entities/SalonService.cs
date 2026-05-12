@@ -4,6 +4,7 @@ public class SalonService
 {
     public int Id { get; private set; }
     public int TenantId { get; private set; }
+    public int BranchId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public string Category { get; private set; } = string.Empty;
     public decimal Price { get; private set; }
@@ -14,12 +15,13 @@ public class SalonService
 
     private SalonService() { }
 
-    public static SalonService Create(int tenantId, string name, string category, decimal price,
+    public static SalonService Create(int tenantId, int branchId, string name, string category, decimal price,
         bool hasSalonFee, decimal salonFeePercent)
     {
         return new SalonService
         {
             TenantId = tenantId,
+            BranchId = branchId,
             Name = name.Trim(),
             Category = category.Trim(),
             Price = price,

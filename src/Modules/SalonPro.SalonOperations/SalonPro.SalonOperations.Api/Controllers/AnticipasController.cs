@@ -39,7 +39,7 @@ public class AnticipasController(IMediator mediator) : ControllerBase
     [HttpPatch("{id:int}/void")]
     public async Task<ActionResult<ApiResponse<object>>> Void(int id, CancellationToken ct)
     {
-        await mediator.Send(new VoidAnticipoCommand(id), ct);
+        await mediator.Send(new VoidAnticipoCommand(id, GetTenantId()), ct);
         return Ok(ApiResponse.Ok("Anticipo anulado."));
     }
 }

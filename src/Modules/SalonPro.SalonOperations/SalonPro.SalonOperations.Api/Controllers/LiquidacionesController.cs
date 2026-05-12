@@ -41,7 +41,7 @@ public class LiquidacionesController(IMediator mediator) : ControllerBase
     [HttpPatch("{id:int}/close")]
     public async Task<ActionResult<ApiResponse<object>>> Close(int id, CancellationToken ct)
     {
-        await mediator.Send(new CloseLiquidacionCommand(id), ct);
+        await mediator.Send(new CloseLiquidacionCommand(id, GetTenantId()), ct);
         return Ok(ApiResponse.Ok("Liquidación cerrada."));
     }
 }

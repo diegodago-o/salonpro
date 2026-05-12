@@ -4,7 +4,7 @@ using SalonPro.Shared.Exceptions;
 
 namespace SalonPro.SalonOperations.Application.Commands;
 
-public record ToggleServiceCommand(int Id) : IRequest;
+public record ToggleServiceCommand(int Id, int TenantId) : IRequest;
 
 public class ToggleServiceHandler(ISalonServiceRepository repo)
     : IRequestHandler<ToggleServiceCommand>
@@ -13,6 +13,7 @@ public class ToggleServiceHandler(ISalonServiceRepository repo)
     {
         var service = await repo.GetByIdAsync(cmd.Id, ct)
             ?? throw new NotFoundException("SalonService", cmd.Id);
+        if (service.TenantId != cmd.TenantId) throw new ForbiddenException();
         service.SetActive(!service.IsActive);
         await repo.SaveChangesAsync(ct);
     }

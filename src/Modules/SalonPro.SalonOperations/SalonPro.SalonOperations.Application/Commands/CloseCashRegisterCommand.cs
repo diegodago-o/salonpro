@@ -9,7 +9,7 @@ namespace SalonPro.SalonOperations.Application.Commands;
 
 public record CloseCashRegisterRequest(decimal DeclaredCash, string? Notes);
 
-public record CloseCashRegisterCommand(int Id, CloseCashRegisterRequest Request) : IRequest<CashRegisterDto>;
+public record CloseCashRegisterCommand(int Id, int TenantId, CloseCashRegisterRequest Request) : IRequest<CashRegisterDto>;
 
 public class CloseCashRegisterHandler(ICashRegisterRepository cashRepo, ISaleRepository saleRepo)
     : IRequestHandler<CloseCashRegisterCommand, CashRegisterDto>
@@ -18,6 +18,7 @@ public class CloseCashRegisterHandler(ICashRegisterRepository cashRepo, ISaleRep
     {
         var cr = await cashRepo.GetByIdWithDetailsAsync(cmd.Id, ct)
             ?? throw new NotFoundException("CashRegister", cmd.Id);
+        if (cr.TenantId != cmd.TenantId) throw new ForbiddenException();
 
         if (cr.Status == CashRegisterStatus.Closed)
             throw new ConflictException("La caja ya está cerrada.");

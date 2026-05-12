@@ -53,7 +53,7 @@ public class CashRegistersController(IMediator mediator) : ControllerBase
     public async Task<ActionResult<ApiResponse<CashRegisterDto>>> Close(
         int id, [FromBody] CloseCashRegisterRequest request, CancellationToken ct)
     {
-        var result = await mediator.Send(new CloseCashRegisterCommand(id, request), ct);
+        var result = await mediator.Send(new CloseCashRegisterCommand(id, GetTenantId(), request), ct);
         return Ok(ApiResponse<CashRegisterDto>.Ok(result, "Caja cerrada."));
     }
 }

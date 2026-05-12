@@ -4,7 +4,7 @@ using SalonPro.Shared.Exceptions;
 
 namespace SalonPro.SalonOperations.Application.Commands;
 
-public record VoidAnticipoCommand(int Id) : IRequest;
+public record VoidAnticipoCommand(int Id, int TenantId) : IRequest;
 
 public class VoidAnticipoHandler(IAnticipoRepository repo)
     : IRequestHandler<VoidAnticipoCommand>
@@ -13,6 +13,7 @@ public class VoidAnticipoHandler(IAnticipoRepository repo)
     {
         var anticipo = await repo.GetByIdAsync(cmd.Id, ct)
             ?? throw new NotFoundException("Anticipo", cmd.Id);
+        if (anticipo.TenantId != cmd.TenantId) throw new ForbiddenException();
         anticipo.Void();
         await repo.SaveChangesAsync(ct);
     }

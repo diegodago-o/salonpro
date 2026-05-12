@@ -61,6 +61,7 @@ public class CreateSaleHandler(
         {
             var method = await paymentMethodRepo.GetByIdAsync(p.PaymentMethodId, ct)
                 ?? throw new NotFoundException("PaymentMethod", p.PaymentMethodId);
+            if (method.TenantId != cmd.TenantId) throw new ForbiddenException("Método de pago no pertenece a este tenant.");
             paymentDetails.Add((method.Id, method.Name, p.Amount, method.HasDeduction ? method.DeductionPercent : 0));
             if (method.HasDeduction)
                 totalDeductions += Math.Round(p.Amount * method.DeductionPercent / 100, 2);

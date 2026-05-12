@@ -14,7 +14,7 @@ public record CreateProductRequest(
     int Stock,
     bool IsForSale);
 
-public record CreateProductCommand(int TenantId, CreateProductRequest Request) : IRequest<SalonProductDto>;
+public record CreateProductCommand(int TenantId, int BranchId, CreateProductRequest Request) : IRequest<SalonProductDto>;
 
 public class CreateProductHandler(ISalonProductRepository repo)
     : IRequestHandler<CreateProductCommand, SalonProductDto>
@@ -22,7 +22,7 @@ public class CreateProductHandler(ISalonProductRepository repo)
     public async Task<SalonProductDto> Handle(CreateProductCommand cmd, CancellationToken ct)
     {
         var req = cmd.Request;
-        var product = SalonProduct.Create(cmd.TenantId, req.Name, req.Brand, req.Category,
+        var product = SalonProduct.Create(cmd.TenantId, cmd.BranchId, req.Name, req.Brand, req.Category,
             req.PurchasePrice, req.SalePrice, req.Stock, req.IsForSale);
         await repo.AddAsync(product, ct);
         await repo.SaveChangesAsync(ct);

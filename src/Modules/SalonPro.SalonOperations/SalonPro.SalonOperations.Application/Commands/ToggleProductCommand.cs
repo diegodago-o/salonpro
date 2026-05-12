@@ -6,7 +6,7 @@ namespace SalonPro.SalonOperations.Application.Commands;
 
 public record ToggleActiveRequest(bool IsActive);
 
-public record ToggleProductCommand(int Id, bool IsActive) : IRequest;
+public record ToggleProductCommand(int Id, int TenantId, bool IsActive) : IRequest;
 
 public class ToggleProductHandler(ISalonProductRepository repo)
     : IRequestHandler<ToggleProductCommand>
@@ -15,6 +15,7 @@ public class ToggleProductHandler(ISalonProductRepository repo)
     {
         var product = await repo.GetByIdAsync(cmd.Id, ct)
             ?? throw new NotFoundException("SalonProduct", cmd.Id);
+        if (product.TenantId != cmd.TenantId) throw new ForbiddenException();
         product.SetActive(cmd.IsActive);
         await repo.SaveChangesAsync(ct);
     }

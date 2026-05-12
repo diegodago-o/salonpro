@@ -40,7 +40,7 @@ public class SalesController(IMediator mediator) : ControllerBase
     public async Task<ActionResult<ApiResponse<object>>> Void(
         int id, [FromBody] VoidRequest request, CancellationToken ct)
     {
-        await mediator.Send(new VoidSaleCommand(id, request), ct);
+        await mediator.Send(new VoidSaleCommand(id, GetTenantId(), request), ct);
         return Ok(ApiResponse.Ok("Venta anulada."));
     }
 }
