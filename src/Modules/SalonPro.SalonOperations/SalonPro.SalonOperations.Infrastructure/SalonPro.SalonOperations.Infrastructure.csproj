@@ -15,5 +15,8 @@
     <ProjectReference Include="..\..\..\SalonPro.Shared\SalonPro.Shared.csproj" />
     <ProjectReference Include="..\SalonPro.SalonOperations.Domain\SalonPro.SalonOperations.Domain.csproj" />
     <ProjectReference Include="..\SalonPro.SalonOperations.Application\SalonPro.SalonOperations.Application.csproj" />
+    <!-- Referencias para el seeder (acceso a Tenants e Identity DbContexts) -->
+    <ProjectReference Include="..\..\SalonPro.Tenants\SalonPro.Tenants.Infrastructure\SalonPro.Tenants.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\SalonPro.Identity\SalonPro.Identity.Infrastructure\SalonPro.Identity.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

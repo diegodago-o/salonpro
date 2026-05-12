@@ -9,6 +9,7 @@ using SalonPro.Identity.Infrastructure.Data.Seed;
 using SalonPro.SalonOperations.Api;
 using SalonPro.SalonOperations.Application;
 using SalonPro.SalonOperations.Infrastructure;
+using SalonPro.SalonOperations.Infrastructure.Data.Seed;
 using SalonPro.Tenants.Api;
 using SalonPro.Tenants.Application;
 using SalonPro.Tenants.Infrastructure;
@@ -107,6 +108,7 @@ try
     {
         await TenantsSeeder.SeedAsync(app.Services);
         await IdentitySeeder.SeedAsync(app.Services);
+        await SalonOpsSeeder.SeedAsync(app.Services);
     }
 
     app.UseSwagger();
