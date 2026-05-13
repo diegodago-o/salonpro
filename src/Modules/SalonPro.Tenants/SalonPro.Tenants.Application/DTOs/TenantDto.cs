@@ -1,5 +1,11 @@
 namespace SalonPro.Tenants.Application.DTOs;
 
+public record CreateTenantResponse(
+    TenantDto Tenant,
+    string OwnerEmail,
+    string OwnerPassword
+);
+
 public record TenantDto(
     int Id,
     string BusinessName,

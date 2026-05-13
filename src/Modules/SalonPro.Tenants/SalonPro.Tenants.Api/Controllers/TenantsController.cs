@@ -34,12 +34,12 @@ public class TenantsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<TenantDto>>> Create(
+    public async Task<ActionResult<ApiResponse<CreateTenantResponse>>> Create(
         [FromBody] CreateTenantRequest request, CancellationToken ct)
     {
         var createdBy = User.Identity?.Name ?? "admin";
         var result = await mediator.Send(new CreateTenantCommand(request, createdBy), ct);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<TenantDto>.Ok(result, "Salón creado exitosamente."));
+        return CreatedAtAction(nameof(GetById), new { id = result.Tenant.Id }, ApiResponse<CreateTenantResponse>.Ok(result, "Salón creado exitosamente."));
     }
 
     [HttpPut("{id:int}")]

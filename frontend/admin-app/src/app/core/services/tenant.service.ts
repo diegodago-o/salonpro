@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Branch, CreateBranchRequest, CreateTenantRequest, PagedResult, Tenant, UpdateSubscriptionRequest } from '../models/tenant.model';
+import { Branch, CreateBranchRequest, CreateTenantRequest, CreateTenantResponse, PagedResult, Tenant, UpdateSubscriptionRequest } from '../models/tenant.model';
 import { map } from 'rxjs/operators';
 
 interface ApiResponse<T> { success: boolean; data: T; message: string | null; }
@@ -26,7 +26,7 @@ export class TenantService {
   }
 
   create(req: CreateTenantRequest) {
-    return this.http.post<ApiResponse<Tenant>>(this.base, req)
+    return this.http.post<ApiResponse<CreateTenantResponse>>(this.base, req)
       .pipe(map(r => r.data));
   }
 

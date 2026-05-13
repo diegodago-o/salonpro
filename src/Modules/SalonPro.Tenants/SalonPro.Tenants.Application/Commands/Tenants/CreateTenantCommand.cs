@@ -8,16 +8,16 @@ using SalonPro.Tenants.Domain.Interfaces;
 
 namespace SalonPro.Tenants.Application.Commands.Tenants;
 
-public record CreateTenantCommand(CreateTenantRequest Request, string CreatedBy) : IRequest<TenantDto>;
+public record CreateTenantCommand(CreateTenantRequest Request, string CreatedBy) : IRequest<CreateTenantResponse>;
 
 public class CreateTenantHandler(
     ITenantRepository tenantRepo,
     IPlanRepository planRepo,
     ISubscriptionRepository subscriptionRepo,
     IBranchRepository branchRepo,
-    IUserProvisioningService userProvisioning) : IRequestHandler<CreateTenantCommand, TenantDto>
+    IUserProvisioningService userProvisioning) : IRequestHandler<CreateTenantCommand, CreateTenantResponse>
 {
-    public async Task<TenantDto> Handle(CreateTenantCommand cmd, CancellationToken ct)
+    public async Task<CreateTenantResponse> Handle(CreateTenantCommand cmd, CancellationToken ct)
     {
         var req = cmd.Request;
 
@@ -51,9 +51,10 @@ public class CreateTenantHandler(
             tenant.Id, req.OwnerEmail, req.OwnerFullName,
             req.OwnerPassword, req.OwnerDocument, tenant.BusinessName, ct);
 
-        return new TenantDto(tenant.Id, tenant.BusinessName, tenant.TradeName, tenant.Nit,
+        var tenantDto = new TenantDto(tenant.Id, tenant.BusinessName, tenant.TradeName, tenant.Nit,
             tenant.Slug, tenant.Email, tenant.Phone, tenant.Address, tenant.City, tenant.LogoUrl,
-            tenant.Status.ToString(), tenant.TrialEndsAt, tenant.CreatedAt,
-            null, 1);
+            tenant.Status.ToString(), tenant.TrialEndsAt, tenant.CreatedAt, null, 1);
+
+        return new CreateTenantResponse(tenantDto, req.OwnerEmail, req.OwnerPassword);
     }
 }

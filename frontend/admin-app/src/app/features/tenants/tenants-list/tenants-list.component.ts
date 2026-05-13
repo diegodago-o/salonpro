@@ -8,6 +8,7 @@ import { Plan } from '../../../core/models/plan.model';
 import { PlanService } from '../../../core/services/plan.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-tenants-list',
@@ -238,6 +239,42 @@ import { ConfirmService } from '../../../core/services/confirm.service';
           </div>
         </div>
       }
+
+      <!-- MODAL: Credenciales del nuevo salón -->
+      @if (createdCredentials(); as creds) {
+        <div class="modal-backdrop" (click)="createdCredentials.set(null)">
+          <div class="modal creds-modal" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <h3>✅ Salón creado — Credenciales de acceso</h3>
+              <button class="modal-close" (click)="createdCredentials.set(null)">×</button>
+            </div>
+            <div class="modal-body">
+              <p class="creds-hint">Comparte estas credenciales con el propietario del salón. <strong>No se volverán a mostrar.</strong></p>
+              <div class="creds-block">
+                <div class="creds-row">
+                  <span class="creds-label">URL del salón</span>
+                  <code class="creds-value">https://{{ creds.slug }}.{{ tenantDomain }}</code>
+                  <button class="btn-copy" (click)="copy('https://' + creds.slug + '.' + tenantDomain)">Copiar</button>
+                </div>
+                <div class="creds-row">
+                  <span class="creds-label">Correo</span>
+                  <code class="creds-value">{{ creds.email }}</code>
+                  <button class="btn-copy" (click)="copy(creds.email)">Copiar</button>
+                </div>
+                <div class="creds-row">
+                  <span class="creds-label">Contraseña</span>
+                  <code class="creds-value">{{ creds.password }}</code>
+                  <button class="btn-copy" (click)="copy(creds.password)">Copiar</button>
+                </div>
+              </div>
+              <button class="btn-copy-all" (click)="copyAll(creds)">📋 Copiar todo</button>
+            </div>
+            <div class="modal-footer">
+              <button class="btn-primary" (click)="createdCredentials.set(null)">Entendido</button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -387,9 +424,20 @@ import { ConfirmService } from '../../../core/services/confirm.service';
       background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
       border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px;
     }
+    .creds-modal { max-width: 520px; }
+    .creds-hint { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+    .creds-block { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+    .creds-row { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 8px; }
+    .creds-label { font-size: 12px; color: #6b7280; font-weight: 500; }
+    .creds-value { background: #f3f4f6; border-radius: 6px; padding: 6px 10px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn-copy { padding: 4px 10px; font-size: 12px; background: #e5e7eb; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+    .btn-copy:hover { background: #d1d5db; }
+    .btn-copy-all { width: 100%; padding: 10px; background: #111827; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .btn-copy-all:hover { background: #374151; }
   `]
 })
 export class TenantsListComponent implements OnInit {
+  tenantDomain = environment.tenantDomain;
   tenants = signal<Tenant[]>([]);
   plans = signal<Plan[]>([]);
   loading = signal(true);
@@ -405,6 +453,7 @@ export class TenantsListComponent implements OnInit {
   editingTenant = signal<Tenant | null>(null);
   saving = signal(false);
   modalError = signal('');
+  createdCredentials = signal<{ email: string; password: string; slug: string } | null>(null);
 
   form: CreateTenantRequest & { id?: number } = this.emptyForm();
 
@@ -485,6 +534,13 @@ export class TenantsListComponent implements OnInit {
 
   closeModal() { this.showModal.set(false); }
 
+  copy(text: string) { navigator.clipboard.writeText(text).then(() => this.toast.success('Copiado al portapapeles')); }
+
+  copyAll(creds: { email: string; password: string; slug: string }) {
+    const text = `URL: https://${creds.slug}.${this.tenantDomain}\nCorreo: ${creds.email}\nContraseña: ${creds.password}`;
+    this.copy(text);
+  }
+
   save() {
     this.saving.set(true);
     this.modalError.set('');
@@ -506,9 +562,9 @@ export class TenantsListComponent implements OnInit {
       });
     } else {
       this.svc.create(this.form).subscribe({
-        next: () => {
+        next: (res) => {
           this.saving.set(false); this.closeModal(); this.page.set(1); this.load();
-          this.toast.success('Salón creado correctamente.');
+          this.createdCredentials.set({ email: res.ownerEmail, password: res.ownerPassword, slug: res.tenant.slug });
         },
         error: (err) => { this.saving.set(false); this.modalError.set(err.error?.message || 'Error al crear'); }
       });

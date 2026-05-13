@@ -52,6 +52,12 @@ export interface CreateTenantRequest {
   ownerDocument: string;
 }
 
+export interface CreateTenantResponse {
+  tenant: Tenant;
+  ownerEmail: string;
+  ownerPassword: string;
+}
+
 export interface PagedResult<T> {
   items: T[];
   totalCount: number;
