@@ -1,7 +1,6 @@
 [Unit]
 Description=SalonPro API (.NET 8)
-After=network.target mssql-server.service
-Requires=mssql-server.service
+After=network.target
 
 [Service]
 Type=simple

@@ -31,7 +31,7 @@ jobs:
       - name: Install & Build
         working-directory: ${{ env.APP_DIR }}
         run: |
-          npm ci
+          npm install
           npx ng build --configuration=production
 
       - name: Setup SSH
