@@ -1,4 +1,5 @@
-import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -14,7 +15,7 @@ import { Sale } from '../../core/models/ventas.models';
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent {
   private readonly authService = inject(AuthService);
   private readonly ventasService = inject(VentasService);
   private readonly branchService = inject(BranchService);
@@ -38,13 +39,10 @@ export class DashboardComponent implements OnInit {
   );
 
   constructor() {
-    effect(() => {
-      const branch = this.branchService.selectedBranch();
-      this.cargar(branch?.id, branch?.name);
-    }, { allowSignalWrites: true });
+    toObservable(this.branchService.selectedBranch)
+      .pipe(takeUntilDestroyed())
+      .subscribe(branch => this.cargar(branch?.id, branch?.name));
   }
-
-  ngOnInit(): void { /* cargar se dispara desde el effect() */ }
 
   private cargar(branchId?: number, branchName?: string): void {
     this.ventasService.getVentas(undefined, undefined, branchId, branchName).subscribe({

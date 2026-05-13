@@ -1,4 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { VentasService } from '../../core/services/ventas.service';
@@ -230,9 +231,17 @@ export class VentasComponent implements OnInit {
     return this.metodosPago().filter(m => !usados.includes(m.id));
   }
 
+  constructor() {
+    // Recargar catálogos y ventas cuando cambia la sede
+    toObservable(this.branchService.selectedBranch)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.cargarCatalogos();
+        this.cargarVentas();
+      });
+  }
+
   ngOnInit(): void {
-    this.cargarCatalogos();
-    this.cargarVentas();
     this.verificarCaja();
 
     // Sincronizar validez de forms como signals para que puedeRegistrar() reaccione

@@ -1,6 +1,7 @@
-import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { VentasService } from '../../core/services/ventas.service';
 import { BranchService } from '../../core/services/branch.service';
 import { Sale } from '../../core/models/ventas.models';
@@ -13,7 +14,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
   templateUrl: './historial.component.html',
   styleUrl: './historial.component.scss'
 })
-export class HistorialComponent implements OnInit {
+export class HistorialComponent {
   private readonly ventasService = inject(VentasService);
   private readonly branchService = inject(BranchService);
 
@@ -58,13 +59,10 @@ export class HistorialComponent implements OnInit {
   });
 
   constructor() {
-    effect(() => {
-      this.branchService.selectedBranch(); // track branch changes
-      this.cargar();
-    }, { allowSignalWrites: true });
+    toObservable(this.branchService.selectedBranch)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.cargar());
   }
-
-  ngOnInit(): void { /* cargar se dispara desde el effect() */ }
 
   cargar(): void {
     this.loading.set(true);

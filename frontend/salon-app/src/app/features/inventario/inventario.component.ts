@@ -1,4 +1,5 @@
-import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogoService } from '../../core/services/catalogo.service';
@@ -15,7 +16,7 @@ const LOW = 5;
   templateUrl: './inventario.component.html',
   styleUrl: './inventario.component.scss'
 })
-export class InventarioComponent implements OnInit {
+export class InventarioComponent {
   private readonly catalogoService = inject(CatalogoService);
   private readonly branchService = inject(BranchService);
   private readonly fb = inject(FormBuilder);
@@ -72,13 +73,10 @@ export class InventarioComponent implements OnInit {
   }
 
   constructor() {
-    effect(() => {
-      this.branchService.selectedBranch(); // track branch changes
-      this.cargar();
-    }, { allowSignalWrites: true });
+    toObservable(this.branchService.selectedBranch)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.cargar());
   }
-
-  ngOnInit(): void { /* cargar se dispara desde el effect() */ }
 
   private cargar(): void {
     this.cargando.set(true);
