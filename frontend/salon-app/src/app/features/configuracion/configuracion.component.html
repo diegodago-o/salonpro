@@ -11,7 +11,7 @@
     <!-- Sidebar nav -->
     <div>
       @for (t of tabs; track t.key) {
-        <div [class]="'nav-item' + (tab() === t.key ? ' active' : '')" (click)="tab.set(t.key)" style="cursor:pointer">
+        <div [class]="'nav-item' + (tab() === t.key ? ' active' : '')" (click)="onTabChange(t.key)" style="cursor:pointer">
           <sp-icon [name]="t.icon" [size]="14" /><span>{{ t.label }}</span>
         </div>
       }
@@ -70,25 +70,122 @@
             <div class="eyebrow">Equipo</div>
             <h3 class="serif" style="margin:4px 0 0;font-size:26px;font-weight:400">Usuarios y accesos</h3>
           </div>
-          <button class="btn btn-primary"><sp-icon name="plus" [size]="14" /> Invitar usuario</button>
+          <button class="btn btn-primary" (click)="openCreate()">
+            <sp-icon name="plus" [size]="14" /> Invitar usuario
+          </button>
         </div>
-        <table class="tbl">
-          <thead><tr><th>Nombre</th><th>Rol</th><th>Comisión</th><th>Estado</th><th></th></tr></thead>
-          <tbody>
-            <tr>
-              <td><div style="display:flex;align-items:center;gap:10px"><span class="avatar">SM</span>Sofía Mejía</div></td>
-              <td>Dueña</td><td>—</td>
-              <td><span class="pill pill-success"><span class="pill-dot"></span>Activa</span></td>
-              <td><button class="btn btn-icon btn-ghost"><sp-icon name="edit" [size]="14" /></button></td>
-            </tr>
-            <tr>
-              <td><div style="display:flex;align-items:center;gap:10px"><span class="avatar">MF</span>María Fernández</div></td>
-              <td>Cajera</td><td>—</td>
-              <td><span class="pill pill-success"><span class="pill-dot"></span>Activa</span></td>
-              <td><button class="btn btn-icon btn-ghost"><sp-icon name="edit" [size]="14" /></button></td>
-            </tr>
-          </tbody>
-        </table>
+
+        @if (loadingUsers()) {
+          <div style="text-align:center;padding:32px;color:var(--ink-4)">Cargando usuarios…</div>
+        } @else {
+          <table class="tbl">
+            <thead>
+              <tr><th>Nombre</th><th>Rol</th><th>Sede</th><th>Comisión</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (u of users(); track u.id) {
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <span class="avatar">{{ u.fullName | slice:0:2 | uppercase }}</span>
+                      <div>
+                        <div style="font-size:13px;font-weight:500">{{ u.fullName }}</div>
+                        <div style="font-size:11px;color:var(--ink-4)">{{ u.email }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ roleLabel(u.role) }}</td>
+                  <td style="font-size:12px;color:var(--ink-3)">{{ u.branchName ?? '—' }}</td>
+                  <td>{{ u.commissionPercent > 0 ? (u.commissionPercent + '%') : '—' }}</td>
+                  <td>
+                    <span [class]="'pill ' + (u.isActive ? 'pill-success' : 'pill-danger')">
+                      <span class="pill-dot"></span>{{ u.isActive ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </td>
+                  <td>
+                    @if (u.role !== 'TenantOwner') {
+                      <button class="btn btn-icon btn-ghost" [title]="u.isActive ? 'Desactivar' : 'Activar'" (click)="toggle(u)">
+                        <sp-icon [name]="u.isActive ? 'close' : 'check'" [size]="14" />
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+              @empty {
+                <tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:24px">Sin usuarios registrados</td></tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        <!-- Modal crear usuario -->
+        @if (showUserModal()) {
+          <div style="position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px">
+            <div style="background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,0.2)">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #f3f4f6">
+                <h3 style="font-size:17px;font-weight:700;margin:0">Nuevo usuario</h3>
+                <button style="background:none;border:none;font-size:22px;cursor:pointer;color:#8892a4" (click)="closeModal()">×</button>
+              </div>
+              <div style="padding:24px;overflow-y:auto;flex:1">
+                @if (modalError()) {
+                  <div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px">
+                    {{ modalError() }}
+                  </div>
+                }
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div style="grid-column:span 2;display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:13px;font-weight:600;color:#374151">Nombre completo *</label>
+                    <input class="input" [value]="userForm().fullName" (input)="updateForm('fullName', $any($event.target).value)" placeholder="Ej. Laura Gómez" />
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:13px;font-weight:600;color:#374151">Correo *</label>
+                    <input class="input" type="email" [value]="userForm().email" (input)="updateForm('email', $any($event.target).value)" placeholder="usuario@salon.com" />
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:13px;font-weight:600;color:#374151">Contraseña *</label>
+                    <input class="input" type="password" [value]="userForm().password" (input)="updateForm('password', $any($event.target).value)" placeholder="Mínimo 8 caracteres" />
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:13px;font-weight:600;color:#374151">Rol *</label>
+                    <select class="input" [value]="userForm().role" (change)="updateForm('role', $any($event.target).value)">
+                      <option value="Cashier">Cajero/a</option>
+                      <option value="Stylist">Estilista</option>
+                    </select>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:13px;font-weight:600;color:#374151">Sede</label>
+                    <select class="input" [value]="userForm().branchId ?? ''" (change)="onBranchSelect($any($event.target).value)">
+                      <option value="">Sin sede específica</option>
+                      @for (b of branches; track b.id) {
+                        <option [value]="b.id">{{ b.name }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:13px;font-weight:600;color:#374151">Teléfono</label>
+                    <input class="input" [value]="userForm().phone ?? ''" (input)="updateForm('phone', $any($event.target).value || null)" placeholder="3001234567" />
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:13px;font-weight:600;color:#374151">Documento</label>
+                    <input class="input" [value]="userForm().documentNumber ?? ''" (input)="updateForm('documentNumber', $any($event.target).value || null)" placeholder="CC 1234567890" />
+                  </div>
+                  @if (userForm().role === 'Stylist') {
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <label style="font-size:13px;font-weight:600;color:#374151">Comisión (%)</label>
+                      <input class="input" type="number" min="0" max="100" [value]="userForm().commissionPercent" (input)="updateForm('commissionPercent', +$any($event.target).value)" placeholder="40" />
+                    </div>
+                  }
+                </div>
+              </div>
+              <div style="padding:16px 24px;border-top:1px solid #f3f4f6;display:flex;justify-content:flex-end;gap:12px">
+                <button class="btn btn-ghost" (click)="closeModal()">Cancelar</button>
+                <button class="btn btn-primary" (click)="save()" [disabled]="saving()">
+                  {{ saving() ? 'Creando…' : 'Crear usuario' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        }
       }
 
       <!-- COMISIONES -->

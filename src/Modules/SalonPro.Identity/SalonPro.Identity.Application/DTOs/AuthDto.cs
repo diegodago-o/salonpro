@@ -20,7 +20,8 @@ public record UserDto(
     int? BranchId,
     decimal CommissionPercent,
     string? BranchName,
-    string? TenantName
+    string? TenantName,
+    bool IsActive = true
 );
 
 public record CreateUserRequest(

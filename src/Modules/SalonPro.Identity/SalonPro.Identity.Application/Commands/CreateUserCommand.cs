@@ -32,6 +32,6 @@ public class CreateUserHandler(IUserRepository userRepo, IPasswordHasher hasher)
 
         return new UserDto(user.Id, user.FullName, user.Email, user.Role.ToString(),
             user.TenantId, user.BranchId, user.CommissionPercent,
-            user.BranchName, user.TenantName);
+            user.BranchName, user.TenantName, user.IsActive);
     }
 }
