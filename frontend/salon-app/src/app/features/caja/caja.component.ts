@@ -81,10 +81,11 @@ export class CajaComponent {
     if (this.formAbrir.invalid || this.guardando()) return;
     this.guardando.set(true);
     this.errorMsg.set(null);
+    const branch = this.branchService.selectedBranch();
     this.cajaService.abrirCaja({
       openingBalance: this.formAbrir.value.openingBalance!,
       notes: this.formAbrir.value.notes ?? undefined
-    }).subscribe({
+    }, branch?.id, branch?.name).subscribe({
       next: res => {
         this.cajaActual.set(res.data);
         this.successMsg.set('Caja abierta correctamente');

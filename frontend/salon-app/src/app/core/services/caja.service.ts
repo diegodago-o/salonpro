@@ -62,10 +62,10 @@ export class CajaService {
     return this.http.get<ApiResponse<CashRegister>>(`${this.api}/${id}`);
   }
 
-  abrirCaja(request: OpenCajaRequest): Observable<ApiResponse<CashRegister>> {
+  abrirCaja(request: OpenCajaRequest, branchId?: number | null, branchName?: string | null): Observable<ApiResponse<CashRegister>> {
     if (!environment.production) {
       const nueva: CashRegister = {
-        id: 99, branchId: 1, branchName: 'Sede Principal',
+        id: 99, branchId: branchId ?? 1, branchName: branchName ?? 'Sede Principal',
         cashierId: 1, cashierName: 'Admin Demo',
         openedAt: new Date().toISOString(), closedAt: null,
         openingBalance: request.openingBalance,
@@ -75,7 +75,11 @@ export class CajaService {
       this.mockCajaAbierta = nueva;
       return of({ success: true, data: nueva, message: 'Caja abierta', errors: [] });
     }
-    return this.http.post<ApiResponse<CashRegister>>(`${this.api}/open`, request);
+    const qs = new URLSearchParams();
+    if (branchId)   qs.set('branchId',   String(branchId));
+    if (branchName) qs.set('branchName', branchName);
+    const params = qs.toString() ? `?${qs.toString()}` : '';
+    return this.http.post<ApiResponse<CashRegister>>(`${this.api}/open${params}`, request);
   }
 
   cerrarCaja(id: number, request: CloseCajaRequest): Observable<ApiResponse<CashRegister>> {
