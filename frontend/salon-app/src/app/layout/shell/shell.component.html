@@ -6,9 +6,20 @@
 
     <div style="margin-bottom:14px;padding:0 8px">
       <div class="eyebrow" style="font-size:9px;margin-bottom:6px">Salón actual</div>
-      <div style="font-size:12px;font-weight:500;color:var(--ink-2);padding:6px 8px;background:var(--paper);border:1px solid var(--hair);border-radius:6px">
-        {{ user()?.branchName || 'Sede Principal' }}
-      </div>
+      @if (branches().length > 1 && user()?.role === 'TenantOwner') {
+        <select
+          style="width:100%;font-size:12px;font-weight:500;color:var(--ink-2);padding:6px 8px;background:var(--paper);border:1px solid var(--hair);border-radius:6px;cursor:pointer;outline:none"
+          [value]="selectedBranch()?.id ?? ''"
+          (change)="onBranchChange($event)">
+          @for (b of branches(); track b.id) {
+            <option [value]="b.id">{{ b.name }}</option>
+          }
+        </select>
+      } @else {
+        <div style="font-size:12px;font-weight:500;color:var(--ink-2);padding:6px 8px;background:var(--paper);border:1px solid var(--hair);border-radius:6px">
+          {{ displayBranchName }}
+        </div>
+      }
     </div>
 
     <nav style="display:flex;flex-direction:column;gap:2px">
@@ -41,7 +52,7 @@
 
   <main class="main">
     <header class="topbar">
-      <div class="eyebrow" style="font-size:10px">{{ user()?.tenantName }} · {{ user()?.branchName }}</div>
+      <div class="eyebrow" style="font-size:10px">{{ user()?.tenantName }} · {{ displayBranchName }}</div>
       <div style="flex:1"></div>
       <button class="btn btn-icon btn-ghost"><sp-icon name="bell" [size]="15" /></button>
       <button class="btn btn-icon btn-ghost"><sp-icon name="search" [size]="15" /></button>

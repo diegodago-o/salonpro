@@ -1,6 +1,9 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { BranchService, Branch } from '../../core/services/branch.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
 interface NavItem { id: string; label: string; icon: string; route: string; roles?: string[]; badge?: string; }
@@ -31,13 +34,33 @@ const NAV_STYLIST: NavItem[] = [
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, FormsModule, IconComponent],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss'
 })
-export class ShellComponent {
+export class ShellComponent implements OnInit {
   private readonly authService = inject(AuthService);
+  readonly branchService = inject(BranchService);
   readonly user = this.authService.currentUser;
+
+  readonly branches = this.branchService.branches;
+  readonly selectedBranch = this.branchService.selectedBranch;
+
+  ngOnInit(): void {
+    if (this.authService.isAuthenticated()) {
+      this.branchService.loadBranches();
+    }
+  }
+
+  onBranchChange(event: Event): void {
+    const id = Number((event.target as HTMLSelectElement).value);
+    const branch = this.branches().find(b => b.id === id) ?? null;
+    this.branchService.select(branch);
+  }
+
+  get displayBranchName(): string {
+    return this.selectedBranch()?.name ?? this.user()?.branchName ?? 'Sede Principal';
+  }
 
   readonly navItems = computed<NavItem[]>(() => {
     const role = this.user()?.role ?? '';
