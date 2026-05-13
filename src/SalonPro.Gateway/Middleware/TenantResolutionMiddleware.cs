@@ -21,6 +21,15 @@ public class TenantResolutionMiddleware(RequestDelegate next, IHostEnvironment e
         var host = context.Request.Host.Host;
         var slug = ExtractSlug(host);
 
+        // Fallback: si el host es el subdominio de API (ej: api.hubfusioncore.com.co),
+        // extraer el slug del header Origin enviado por el navegador desde el subdominio del salón
+        if (string.IsNullOrEmpty(slug) || slug == "api" || slug == "admin" || slug == "www")
+        {
+            var origin = context.Request.Headers["Origin"].ToString();
+            if (!string.IsNullOrEmpty(origin) && Uri.TryCreate(origin, UriKind.Absolute, out var originUri))
+                slug = ExtractSlug(originUri.Host);
+        }
+
         // En desarrollo sin subdominio (localhost), el tenantId viene del JWT
         // Los controladores ya leen el claim "tenantId" directamente
         if (string.IsNullOrEmpty(slug))

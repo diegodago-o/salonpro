@@ -1,4 +1,6 @@
 using MediatR;
+using SalonPro.Identity.Application.Commands;
+using SalonPro.Identity.Application.DTOs;
 using SalonPro.Shared.Exceptions;
 using SalonPro.Tenants.Application.DTOs;
 using SalonPro.Tenants.Domain.Entities;
@@ -13,7 +15,8 @@ public class CreateTenantHandler(
     ITenantRepository tenantRepo,
     IPlanRepository planRepo,
     ISubscriptionRepository subscriptionRepo,
-    IBranchRepository branchRepo) : IRequestHandler<CreateTenantCommand, TenantDto>
+    IBranchRepository branchRepo,
+    IMediator mediator) : IRequestHandler<CreateTenantCommand, TenantDto>
 {
     public async Task<TenantDto> Handle(CreateTenantCommand cmd, CancellationToken ct)
     {
@@ -43,6 +46,20 @@ public class CreateTenantHandler(
         var branch = Branch.Create(tenant.Id, req.BranchName, req.BranchAddress, req.BranchCity, req.BranchPhone);
         await branchRepo.AddAsync(branch, ct);
         await subscriptionRepo.SaveChangesAsync(ct);
+
+        // Crear usuario dueño del salón
+        await mediator.Send(new CreateUserCommand(new CreateUserRequest(
+            FullName: req.OwnerFullName,
+            Email: req.OwnerEmail,
+            Password: req.OwnerPassword,
+            Role: "TenantOwner",
+            TenantId: tenant.Id,
+            BranchId: null,
+            DocumentType: null,
+            DocumentNumber: req.OwnerDocument,
+            Phone: null,
+            TenantName: tenant.BusinessName
+        )), ct);
 
         return new TenantDto(tenant.Id, tenant.BusinessName, tenant.TradeName, tenant.Nit,
             tenant.Slug, tenant.Email, tenant.Phone, tenant.Address, tenant.City, tenant.LogoUrl,
