@@ -41,7 +41,7 @@ export class DashboardComponent implements OnInit {
     effect(() => {
       const branchId = this.branchService.selectedBranch()?.id;
       this.cargar(branchId);
-    });
+    }, { allowSignalWrites: true });
   }
 
   ngOnInit(): void { /* cargar se dispara desde el effect() */ }

@@ -61,7 +61,7 @@ export class HistorialComponent implements OnInit {
     effect(() => {
       this.branchService.selectedBranch(); // track branch changes
       this.cargar();
-    });
+    }, { allowSignalWrites: true });
   }
 
   ngOnInit(): void { /* cargar se dispara desde el effect() */ }
