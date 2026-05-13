@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SalonPro.SalonOperations.Domain.Interfaces;
 using SalonPro.SalonOperations.Infrastructure.Data;
 using SalonPro.SalonOperations.Infrastructure.Repositories;
+using SalonPro.SalonOperations.Infrastructure.Services;
+using SalonPro.Shared.Interfaces;
 
 namespace SalonPro.SalonOperations.Infrastructure;
 
@@ -23,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<ICashRegisterRepository, CashRegisterRepository>();
         services.AddScoped<IAnticipoRepository, AnticipoRepository>();
         services.AddScoped<ILiquidacionRepository, LiquidacionRepository>();
+        services.AddScoped<IPaymentMethodService, PaymentMethodService>();
 
         return services;
     }

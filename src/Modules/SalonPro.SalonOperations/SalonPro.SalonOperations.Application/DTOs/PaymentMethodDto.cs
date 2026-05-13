@@ -4,4 +4,5 @@ public record PaymentMethodDto(
     int Id,
     string Name,
     bool HasDeduction,
-    decimal DeductionPercent);
+    decimal DeductionPercent,
+    bool IsActive = true);

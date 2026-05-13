@@ -250,16 +250,39 @@
 
       <!-- MÉTODOS DE PAGO -->
       @if (tab() === 'payments') {
-        <div class="eyebrow">Métodos habilitados</div>
-        <h3 class="serif" style="margin:4px 0 24px;font-size:26px;font-weight:400">Pagos aceptados</h3>
-        @for (m of [{label:'Efectivo',icon:'cash'},{label:'Tarjeta débito',icon:'card'},{label:'Tarjeta crédito',icon:'card'},{label:'Transferencia',icon:'transfer'},{label:'Nequi / Daviplata',icon:'phone'}]; track m.label) {
-          <div style="display:flex;align-items:center;gap:14px;padding:14px;border-bottom:1px dashed var(--hair-2)">
-            <div style="width:36px;height:36px;background:var(--bone);border-radius:6px;display:flex;align-items:center;justify-content:center">
-              <sp-icon [name]="m.icon" [size]="16" />
-            </div>
-            <div style="flex:1;font-size:13px;font-weight:500">{{ m.label }}</div>
-            <div class="toggle on"></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px">
+          <div>
+            <div class="eyebrow">Métodos habilitados</div>
+            <h3 class="serif" style="margin:4px 0 0;font-size:26px;font-weight:400">Pagos aceptados</h3>
           </div>
+          <button class="btn btn-ghost" style="font-size:12px" (click)="seedPaymentMethods()" [disabled]="loadingPayments()">
+            {{ loadingPayments() ? 'Cargando…' : '↺ Cargar por defecto' }}
+          </button>
+        </div>
+
+        @if (loadingPayments()) {
+          <div style="text-align:center;padding:32px;color:var(--ink-4)">Cargando métodos…</div>
+        } @else {
+          @for (m of paymentMethods(); track m.id) {
+            <div style="display:flex;align-items:center;gap:14px;padding:14px;border-bottom:1px dashed var(--hair-2)">
+              <div style="width:36px;height:36px;background:var(--bone);border-radius:6px;display:flex;align-items:center;justify-content:center">
+                <sp-icon [name]="paymentIcon(m.name)" [size]="16" />
+              </div>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:500">{{ m.name }}</div>
+                @if (m.hasDeduction) {
+                  <div style="font-size:11px;color:var(--ink-4)">Deducción: {{ m.deductionPercent }}%</div>
+                }
+              </div>
+              <div [class]="'toggle' + (m.isActive ? ' on' : '')" (click)="togglePaymentMethod(m)"></div>
+            </div>
+          }
+          @empty {
+            <div style="text-align:center;padding:40px;color:var(--ink-4)">
+              <div style="margin-bottom:12px">No hay métodos de pago configurados</div>
+              <button class="btn btn-primary" (click)="seedPaymentMethods()">Cargar métodos por defecto</button>
+            </div>
+          }
         }
       }
 

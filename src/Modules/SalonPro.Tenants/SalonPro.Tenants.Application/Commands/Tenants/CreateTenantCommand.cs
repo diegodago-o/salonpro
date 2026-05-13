@@ -15,7 +15,8 @@ public class CreateTenantHandler(
     IPlanRepository planRepo,
     ISubscriptionRepository subscriptionRepo,
     IBranchRepository branchRepo,
-    IUserProvisioningService userProvisioning) : IRequestHandler<CreateTenantCommand, CreateTenantResponse>
+    IUserProvisioningService userProvisioning,
+    IPaymentMethodService paymentMethodService) : IRequestHandler<CreateTenantCommand, CreateTenantResponse>
 {
     public async Task<CreateTenantResponse> Handle(CreateTenantCommand cmd, CancellationToken ct)
     {
@@ -53,6 +54,9 @@ public class CreateTenantHandler(
         await userProvisioning.CreateTenantOwnerAsync(
             tenant.Id, req.OwnerEmail, req.OwnerFullName,
             req.OwnerPassword, req.OwnerDocument, tenant.BusinessName, ct);
+
+        // Sembrar métodos de pago por defecto
+        await paymentMethodService.SeedDefaultMethodsAsync(tenant.Id, ct);
 
         var tenantDto = new TenantDto(tenant.Id, tenant.BusinessName, tenant.TradeName, tenant.Nit,
             tenant.Slug, tenant.Email, tenant.Phone, tenant.Address, tenant.City, tenant.LogoUrl,
