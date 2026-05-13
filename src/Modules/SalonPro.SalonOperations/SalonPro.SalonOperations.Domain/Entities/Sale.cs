@@ -11,7 +11,12 @@ public class Sale
     public int? ClientId { get; private set; }
     public string ClientName { get; private set; } = string.Empty;
     public string ClientDocument { get; private set; } = string.Empty;
+    public string? ClientDocumentType { get; private set; }
+    public string? ClientEmail { get; private set; }
+    public string? ClientPhone { get; private set; }
     public int? CashRegisterId { get; private set; }
+    public string? BranchName { get; private set; }
+    public decimal CommissionPercent { get; private set; }
     public DateTime SaleDateTime { get; private set; }
     public decimal GrossServices { get; private set; }
     public decimal GrossProducts { get; private set; }
@@ -34,7 +39,8 @@ public class Sale
     public static Sale Create(
         int tenantId, int stylistId, string stylistName,
         int? clientId, string clientName, string clientDocument,
-        int? cashRegisterId,
+        string? clientDocumentType, string? clientEmail, string? clientPhone,
+        int? cashRegisterId, string? branchName, decimal commissionPercent,
         decimal grossServices, decimal grossProducts, decimal internalConsumption,
         decimal tipAmount, decimal totalDeductions, decimal stylistTotal, decimal salonTotal,
         string? notes)
@@ -48,7 +54,12 @@ public class Sale
             ClientId = clientId,
             ClientName = clientName,
             ClientDocument = clientDocument,
+            ClientDocumentType = clientDocumentType,
+            ClientEmail = clientEmail,
+            ClientPhone = clientPhone,
             CashRegisterId = cashRegisterId,
+            BranchName = branchName,
+            CommissionPercent = commissionPercent,
             SaleDateTime = DateTime.UtcNow,
             GrossServices = grossServices,
             GrossProducts = grossProducts,

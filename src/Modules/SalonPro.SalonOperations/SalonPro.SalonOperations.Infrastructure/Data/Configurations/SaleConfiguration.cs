@@ -16,6 +16,11 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
         builder.Property(s => s.StylistName).IsRequired().HasMaxLength(200);
         builder.Property(s => s.ClientName).IsRequired().HasMaxLength(200);
         builder.Property(s => s.ClientDocument).IsRequired().HasMaxLength(50);
+        builder.Property(s => s.ClientDocumentType).HasMaxLength(10);
+        builder.Property(s => s.ClientEmail).HasMaxLength(150);
+        builder.Property(s => s.ClientPhone).HasMaxLength(20);
+        builder.Property(s => s.BranchName).HasMaxLength(150);
+        builder.Property(s => s.CommissionPercent).HasColumnType("decimal(5,2)");
         builder.Property(s => s.GrossServices).HasColumnType("decimal(18,2)");
         builder.Property(s => s.GrossProducts).HasColumnType("decimal(18,2)");
         builder.Property(s => s.InternalConsumption).HasColumnType("decimal(18,2)");

@@ -21,10 +21,18 @@ public class SalesController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<IEnumerable<SaleDto>>>> GetToday(CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<IEnumerable<SaleDto>>>> GetSales(
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)
     {
-        var result = await mediator.Send(new GetSalesQuery(GetTenantId()), ct);
+        var result = await mediator.Send(new GetSalesQuery(GetTenantId(), from, to), ct);
         return Ok(ApiResponse<IEnumerable<SaleDto>>.Ok(result));
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<ApiResponse<SaleDto>>> GetDetail(int id, CancellationToken ct)
+    {
+        var result = await mediator.Send(new GetSaleDetailQuery(GetTenantId(), id), ct);
+        return Ok(ApiResponse<SaleDto>.Ok(result));
     }
 
     [HttpPost]
@@ -33,7 +41,7 @@ public class SalesController(IMediator mediator) : ControllerBase
     {
         var result = await mediator.Send(
             new CreateSaleCommand(GetTenantId(), GetCashRegisterId(), request), ct);
-        return CreatedAtAction(nameof(GetToday), ApiResponse<SaleDto>.Ok(result, "Venta registrada."));
+        return CreatedAtAction(nameof(GetSales), ApiResponse<SaleDto>.Ok(result, "Venta registrada."));
     }
 
     [HttpPatch("{id:int}/void")]

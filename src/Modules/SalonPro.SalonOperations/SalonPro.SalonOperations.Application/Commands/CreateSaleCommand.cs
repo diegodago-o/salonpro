@@ -1,5 +1,6 @@
 using MediatR;
 using SalonPro.SalonOperations.Application.DTOs;
+using SalonPro.SalonOperations.Application.Queries;
 using SalonPro.SalonOperations.Domain.Entities;
 using SalonPro.SalonOperations.Domain.Enums;
 using SalonPro.SalonOperations.Domain.Interfaces;
@@ -14,11 +15,13 @@ public record SaleProductItemRequest(int ProductId, decimal Price);
 public record CreateSaleRequest(
     int StylistId,
     string StylistName,
+    decimal CommissionPercent,
     string ClientDocumentType,
     string ClientDocumentNumber,
     string ClientFullName,
     string? ClientEmail,
-    string ClientPhone,
+    string? ClientPhone,
+    string? BranchName,
     List<SalePaymentRequest> Payments,
     decimal TipAmount,
     string? Notes,
@@ -110,7 +113,12 @@ public class CreateSaleHandler(
             client.Id,
             client.FullName,
             client.DocumentNumber,
+            req.ClientDocumentType,
+            req.ClientEmail,
+            req.ClientPhone,
             cmd.CashRegisterId,
+            req.BranchName,
+            req.CommissionPercent,
             grossServices,
             grossProducts,
             internalConsumption,
@@ -153,13 +161,7 @@ public class CreateSaleHandler(
         await clientRepo.SaveChangesAsync(ct);
         await saleRepo.SaveChangesAsync(ct);
 
-        var primaryPayment = paymentDetails.FirstOrDefault();
-        return new SaleDto(
-            sale.Id, sale.SaleDateTime.ToString("o"),
-            sale.StylistName, sale.ClientName, sale.ClientDocument,
-            primaryPayment.MethodName ?? string.Empty,
-            sale.GrossTotal, sale.TotalDeductions,
-            sale.StylistTotal, sale.SalonTotal, sale.TipAmount,
-            sale.Status.ToString(), sale.VoidedReason);
+        // Re-attach payments for mapper
+        return SaleDtoMapper.ToDto(sale);
     }
 }

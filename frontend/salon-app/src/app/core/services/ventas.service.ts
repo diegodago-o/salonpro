@@ -43,8 +43,12 @@ const MOCK_PAYMENT_METHODS: PaymentMethodOption[] = [
 const MOCK_SALES: Sale[] = [
   {
     id: 1, saleDateTime: new Date().toISOString(),
-    stylistName: 'Carlos Restrepo', clientName: 'Ana López',
-    clientDocument: '1234567890', paymentMethodName: 'Tarjeta crédito',
+    stylistId: 1, stylistName: 'Carlos Restrepo', commissionPercent: 50,
+    clientName: 'Ana López', clientDocument: '1234567890', clientDocumentType: 'CC',
+    clientEmail: 'ana@email.com', clientPhone: '3001234567',
+    branchName: 'Principal',
+    paymentMethodName: 'Tarjeta crédito',
+    grossServices: 147000, grossProducts: 0, internalConsumption: 0,
     grossTotal: 157000, totalDeductions: 10990, stylistTotal: 65751, salonTotal: 80259,
     tipAmount: 10000, status: 'Active'
   }
@@ -90,21 +94,57 @@ export class VentasService {
     return this.http.get<ApiResponse<ClientOption | null>>(`${this.api}/clients/search?document=${documentNumber}`);
   }
 
-  getVentasHoy(): Observable<ApiResponse<Sale[]>> {
+  getVentas(from?: string, to?: string): Observable<ApiResponse<Sale[]>> {
     if (!environment.production)
       return of({ success: true, data: this.mockSales, message: '', errors: [] });
-    return this.http.get<ApiResponse<Sale[]>>(`${this.api}/sales`);
+    let url = `${this.api}/sales`;
+    const params: string[] = [];
+    if (from) params.push(`from=${encodeURIComponent(from)}`);
+    if (to) params.push(`to=${encodeURIComponent(to)}`);
+    if (params.length) url += '?' + params.join('&');
+    return this.http.get<ApiResponse<Sale[]>>(url);
+  }
+
+  /** @deprecated use getVentas() */
+  getVentasHoy(): Observable<ApiResponse<Sale[]>> { return this.getVentas(); }
+
+  getSaleDetail(id: number): Observable<ApiResponse<Sale>> {
+    if (!environment.production) {
+      const mock = this.mockSales.find(s => s.id === id);
+      if (mock) {
+        const detail: Sale = {
+          ...mock,
+          items: [
+            { id: 1, type: 'Service', name: 'Corte dama', unitPrice: 35000, quantity: 1, subtotal: 35000, salonFeePercent: 0 },
+            { id: 2, type: 'Service', name: 'Tintura completa', unitPrice: 80000, quantity: 1, subtotal: 80000, salonFeePercent: 4.5 },
+            { id: 3, type: 'Service', name: 'Tratamiento hidratante', unitPrice: 32000, quantity: 1, subtotal: 32000, salonFeePercent: 0 },
+          ],
+          payments: [
+            { paymentMethodId: 2, paymentMethodName: 'Tarjeta crédito', amount: 157000, deductionPercent: 7, deductionAmount: 10990 }
+          ]
+        };
+        return of({ success: true, data: detail, message: '', errors: [] });
+      }
+    }
+    return this.http.get<ApiResponse<Sale>>(`${this.api}/sales/${id}`);
   }
 
   crearVenta(request: CreateSaleRequest): Observable<ApiResponse<Sale>> {
     if (!environment.production) {
+      const stylist = MOCK_STYLISTS.find(s => s.id === request.stylistId);
       const nueva: Sale = {
         id: this.mockSales.length + 1,
         saleDateTime: new Date().toISOString(),
-        stylistName: MOCK_STYLISTS.find(s => s.id === request.stylistId)?.fullName ?? '',
+        stylistId: request.stylistId,
+        stylistName: stylist?.fullName ?? '',
+        commissionPercent: request.commissionPercent,
         clientName: request.clientFullName,
         clientDocument: request.clientDocumentNumber,
+        clientDocumentType: request.clientDocumentType,
+        clientEmail: request.clientEmail,
+        clientPhone: request.clientPhone,
         paymentMethodName: request.payments?.length ? MOCK_PAYMENT_METHODS.find(p => p.id === request.payments[0].paymentMethodId)?.name ?? '' : '',
+        grossServices: 0, grossProducts: 0, internalConsumption: 0,
         grossTotal: 0, totalDeductions: 0, stylistTotal: 0, salonTotal: 0,
         tipAmount: request.tipAmount, status: 'Active'
       };
