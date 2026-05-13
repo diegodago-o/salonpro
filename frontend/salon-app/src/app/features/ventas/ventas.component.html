@@ -360,8 +360,20 @@
               <!-- Bloque desglose financiero -->
               <div style="padding:14px 16px;background:var(--surface-2);font-size:13px;display:flex;flex-direction:column;gap:5px">
 
-                <div style="display:flex;justify-content:space-between">
-                  <span style="color:var(--ink-3)">Total bruto</span>
+                <!-- Subtotales solo si hay propina, para mostrar el desglose -->
+                @if (calculo().grossTip > 0) {
+                  <div style="display:flex;justify-content:space-between;color:var(--ink-3)">
+                    <span>Servicios / Productos</span>
+                    <span class="tnum">{{ (calculo().grossServices + calculo().grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;color:var(--ink-3)">
+                    <span>Propina</span>
+                    <span class="tnum">{{ calculo().grossTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                  <hr style="margin:2px 0;border:0;border-top:1px dashed var(--border)" />
+                }
+                <div style="display:flex;justify-content:space-between;font-weight:600">
+                  <span>Total bruto</span>
                   <span class="tnum">{{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
                 </div>
 
@@ -443,17 +455,42 @@
                   <div class="row" style="color:var(--ink-4);font-size:12px"><span>{{ item.name }}</span><span>—</span></div>
                 }
               }
-              <div class="row total"><span>Total</span><span class="tnum">{{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+              <!-- Propina como línea explícita -->
+              @if (calculo().grossTip > 0) {
+                <div class="row" style="color:var(--ink-3)"><span>Propina</span><span class="tnum">{{ calculo().grossTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+              }
+              <div class="row total"><span>Total bruto</span><span class="tnum">{{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+
               <hr class="hr-dotted" style="margin:8px 0" />
+
+              <!-- Métodos de pago -->
               @for (pago of pagos(); track trackPago($index)) {
                 <div class="row" style="font-size:12px;color:var(--ink-3)">
                   <span>{{ nombreMetodoPago(pago.paymentMethodId) }}</span>
                   <span class="tnum">{{ pago.amount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
                 </div>
               }
+
+              <!-- Deducciones por método de pago -->
+              @for (ded of deduccionesPorPago(); track $index) {
+                <div class="row" style="font-size:12px;color:#c53030">
+                  <span>− {{ ded.name }} ({{ ded.pct }}%)</span>
+                  <span class="tnum">−{{ ded.amount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                </div>
+              }
+
+              @if (calculo().totalDeductions > 0) {
+                <div class="row" style="font-size:12px;font-weight:600;border-top:1px dashed var(--hair-3);padding-top:6px;margin-top:2px">
+                  <span>Base neta (a repartir)</span>
+                  <span class="tnum">{{ baseNeta() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                </div>
+              }
+
               <hr class="hr-dotted" style="margin:8px 0" />
+
+              <!-- Split salón / peluquero -->
               <div class="row" style="font-size:12px"><span style="color:var(--ink-3)">Parte salón</span><span class="tnum">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-              <div class="row" style="font-size:12px"><span style="color:var(--accent-deep)">Parte peluquero</span><span class="tnum" style="color:var(--accent-deep);font-weight:600">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+              <div class="row" style="font-size:12px"><span style="color:var(--accent-deep)">Parte {{ (peluqueroSeleccionado()?.fullName ?? 'peluquero').split(' ')[0] }}</span><span class="tnum" style="color:var(--accent-deep);font-weight:600">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
             </div>
             @if (errorMsg()) {
               <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-top:16px">{{ errorMsg() }}</div>
