@@ -90,26 +90,29 @@ export class VentasComponent implements OnInit {
 
   readonly formAnular = this.fb.group({ reason: ['', Validators.required] });
 
-  // ── Deducción ponderada por método de pago ────────────
-  // Usa los montos ingresados por el usuario (que ya incluyen propina si la pagaron junto)
-  readonly deductionPctPonderado = computed(() => {
-    const pagos = this.pagos();
-    const metodos = this.metodosPago();
-    const totalPagado = pagos.reduce((s, p) => s + (p.amount || 0), 0);
-    if (totalPagado === 0) return 0;
-    const totalDed = pagos.reduce((s, p) => {
-      const m = metodos.find(m => m.id === p.paymentMethodId);
-      return s + (p.amount || 0) * (m?.deductionPercent ?? 0) / 100;
-    }, 0);
-    return (totalDed / totalPagado) * 100;
-  });
+  // ── Deducción bancaria (monto fijo, no porcentaje ponderado) ──
+  // Suma de (valor_pago × % del método). Aplica SOLO a servicios+productos, nunca a propina.
+  readonly deductionTotalAmount = computed(() =>
+    Math.round(this.pagos().reduce((sum, p) => {
+      const m = this.metodosPago().find(m => m.id === p.paymentMethodId);
+      return sum + (p.amount || 0) * (m?.deductionPercent ?? 0) / 100;
+    }, 0))
+  );
+
+  /** Hay efectivo en algún método → propina se bloquea (el efectivo no pasa por el sistema) */
+  readonly hasCashPayment = computed(() =>
+    this.pagos().some(p => {
+      const m = this.metodosPago().find(m => m.id === p.paymentMethodId);
+      return m?.name.toLowerCase().includes('efectivo') ?? false;
+    })
+  );
 
   // ── Cálculo en tiempo real ────────────────────────────
   readonly calculo = computed<SaleCalculation>(() =>
     calculateSale({
       items: this.items(),
-      tipAmount: this.tipAmountSig(),          // ← signal reactiva
-      deductionPct: this.deductionPctPonderado(),
+      tipAmount: this.tipAmountSig(),
+      deductionAmount: this.deductionTotalAmount(),
       stylistCommPct: this.peluqueroSeleccionado()?.commissionPercent ?? 0,
     })
   );
@@ -151,13 +154,20 @@ export class VentasComponent implements OnInit {
 
   /** Desglose por ítem: cuánto va al estilista y al salón de cada servicio/producto */
   readonly desgloseItems = computed(() => {
-    const pct  = this.deductionPctPonderado() / 100;
+    const totalDed  = this.deductionTotalAmount();
+    const grossItems = this.items()
+      .filter(i => i.type !== 'ProductInternal')
+      .reduce((s, i) => s + i.price * i.quantity, 0);
     const sPct = (this.peluqueroSeleccionado()?.commissionPercent ?? 0) / 100;
+
     return this.items()
       .filter(i => i.type !== 'ProductInternal')
       .map(item => {
         const subtotal = item.price * item.quantity;
-        const netBase  = Math.round(subtotal * (1 - pct));
+        // Deducción proporcional al peso del ítem sobre el total de servicios+productos
+        const frac    = grossItems > 0 ? subtotal / grossItems : 0;
+        const netBase = Math.round(subtotal - totalDed * frac);
+
         if (item.type === 'Service') {
           const svc = item as SaleServiceItem;
           let stylistAmt: number, salonAmt: number, feeAmt = 0;
@@ -238,6 +248,21 @@ export class VentasComponent implements OnInit {
       .subscribe(() => {
         this.cargarCatalogos();
         this.cargarVentas();
+      });
+
+    // Bloquear propina automáticamente cuando hay pago en efectivo
+    toObservable(this.hasCashPayment)
+      .pipe(takeUntilDestroyed())
+      .subscribe(hasCash => {
+        const ctrl = this.formVenta.get('tipAmount')!;
+        if (hasCash) {
+          ctrl.setValue(0, { emitEvent: false });
+          ctrl.disable({ emitEvent: false });
+          this.tipAmountSig.set(0);
+          this.sincronizarPagoConTotal();
+        } else {
+          ctrl.enable({ emitEvent: false });
+        }
       });
   }
 

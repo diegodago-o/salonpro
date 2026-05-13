@@ -351,9 +351,22 @@
             <!-- Propina -->
             <div [formGroup]="formVenta" style="margin-top:16px">
               <label class="field" style="max-width:200px">
-                <span class="label">Propina (opcional)</span>
-                <input class="input mono" type="number" formControlName="tipAmount" min="0" placeholder="0" />
+                <span class="label" style="display:flex;align-items:center;gap:6px">
+                  Propina (opcional)
+                  @if (hasCashPayment()) {
+                    <span style="font-size:10px;background:var(--warn-soft);color:var(--warn);padding:1px 6px;border-radius:4px;font-weight:600;letter-spacing:.04em">BLOQUEADA</span>
+                  }
+                </span>
+                <input class="input mono" type="number" formControlName="tipAmount" min="0" placeholder="0"
+                  [style.opacity]="hasCashPayment() ? '0.45' : '1'"
+                  [style.cursor]="hasCashPayment() ? 'not-allowed' : 'auto'" />
               </label>
+              @if (hasCashPayment()) {
+                <div style="font-size:11px;color:var(--ink-4);margin-top:3px;display:flex;align-items:center;gap:4px">
+                  <sp-icon name="info" [size]="11" />
+                  La propina en efectivo no se registra en el sistema
+                </div>
+              }
             </div>
 
             <!-- Resumen de pago y deducciones -->
