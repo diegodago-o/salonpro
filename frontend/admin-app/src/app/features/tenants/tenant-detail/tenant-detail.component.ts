@@ -8,6 +8,7 @@ import { Tenant, TenantStatus, Branch, CreateBranchRequest, UpdateSubscriptionRe
 import { Plan } from '../../../core/models/plan.model';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-tenant-detail',
@@ -65,7 +66,7 @@ import { ConfirmService } from '../../../core/services/confirm.service';
               </div>
               <div class="info-item">
                 <span class="info-label">Slug</span>
-                <code class="slug">{{ t.slug }}.salonpro.com.co</code>
+                <code class="slug">{{ t.slug }}.{{ tenantDomain }}</code>
               </div>
               <div class="info-item">
                 <span class="info-label">Correo</span>
@@ -475,6 +476,7 @@ import { ConfirmService } from '../../../core/services/confirm.service';
   `]
 })
 export class TenantDetailComponent implements OnInit {
+  tenantDomain = environment.tenantDomain;
   tenant = signal<Tenant | null>(null);
   branches = signal<Branch[]>([]);
   plans = signal<Plan[]>([]);
