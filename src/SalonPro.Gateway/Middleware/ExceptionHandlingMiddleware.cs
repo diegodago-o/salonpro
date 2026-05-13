@@ -34,7 +34,11 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
         };
 
         if (statusCode == 500)
+        {
             logger.LogError(ex, "Error no controlado en {Path}", context.Request.Path);
+            // DEBUG temporal — exponer detalles del error para diagnóstico
+            message = $"[DEBUG] {ex.GetType().Name}: {ex.Message} | {ex.InnerException?.Message}";
+        }
 
         IEnumerable<string> errors = ex is FluentValidation.ValidationException validationEx
             ? validationEx.Errors.Select(e => e.ErrorMessage)
