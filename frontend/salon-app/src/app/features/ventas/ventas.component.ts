@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { VentasService } from '../../core/services/ventas.service';
 import { CajaService } from '../../core/services/caja.service';
+import { BranchService } from '../../core/services/branch.service';
 import {
   ClientOption, PaymentEntry, PaymentMethodOption, ProductOption,
   SaleCalculation, SaleItem, SaleProductItem, SaleServiceItem,
@@ -23,6 +24,7 @@ export class VentasComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly ventasService = inject(VentasService);
   private readonly cajaService = inject(CajaService);
+  private readonly branchService = inject(BranchService);
 
   readonly vista = signal<Vista>('lista');
   readonly guardando = signal(false);
@@ -365,6 +367,7 @@ export class VentasComponent implements OnInit {
       stylistId: vv.stylistId!,
       stylistName: this.peluqueroSeleccionado()?.fullName ?? '',
       commissionPercent: this.peluqueroSeleccionado()?.commissionPercent ?? 0,
+      branchName: this.branchService.selectedBranch()?.name ?? undefined,
       clientDocumentType: cv.documentType || 'CC',
       clientDocumentNumber: docNumber,
       clientFullName: fullName,

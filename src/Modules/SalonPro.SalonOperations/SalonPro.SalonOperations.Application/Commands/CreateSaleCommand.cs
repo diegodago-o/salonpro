@@ -100,10 +100,43 @@ public class CreateSaleHandler(
             internalConsumption += prod.PurchasePrice;
         }
 
-        // 6. For MVP: accept totals from frontend calculation
-        // StylistTotal and SalonTotal will be 0 until server-side calc is implemented
-        decimal stylistTotal = 0;
-        decimal salonTotal = 0;
+        // 6. Server-side commission calculation (mirrors sale-calculator.ts)
+        decimal grossTotal = grossServices + grossProducts + req.TipAmount;
+
+        // Proportional deduction ratio applied to every gross component
+        decimal pct = grossTotal > 0 ? totalDeductions / grossTotal : 0m;
+        decimal commPct = req.CommissionPercent / 100m;
+
+        // --- Services: per-item to respect individual SalonFee percentages ---
+        decimal stylistCommServices = 0;
+        decimal salonCommServices   = 0;
+        foreach (var (svc, price) in serviceItems)
+        {
+            var itemBase  = price * (1 - pct);
+            if (svc.HasSalonFee && svc.SalonFeePercent > 0)
+            {
+                var fee       = Math.Round(itemBase * svc.SalonFeePercent / 100, 2);
+                var remainder = itemBase - fee;
+                stylistCommServices += Math.Round(remainder * commPct, 2);
+                salonCommServices   += Math.Round(remainder * (1 - commPct), 2) + fee;
+            }
+            else
+            {
+                stylistCommServices += Math.Round(itemBase * commPct, 2);
+                salonCommServices   += Math.Round(itemBase * (1 - commPct), 2);
+            }
+        }
+
+        // --- Products: fixed split (stylist 10%, salon 90%) ---
+        var baseProducts          = grossProducts * (1 - pct);
+        var stylistCommProducts   = Math.Round(baseProducts * 0.10m, 2);
+        var salonCommProducts     = Math.Round(baseProducts * 0.90m, 2);
+
+        // --- Tip: net of deduction, goes entirely to stylist ---
+        var netTip = Math.Round(req.TipAmount * (1 - pct), 2);
+
+        decimal stylistTotal = Math.Round(stylistCommServices + stylistCommProducts + netTip, 2);
+        decimal salonTotal   = Math.Round(salonCommServices   + salonCommProducts, 2);
 
         // 7. Create sale
         var sale = Sale.Create(
