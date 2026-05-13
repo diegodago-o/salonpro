@@ -39,8 +39,14 @@ public class TenantRepository(TenantsDbContext db) : ITenantRepository
     public async Task<int> CountByStatusAsync(TenantStatus status, CancellationToken ct = default) =>
         await db.Tenants.CountAsync(t => t.Status == status, ct);
 
+    public async Task<Tenant?> GetByEmailAsync(string email, CancellationToken ct = default) =>
+        await db.Tenants.FirstOrDefaultAsync(t => t.Email == email.ToLower().Trim(), ct);
+
     public async Task AddAsync(Tenant tenant, CancellationToken ct = default) =>
         await db.Tenants.AddAsync(tenant, ct);
+
+    public void Delete(Tenant tenant) =>
+        db.Tenants.Remove(tenant);
 
     public async Task SaveChangesAsync(CancellationToken ct = default) =>
         await db.SaveChangesAsync(ct);

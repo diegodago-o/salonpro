@@ -27,6 +27,9 @@ public class CreateTenantHandler(
         if (await tenantRepo.GetByNitAsync(req.Nit, ct) is not null)
             throw new ConflictException($"El NIT '{req.Nit}' ya está registrado.");
 
+        if (await tenantRepo.GetByEmailAsync(req.Email, ct) is not null)
+            throw new ConflictException($"El correo '{req.Email}' ya está registrado en otro salón.");
+
         var plan = await planRepo.GetByIdAsync(req.PlanId, ct)
             ?? throw new NotFoundException(nameof(Plan), req.PlanId);
 

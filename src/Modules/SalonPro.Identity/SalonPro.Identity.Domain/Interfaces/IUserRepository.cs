@@ -11,5 +11,6 @@ public interface IUserRepository
     Task<IEnumerable<User>> GetByTenantAsync(int tenantId, CancellationToken ct = default);
     Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default);
     Task AddAsync(User user, CancellationToken ct = default);
+    Task DeleteByTenantIdAsync(int tenantId, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

@@ -50,6 +50,13 @@ public class TenantsController(IMediator mediator) : ControllerBase
         return Ok(ApiResponse<TenantDto>.Ok(result));
     }
 
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult<ApiResponse>> Delete(int id, CancellationToken ct)
+    {
+        await mediator.Send(new DeleteTenantCommand(id), ct);
+        return Ok(ApiResponse.Ok("Salón eliminado correctamente."));
+    }
+
     [HttpPatch("{id:int}/status")]
     public async Task<ActionResult<ApiResponse>> ChangeStatus(
         int id, [FromBody] ChangeTenantStatusRequest request, CancellationToken ct)

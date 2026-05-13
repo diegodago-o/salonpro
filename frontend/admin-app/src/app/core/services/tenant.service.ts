@@ -35,6 +35,10 @@ export class TenantService {
       .pipe(map(r => r.data));
   }
 
+  delete(id: number) {
+    return this.http.delete<ApiResponse<void>>(`${this.base}/${id}`);
+  }
+
   changeStatus(id: number, status: string) {
     return this.http.patch<ApiResponse<void>>(`${this.base}/${id}/status`, { status });
   }

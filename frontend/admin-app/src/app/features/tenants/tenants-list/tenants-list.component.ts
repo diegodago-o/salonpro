@@ -99,6 +99,7 @@ import { environment } from '../../../../environments/environment';
                         @if (t.status === 'Suspended') {
                           <button class="btn-icon success" title="Activar" (click)="changeStatus(t, 'Active')">✅</button>
                         }
+                        <button class="btn-icon danger" title="Eliminar" (click)="deleteTenant(t)">🗑️</button>
                       </div>
                     </td>
                   </tr>
@@ -572,6 +573,21 @@ export class TenantsListComponent implements OnInit {
   }
 
   goToDetail(id: number) { this.router.navigate(['/tenants', id]); }
+
+  async deleteTenant(t: Tenant) {
+    const ok = await this.confirm.confirm(
+      `¿Eliminar permanentemente "${t.businessName}"? Esta acción no se puede deshacer.`,
+      { title: 'Eliminar salón', danger: true }
+    );
+    if (!ok) return;
+    this.svc.delete(t.id).subscribe({
+      next: () => {
+        this.load();
+        this.toast.success('Salón eliminado correctamente.');
+      },
+      error: () => this.toast.error('Error al eliminar el salón.')
+    });
+  }
 
   async changeStatus(t: Tenant, status: string) {
     const labels: Record<string, string> = { Suspended: 'suspender', Active: 'activar' };

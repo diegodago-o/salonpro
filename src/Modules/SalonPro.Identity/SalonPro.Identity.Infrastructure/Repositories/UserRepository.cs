@@ -25,6 +25,12 @@ public class UserRepository(IdentityDbContext db) : IUserRepository
     public async Task AddAsync(User user, CancellationToken ct = default) =>
         await db.Users.AddAsync(user, ct);
 
+    public async Task DeleteByTenantIdAsync(int tenantId, CancellationToken ct = default)
+    {
+        var users = await db.Users.Where(u => u.TenantId == tenantId).ToListAsync(ct);
+        db.Users.RemoveRange(users);
+    }
+
     public async Task SaveChangesAsync(CancellationToken ct = default) =>
         await db.SaveChangesAsync(ct);
 }

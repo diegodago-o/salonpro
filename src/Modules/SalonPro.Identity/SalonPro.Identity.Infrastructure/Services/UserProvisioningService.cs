@@ -29,4 +29,10 @@ public class UserProvisioningService(IUserRepository userRepo, IPasswordHasher h
         await userRepo.AddAsync(user, ct);
         await userRepo.SaveChangesAsync(ct);
     }
+
+    public async Task DeleteTenantUsersAsync(int tenantId, CancellationToken ct)
+    {
+        await userRepo.DeleteByTenantIdAsync(tenantId, ct);
+        await userRepo.SaveChangesAsync(ct);
+    }
 }

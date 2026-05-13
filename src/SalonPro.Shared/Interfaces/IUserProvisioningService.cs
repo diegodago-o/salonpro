@@ -10,4 +10,6 @@ public interface IUserProvisioningService
         string? documentNumber,
         string? tenantName,
         CancellationToken ct);
+
+    Task DeleteTenantUsersAsync(int tenantId, CancellationToken ct);
 }
