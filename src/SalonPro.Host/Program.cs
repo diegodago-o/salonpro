@@ -54,15 +54,27 @@ try
 
     builder.Services.AddAuthorization();
 
-    // CORS — en desarrollo permite todo, en producción solo orígenes configurados
+    // CORS — en desarrollo permite todo, en producción permite orígenes configurados + subdominio wildcard
     builder.Services.AddCors(opt => opt.AddDefaultPolicy(policy =>
     {
         if (builder.Environment.IsDevelopment())
+        {
             policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        }
         else
-            policy.WithOrigins(
-                builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? ["http://localhost:4200", "http://localhost:4300"])
-            .AllowAnyHeader().AllowAnyMethod();
+        {
+            var allowedOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
+            var wildcardDomain  = builder.Configuration["Cors:WildcardDomain"] ?? "";
+
+            policy.SetIsOriginAllowed(origin =>
+            {
+                if (allowedOrigins.Contains(origin)) return true;
+                if (string.IsNullOrEmpty(wildcardDomain))  return false;
+                var host = new Uri(origin).Host;
+                return host == wildcardDomain || host.EndsWith("." + wildcardDomain);
+            })
+            .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        }
     }));
 
     // Módulos
