@@ -5,6 +5,7 @@ using SalonPro.Identity.Domain.Interfaces;
 using SalonPro.Identity.Infrastructure.Data;
 using SalonPro.Identity.Infrastructure.Repositories;
 using SalonPro.Identity.Infrastructure.Services;
+using SalonPro.Shared.Interfaces;
 
 namespace SalonPro.Identity.Infrastructure;
 
@@ -18,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<IUserProvisioningService, UserProvisioningService>();
 
         return services;
     }
