@@ -5,14 +5,14 @@ using SalonPro.Identity.Domain.Interfaces;
 
 namespace SalonPro.Identity.Application.Queries;
 
-public record GetUsersByRoleQuery(int TenantId, string Role) : IRequest<IEnumerable<UserDto>>;
+public record GetUsersByRoleQuery(int TenantId, string Role, int? BranchId = null) : IRequest<IEnumerable<UserDto>>;
 
 public class GetUsersByRoleHandler(IUserRepository userRepo)
     : IRequestHandler<GetUsersByRoleQuery, IEnumerable<UserDto>>
 {
     public async Task<IEnumerable<UserDto>> Handle(GetUsersByRoleQuery query, CancellationToken ct)
     {
-        var users = await userRepo.GetByTenantAsync(query.TenantId, ct);
+        var users = await userRepo.GetByTenantAsync(query.TenantId, query.BranchId, ct);
 
         if (Enum.TryParse<UserRole>(query.Role, ignoreCase: true, out var role))
             users = users.Where(u => u.Role == role);

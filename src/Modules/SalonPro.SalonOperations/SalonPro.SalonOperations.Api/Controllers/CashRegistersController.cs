@@ -53,10 +53,15 @@ public class CashRegistersController(IMediator mediator) : ControllerBase
 
     [HttpPost("open")]
     public async Task<ActionResult<ApiResponse<CashRegisterDto>>> Open(
-        [FromBody] OpenCashRegisterRequest request, CancellationToken ct)
+        [FromBody] OpenCashRegisterRequest request,
+        [FromQuery] int? branchId,
+        [FromQuery] string? branchName,
+        CancellationToken ct)
     {
+        var effectiveBranchId   = GetEffectiveBranchId(branchId);
+        var effectiveBranchName = !string.IsNullOrEmpty(branchName) ? branchName : GetBranchName();
         var result = await mediator.Send(
-            new OpenCashRegisterCommand(GetTenantId(), GetBranchId(), GetBranchName(), GetUserId(), GetUserName(), request), ct);
+            new OpenCashRegisterCommand(GetTenantId(), effectiveBranchId, effectiveBranchName, GetUserId(), GetUserName(), request), ct);
         return CreatedAtAction(nameof(GetCurrent), ApiResponse<CashRegisterDto>.Ok(result, "Caja abierta."));
     }
 

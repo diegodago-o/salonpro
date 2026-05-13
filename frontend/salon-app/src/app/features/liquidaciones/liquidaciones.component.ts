@@ -93,7 +93,7 @@ export class LiquidacionesComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.ventasService.getPeluqueros().subscribe({
+    this.ventasService.getPeluqueros(this.branchService.currentBranchId).subscribe({
       next: r => this.peluqueros.set(r.data),
       error: () => {}
     });

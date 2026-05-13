@@ -74,10 +74,11 @@ export class VentasService {
     return this.http.get<ApiResponse<ProductOption[]>>(`${this.api}/products${qs}`);
   }
 
-  getPeluqueros(): Observable<ApiResponse<StylistOption[]>> {
+  getPeluqueros(branchId?: number | null): Observable<ApiResponse<StylistOption[]>> {
     if (!environment.production)
       return of({ success: true, data: MOCK_STYLISTS, message: '', errors: [] });
-    return this.http.get<ApiResponse<StylistOption[]>>(`${this.api}/users?role=Stylist`);
+    const qs = branchId ? `?role=Stylist&branchId=${branchId}` : '?role=Stylist';
+    return this.http.get<ApiResponse<StylistOption[]>>(`${this.api}/users${qs}`);
   }
 
   getMetodosPago(): Observable<ApiResponse<PaymentMethodOption[]>> {

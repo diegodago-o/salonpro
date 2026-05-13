@@ -295,7 +295,7 @@ export class VentasComponent implements OnInit {
       next: r => this.productos.set(r.data),
       error: () => {}
     });
-    this.ventasService.getPeluqueros().subscribe({
+    this.ventasService.getPeluqueros(branchId).subscribe({
       next: r => { this.peluqueros.set(r.data); this.cargandoCatalogos.set(false); },
       error: () => this.cargandoCatalogos.set(false)
     });

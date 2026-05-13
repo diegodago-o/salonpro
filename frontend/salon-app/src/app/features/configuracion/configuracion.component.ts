@@ -1,4 +1,5 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -70,6 +71,15 @@ export class ConfiguracionComponent implements OnInit {
     { key: 'payments',    label: 'Métodos de pago',   icon: 'card' },
   ];
 
+  constructor() {
+    // Reload users whenever the selected branch changes
+    toObservable(this.branchSvc.selectedBranch)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        if (this.tab() === 'users') this.loadUsers();
+      });
+  }
+
   ngOnInit(): void {
     this.loadUsers();
   }
@@ -117,7 +127,8 @@ export class ConfiguracionComponent implements OnInit {
 
   loadUsers() {
     this.loadingUsers.set(true);
-    this.userSvc.getAll().subscribe({
+    const branchId = this.branchSvc.currentBranchId;
+    this.userSvc.getAll(undefined, branchId).subscribe({
       next: (u) => { this.users.set(u); this.loadingUsers.set(false); },
       error: ()  => this.loadingUsers.set(false)
     });
