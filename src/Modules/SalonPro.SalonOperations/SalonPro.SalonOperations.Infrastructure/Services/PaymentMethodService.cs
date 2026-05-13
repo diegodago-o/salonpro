@@ -11,7 +11,7 @@ public class PaymentMethodService(IPaymentMethodRepository repo) : IPaymentMetho
     private static readonly (string Name, bool HasDeduction, decimal DeductionPercent)[] Defaults =
     [
         ("Efectivo",          false, 0m),
-        ("Tarjeta débito",    false, 0m),
+        ("Tarjeta débito",    true,  7m),   // ← descuento bancario igual que crédito
         ("Tarjeta crédito",   true,  7m),
         ("Transferencia",     false, 0m),
         ("Nequi / Daviplata", false, 0m),
@@ -31,12 +31,18 @@ public class PaymentMethodService(IPaymentMethodRepository repo) : IPaymentMetho
 
     public async Task SeedDefaultMethodsAsync(int tenantId, CancellationToken ct = default)
     {
-        if (await repo.HasAnyAsync(tenantId, ct)) return; // idempotente
+        // Upsert: crea los que faltan y sincroniza la configuración de los existentes
+        var existing = (await repo.GetAllByTenantAsync(tenantId, ct, onlyActive: false))
+            .ToDictionary(m => m.Name.Trim(), StringComparer.OrdinalIgnoreCase);
 
-        var methods = Defaults.Select(d =>
-            PaymentMethod.Create(tenantId, d.Name, d.HasDeduction, d.DeductionPercent));
+        foreach (var d in Defaults)
+        {
+            if (existing.TryGetValue(d.Name, out var method))
+                method.Update(d.Name, d.HasDeduction, d.DeductionPercent); // actualiza % si cambió
+            else
+                await repo.AddAsync(PaymentMethod.Create(tenantId, d.Name, d.HasDeduction, d.DeductionPercent), ct);
+        }
 
-        await repo.AddRangeAsync(methods, ct);
         await repo.SaveChangesAsync(ct);
     }
 }

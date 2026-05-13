@@ -104,22 +104,31 @@ public static class SalonOpsSeeder
             }
         }
 
-        // ── 3. Métodos de pago ───────────────────────────────────────────────
-        if (!await salonDb.PaymentMethods.AnyAsync(p => p.TenantId == tenantId))
+        // ── 3. Métodos de pago (upsert — crea los que faltan, corrige % de los existentes) ──
+        var pmDefaults = new (string Name, bool HasDeduction, decimal Pct)[]
         {
-            var methods = new[]
-            {
-                PaymentMethod.Create(tenantId, "Efectivo",       hasDeduction: false, deductionPercent: 0),
-                PaymentMethod.Create(tenantId, "Nequi",          hasDeduction: false, deductionPercent: 0),
-                PaymentMethod.Create(tenantId, "Daviplata",      hasDeduction: false, deductionPercent: 0),
-                PaymentMethod.Create(tenantId, "Transferencia",  hasDeduction: false, deductionPercent: 0),
-                PaymentMethod.Create(tenantId, "Tarjeta crédito",hasDeduction: true,  deductionPercent: 7),
-            };
+            ("Efectivo",        false, 0m),
+            ("Nequi",           false, 0m),
+            ("Daviplata",       false, 0m),
+            ("Transferencia",   false, 0m),
+            ("Tarjeta débito",  true,  7m),
+            ("Tarjeta crédito", true,  7m),
+        };
 
-            await salonDb.PaymentMethods.AddRangeAsync(methods);
-            await salonDb.SaveChangesAsync();
-            logger.LogInformation("✓ Métodos de pago creados para tenant {Id}", tenantId);
+        var existingPMs = await salonDb.PaymentMethods
+            .Where(p => p.TenantId == tenantId)
+            .ToListAsync();
+        var pmDict = existingPMs.ToDictionary(m => m.Name.Trim(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (name, hasDed, pct) in pmDefaults)
+        {
+            if (pmDict.TryGetValue(name, out var existing))
+                existing.Update(name, hasDed, pct);   // sincroniza % si cambió
+            else
+                await salonDb.PaymentMethods.AddAsync(PaymentMethod.Create(tenantId, name, hasDed, pct));
         }
+        await salonDb.SaveChangesAsync();
+        logger.LogInformation("✓ Métodos de pago sincronizados para tenant {Id}", tenantId);
 
         // ── 4. Servicios por sede ────────────────────────────────────────────
         if (!await salonDb.SalonServices.AnyAsync(s => s.TenantId == tenantId && s.BranchId == branchId))
