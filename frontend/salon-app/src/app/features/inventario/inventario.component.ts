@@ -1,7 +1,9 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogoService } from '../../core/services/catalogo.service';
+import { BranchService } from '../../core/services/branch.service';
 import { Producto } from '../../core/models/catalogo.models';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
@@ -14,8 +16,9 @@ const LOW = 5;
   templateUrl: './inventario.component.html',
   styleUrl: './inventario.component.scss'
 })
-export class InventarioComponent implements OnInit {
+export class InventarioComponent {
   private readonly catalogoService = inject(CatalogoService);
+  private readonly branchService = inject(BranchService);
   private readonly fb = inject(FormBuilder);
 
   readonly Math = Math;
@@ -69,11 +72,16 @@ export class InventarioComponent implements OnInit {
     return (p.salePrice - p.purchasePrice) / p.salePrice * 100;
   }
 
-  ngOnInit(): void { this.cargar(); }
+  constructor() {
+    toObservable(this.branchService.selectedBranch)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.cargar());
+  }
 
   private cargar(): void {
     this.cargando.set(true);
-    this.catalogoService.getProductos().subscribe({
+    const branchId = this.branchService.currentBranchId;
+    this.catalogoService.getProductos(branchId).subscribe({
       next: r => { if (r.success && r.data) this.productos.set(r.data); },
       error: () => {},
       complete: () => this.cargando.set(false)
@@ -113,9 +121,10 @@ export class InventarioComponent implements OnInit {
       stylistCommissionPercent: v.stylistCommissionPercent ?? 10,
       stock: v.stock!, isForSale: v.isForSale ?? false
     };
+    const branchId = this.branchService.currentBranchId;
     const op$ = this.modoEdicion()
       ? this.catalogoService.actualizarProducto(this.editandoId()!, req)
-      : this.catalogoService.crearProducto(req);
+      : this.catalogoService.crearProducto(req, branchId);
     op$.subscribe({
       next: () => { this.cargar(); this.cerrarModalProducto(); this.guardando.set(false); },
       error: () => { this.errorMsg.set('Error al guardar. Intenta de nuevo.'); this.guardando.set(false); }

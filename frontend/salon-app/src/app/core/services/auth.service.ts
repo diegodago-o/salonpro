@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { tap } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
 import { ApiResponse, AuthUser, LoginRequest, LoginResponse } from '../models/auth.models';
+import { BranchService } from './branch.service';
 import { environment } from '../../../environments/environment';
 
 const ACCESS_TOKEN_KEY = 'sp_access_token';
@@ -25,6 +26,7 @@ const MOCK_USER: AuthUser = {
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly branchService = inject(BranchService);
 
   readonly currentUser = signal<AuthUser | null>(this.loadUser());
   readonly isAuthenticated = signal<boolean>(!!this.getAccessToken());
@@ -59,6 +61,7 @@ export class AuthService {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    this.branchService.clearSaved();   // ← limpia sede al cerrar sesión
     this.currentUser.set(null);
     this.isAuthenticated.set(false);
     this.router.navigate(['/login']);
@@ -72,6 +75,7 @@ export class AuthService {
     localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken);
     localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    this.branchService.clearSaved();   // ← resetea la sede al cambiar de usuario
     this.currentUser.set(data.user);
     this.isAuthenticated.set(true);
   }

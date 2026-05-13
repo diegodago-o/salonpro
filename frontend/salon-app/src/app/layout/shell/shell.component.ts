@@ -48,7 +48,7 @@ export class ShellComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.authService.isAuthenticated()) {
-      this.branchService.loadBranches();
+      this.branchService.loadBranches(this.user());
     }
   }
 

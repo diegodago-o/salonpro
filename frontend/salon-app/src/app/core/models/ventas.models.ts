@@ -112,6 +112,7 @@ export interface CreateSaleRequest {
   stylistId: number;
   stylistName: string;
   commissionPercent: number;
+  branchId?: number;
   branchName?: string;
   clientDocumentType: string;
   clientDocumentNumber: string;

@@ -24,7 +24,7 @@ public class CreateLiquidacionHandler(
 
         // Get sales for stylist in date range
         var sales = (await saleRepo.GetByStylistAndDateRangeAsync(
-            cmd.TenantId, req.StylistId, startDate, endDate, ct))
+            cmd.TenantId, req.StylistId, startDate, endDate, ct: ct))
             .Where(s => s.Status == SaleStatus.Active)
             .ToList();
 

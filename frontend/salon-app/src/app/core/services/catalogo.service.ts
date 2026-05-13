@@ -35,19 +35,21 @@ export class CatalogoService {
   private nextProductoId = 7;
 
   // ── Servicios ─────────────────────────────────────────
-  getServicios(): Observable<ApiResponse<Servicio[]>> {
+  getServicios(branchId?: number | null): Observable<ApiResponse<Servicio[]>> {
     if (!environment.production)
       return of({ success: true, data: [...this.mockServicios], message: '', errors: [] });
-    return this.http.get<ApiResponse<Servicio[]>>(`${this.api}/services`);
+    const qs = branchId ? `?branchId=${branchId}` : '';
+    return this.http.get<ApiResponse<Servicio[]>>(`${this.api}/services${qs}`);
   }
 
-  crearServicio(req: CreateServicioRequest): Observable<ApiResponse<Servicio>> {
+  crearServicio(req: CreateServicioRequest, branchId?: number | null): Observable<ApiResponse<Servicio>> {
     if (!environment.production) {
       const nuevo: Servicio = { id: this.nextServicioId++, ...req, isActive: true };
       this.mockServicios.push(nuevo);
       return of({ success: true, data: nuevo, message: 'Servicio creado', errors: [] });
     }
-    return this.http.post<ApiResponse<Servicio>>(`${this.api}/services`, req);
+    const qs = branchId ? `?branchId=${branchId}` : '';
+    return this.http.post<ApiResponse<Servicio>>(`${this.api}/services${qs}`, req);
   }
 
   actualizarServicio(id: number, req: CreateServicioRequest): Observable<ApiResponse<Servicio>> {
@@ -69,19 +71,21 @@ export class CatalogoService {
   }
 
   // ── Productos ─────────────────────────────────────────
-  getProductos(): Observable<ApiResponse<Producto[]>> {
+  getProductos(branchId?: number | null): Observable<ApiResponse<Producto[]>> {
     if (!environment.production)
       return of({ success: true, data: [...this.mockProductos], message: '', errors: [] });
-    return this.http.get<ApiResponse<Producto[]>>(`${this.api}/products`);
+    const qs = branchId ? `?branchId=${branchId}` : '';
+    return this.http.get<ApiResponse<Producto[]>>(`${this.api}/products${qs}`);
   }
 
-  crearProducto(req: CreateProductoRequest): Observable<ApiResponse<Producto>> {
+  crearProducto(req: CreateProductoRequest, branchId?: number | null): Observable<ApiResponse<Producto>> {
     if (!environment.production) {
       const nuevo: Producto = { id: this.nextProductoId++, ...req, isActive: true };
       this.mockProductos.push(nuevo);
       return of({ success: true, data: nuevo, message: 'Producto creado', errors: [] });
     }
-    return this.http.post<ApiResponse<Producto>>(`${this.api}/products`, req);
+    const qs = branchId ? `?branchId=${branchId}` : '';
+    return this.http.post<ApiResponse<Producto>>(`${this.api}/products${qs}`, req);
   }
 
   actualizarProducto(id: number, req: CreateProductoRequest): Observable<ApiResponse<Producto>> {

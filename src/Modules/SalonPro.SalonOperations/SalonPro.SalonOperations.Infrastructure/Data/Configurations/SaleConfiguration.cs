@@ -19,6 +19,7 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
         builder.Property(s => s.ClientDocumentType).HasMaxLength(10);
         builder.Property(s => s.ClientEmail).HasMaxLength(150);
         builder.Property(s => s.ClientPhone).HasMaxLength(20);
+        builder.Property(s => s.BranchId);
         builder.Property(s => s.BranchName).HasMaxLength(150);
         builder.Property(s => s.CommissionPercent).HasColumnType("decimal(5,2)");
         builder.Property(s => s.GrossServices).HasColumnType("decimal(18,2)");
@@ -45,6 +46,7 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(s => s.TenantId);
+        builder.HasIndex(s => s.BranchId);
         builder.HasIndex(s => s.SaleDateTime);
     }
 }

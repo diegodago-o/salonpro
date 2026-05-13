@@ -14,20 +14,25 @@ namespace SalonPro.SalonOperations.Api.Controllers;
 public class ServicesController(IMediator mediator) : ControllerBase
 {
     private int GetTenantId() => int.Parse(User.FindFirst("tenantId")?.Value ?? "0");
-    private int GetBranchId() => int.Parse(User.FindFirst("branchId")?.Value ?? "0");
+    private int GetEffectiveBranchId(int? requested = null)
+    {
+        if (requested.HasValue && requested.Value > 0) return requested.Value;
+        return int.Parse(User.FindFirst("branchId")?.Value ?? "0");
+    }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<IEnumerable<SalonServiceDto>>>> GetAll(CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<IEnumerable<SalonServiceDto>>>> GetAll(
+        [FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await mediator.Send(new GetServicesQuery(GetTenantId(), GetBranchId()), ct);
+        var result = await mediator.Send(new GetServicesQuery(GetTenantId(), GetEffectiveBranchId(branchId)), ct);
         return Ok(ApiResponse<IEnumerable<SalonServiceDto>>.Ok(result));
     }
 
     [HttpPost]
     public async Task<ActionResult<ApiResponse<SalonServiceDto>>> Create(
-        [FromBody] CreateServiceRequest request, CancellationToken ct)
+        [FromBody] CreateServiceRequest request, [FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await mediator.Send(new CreateServiceCommand(GetTenantId(), GetBranchId(), request), ct);
+        var result = await mediator.Send(new CreateServiceCommand(GetTenantId(), GetEffectiveBranchId(branchId), request), ct);
         return CreatedAtAction(nameof(GetAll), ApiResponse<SalonServiceDto>.Ok(result, "Servicio creado."));
     }
 

@@ -15,6 +15,7 @@ public class Sale
     public string? ClientEmail { get; private set; }
     public string? ClientPhone { get; private set; }
     public int? CashRegisterId { get; private set; }
+    public int? BranchId { get; private set; }
     public string? BranchName { get; private set; }
     public decimal CommissionPercent { get; private set; }
     public DateTime SaleDateTime { get; private set; }
@@ -40,7 +41,7 @@ public class Sale
         int tenantId, int stylistId, string stylistName,
         int? clientId, string clientName, string clientDocument,
         string? clientDocumentType, string? clientEmail, string? clientPhone,
-        int? cashRegisterId, string? branchName, decimal commissionPercent,
+        int? cashRegisterId, int? branchId, string? branchName, decimal commissionPercent,
         decimal grossServices, decimal grossProducts, decimal internalConsumption,
         decimal tipAmount, decimal totalDeductions, decimal stylistTotal, decimal salonTotal,
         string? notes)
@@ -58,6 +59,7 @@ public class Sale
             ClientEmail = clientEmail,
             ClientPhone = clientPhone,
             CashRegisterId = cashRegisterId,
+            BranchId = branchId,
             BranchName = branchName,
             CommissionPercent = commissionPercent,
             SaleDateTime = DateTime.UtcNow,

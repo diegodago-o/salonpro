@@ -1,9 +1,11 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { VentasService } from '../../core/services/ventas.service';
+import { BranchService } from '../../core/services/branch.service';
 import { Sale } from '../../core/models/ventas.models';
 
 @Component({
@@ -13,9 +15,10 @@ import { Sale } from '../../core/models/ventas.models';
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent {
   private readonly authService = inject(AuthService);
   private readonly ventasService = inject(VentasService);
+  private readonly branchService = inject(BranchService);
   private readonly router = inject(Router);
 
   readonly user = this.authService.currentUser;
@@ -35,8 +38,14 @@ export class DashboardComponent implements OnInit {
     this.today.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
   );
 
-  ngOnInit(): void {
-    this.ventasService.getVentasHoy().subscribe({
+  constructor() {
+    toObservable(this.branchService.selectedBranch)
+      .pipe(takeUntilDestroyed())
+      .subscribe(branch => this.cargar(branch?.id, branch?.name));
+  }
+
+  private cargar(branchId?: number, branchName?: string): void {
+    this.ventasService.getVentas(undefined, undefined, branchId, branchName).subscribe({
       next: r => { if (r.success && r.data) this.ventas.set(r.data); },
       error: () => {}
     });

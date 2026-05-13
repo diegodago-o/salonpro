@@ -1,4 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { VentasService } from '../../core/services/ventas.service';
@@ -230,9 +231,17 @@ export class VentasComponent implements OnInit {
     return this.metodosPago().filter(m => !usados.includes(m.id));
   }
 
+  constructor() {
+    // Recargar catálogos y ventas cuando cambia la sede
+    toObservable(this.branchService.selectedBranch)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.cargarCatalogos();
+        this.cargarVentas();
+      });
+  }
+
   ngOnInit(): void {
-    this.cargarCatalogos();
-    this.cargarVentas();
     this.verificarCaja();
 
     // Sincronizar validez de forms como signals para que puedeRegistrar() reaccione
@@ -252,11 +261,12 @@ export class VentasComponent implements OnInit {
   }
 
   private cargarCatalogos(): void {
-    this.ventasService.getServicios().subscribe({
+    const branchId = this.branchService.currentBranchId;
+    this.ventasService.getServicios(branchId).subscribe({
       next: r => this.servicios.set(r.data),
       error: () => {}
     });
-    this.ventasService.getProductos().subscribe({
+    this.ventasService.getProductos(branchId).subscribe({
       next: r => this.productos.set(r.data),
       error: () => {}
     });
@@ -271,7 +281,8 @@ export class VentasComponent implements OnInit {
   }
 
   private cargarVentas(): void {
-    this.ventasService.getVentasHoy().subscribe(r => this.ventas.set(r.data));
+    const branch = this.branchService.selectedBranch();
+    this.ventasService.getVentas(undefined, undefined, branch?.id, branch?.name).subscribe(r => this.ventas.set(r.data));
   }
 
   private verificarCaja(): void {
@@ -429,6 +440,7 @@ export class VentasComponent implements OnInit {
       stylistId: vv.stylistId!,
       stylistName: this.peluqueroSeleccionado()?.fullName ?? '',
       commissionPercent: this.peluqueroSeleccionado()?.commissionPercent ?? 0,
+      branchId: this.branchService.selectedBranch()?.id ?? undefined,
       branchName: this.branchService.selectedBranch()?.name ?? undefined,
       clientDocumentType: cv.documentType || 'CC',
       clientDocumentNumber: docNumber,
