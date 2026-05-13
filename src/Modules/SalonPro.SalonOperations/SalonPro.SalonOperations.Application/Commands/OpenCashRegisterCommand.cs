@@ -16,10 +16,10 @@ public class OpenCashRegisterHandler(ICashRegisterRepository repo)
 {
     public async Task<CashRegisterDto> Handle(OpenCashRegisterCommand cmd, CancellationToken ct)
     {
-        // Ensure no currently open register for this tenant
-        var existing = await repo.GetCurrentOpenByTenantAsync(cmd.TenantId, ct);
+        // Ensure no currently open register for this branch
+        var existing = await repo.GetCurrentOpenByTenantAsync(cmd.TenantId, cmd.BranchId, ct);
         if (existing is not null)
-            throw new ConflictException("Ya existe una caja abierta para este tenant.");
+            throw new ConflictException("Ya existe una caja abierta para esta sede.");
 
         var req = cmd.Request;
         var cr = CashRegister.Open(cmd.TenantId, cmd.BranchId, cmd.BranchName,

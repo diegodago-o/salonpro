@@ -8,7 +8,7 @@ namespace SalonPro.SalonOperations.Application.Commands;
 
 public record CreateLiquidacionRequest(int StylistId, string StylistName, string StartDate, string EndDate);
 
-public record CreateLiquidacionCommand(int TenantId, CreateLiquidacionRequest Request) : IRequest<LiquidacionResumenDto>;
+public record CreateLiquidacionCommand(int TenantId, int? BranchId, CreateLiquidacionRequest Request) : IRequest<LiquidacionResumenDto>;
 
 public class CreateLiquidacionHandler(
     ILiquidacionRepository liquidacionRepo,
@@ -47,7 +47,7 @@ public class CreateLiquidacionHandler(
         var netoPeluquero = commServices + commProducts + totalTips - anticiposAplicados;
 
         var liquidacion = Liquidacion.Create(
-            cmd.TenantId, req.StylistId, req.StylistName,
+            cmd.TenantId, cmd.BranchId, req.StylistId, req.StylistName,
             startDate, DateTime.Parse(req.EndDate));
 
         liquidacion.SetTotals(sales.Count, grossServices, grossProducts, totalDeductions,

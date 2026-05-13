@@ -38,18 +38,20 @@ export class CajaService {
 
   private mockCajaAbierta: CashRegister | null = null;
 
-  getCajaActual(): Observable<ApiResponse<CashRegister | null>> {
+  getCajaActual(branchId?: number | null): Observable<ApiResponse<CashRegister | null>> {
     if (!environment.production) {
       return of({ success: true, data: this.mockCajaAbierta, message: '', errors: [] });
     }
-    return this.http.get<ApiResponse<CashRegister | null>>(`${this.api}/current`);
+    const params = branchId ? `?branchId=${branchId}` : '';
+    return this.http.get<ApiResponse<CashRegister | null>>(`${this.api}/current${params}`);
   }
 
-  getHistorial(): Observable<ApiResponse<CashRegister[]>> {
+  getHistorial(branchId?: number | null): Observable<ApiResponse<CashRegister[]>> {
     if (!environment.production) {
       return of({ success: true, data: MOCK_HISTORIAL, message: '', errors: [] });
     }
-    return this.http.get<ApiResponse<CashRegister[]>>(this.api);
+    const params = branchId ? `?branchId=${branchId}` : '';
+    return this.http.get<ApiResponse<CashRegister[]>>(`${this.api}${params}`);
   }
 
   getDetalle(id: number): Observable<ApiResponse<CashRegister>> {

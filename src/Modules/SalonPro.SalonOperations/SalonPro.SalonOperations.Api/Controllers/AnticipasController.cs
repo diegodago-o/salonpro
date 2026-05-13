@@ -15,16 +15,19 @@ namespace SalonPro.SalonOperations.Api.Controllers;
 public class AnticipasController(IMediator mediator) : ControllerBase
 {
     private int GetTenantId() => int.Parse(User.FindFirst("tenantId")?.Value ?? "0");
+    private int GetBranchId() => int.Parse(User.FindFirst("branchId")?.Value ?? "0");
+    private int? GetEffectiveBranchId(int? requested) =>
+        requested.HasValue && requested.Value > 0 ? requested : GetBranchId();
 
     [HttpGet]
     public async Task<ActionResult<ApiResponse<IEnumerable<AnticipoDto>>>> GetAll(
-        [FromQuery] string? status, CancellationToken ct)
+        [FromQuery] string? status, [FromQuery] int? branchId, CancellationToken ct)
     {
         AnticipoStatus? statusFilter = null;
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<AnticipoStatus>(status, true, out var parsed))
             statusFilter = parsed;
 
-        var result = await mediator.Send(new GetAnticipasQuery(GetTenantId(), statusFilter), ct);
+        var result = await mediator.Send(new GetAnticipasQuery(GetTenantId(), GetEffectiveBranchId(branchId), statusFilter), ct);
         return Ok(ApiResponse<IEnumerable<AnticipoDto>>.Ok(result));
     }
 
@@ -32,7 +35,7 @@ public class AnticipasController(IMediator mediator) : ControllerBase
     public async Task<ActionResult<ApiResponse<AnticipoDto>>> Create(
         [FromBody] CreateAnticipoRequest request, CancellationToken ct)
     {
-        var result = await mediator.Send(new CreateAnticipoCommand(GetTenantId(), request), ct);
+        var result = await mediator.Send(new CreateAnticipoCommand(GetTenantId(), GetBranchId(), request), ct);
         return CreatedAtAction(nameof(GetAll), ApiResponse<AnticipoDto>.Ok(result, "Anticipo registrado."));
     }
 

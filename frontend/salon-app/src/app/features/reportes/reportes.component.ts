@@ -1,6 +1,8 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import { VentasService } from '../../core/services/ventas.service';
+import { BranchService } from '../../core/services/branch.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { Sale } from '../../core/models/ventas.models';
 
@@ -11,18 +13,23 @@ import { Sale } from '../../core/models/ventas.models';
   templateUrl: './reportes.component.html',
   styleUrl: './reportes.component.scss'
 })
-export class ReportesComponent implements OnInit {
+export class ReportesComponent {
   private readonly ventasService = inject(VentasService);
+  private readonly branchService = inject(BranchService);
   readonly ventas = signal<Sale[]>([]);
 
   readonly totalMes = () => this.ventas().reduce((s, v) => s + v.grossTotal, 0);
   readonly totalDeducciones = () => this.ventas().reduce((s, v) => s + v.totalDeductions, 0);
   readonly countActivas = () => this.ventas().filter(v => v.status === 'Active').length;
 
-  ngOnInit(): void {
-    this.ventasService.getVentasHoy().subscribe(r => {
-      if (r.success && r.data) this.ventas.set(r.data);
-    });
+  constructor() {
+    toObservable(this.branchService.selectedBranch)
+      .pipe(takeUntilDestroyed())
+      .subscribe(branch => {
+        this.ventasService.getVentas(undefined, undefined, branch?.id).subscribe(r => {
+          if (r.success && r.data) this.ventas.set(r.data);
+        });
+      });
   }
 
   getStylistStats(): { name: string; total: number; pct: number }[] {

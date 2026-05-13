@@ -15,7 +15,7 @@ public record CreateAnticipoRequest(
     int PaymentMethodId,
     string? Notes);
 
-public record CreateAnticipoCommand(int TenantId, CreateAnticipoRequest Request) : IRequest<AnticipoDto>;
+public record CreateAnticipoCommand(int TenantId, int? BranchId, CreateAnticipoRequest Request) : IRequest<AnticipoDto>;
 
 public class CreateAnticipoHandler(IAnticipoRepository repo, IClientRepository clientRepo, IPaymentMethodRepository pmRepo)
     : IRequestHandler<CreateAnticipoCommand, AnticipoDto>
@@ -32,6 +32,7 @@ public class CreateAnticipoHandler(IAnticipoRepository repo, IClientRepository c
 
         var anticipo = Anticipo.Create(
             cmd.TenantId,
+            cmd.BranchId,
             client?.Id,
             req.ClientFullName,
             req.ClientDocumentNumber,

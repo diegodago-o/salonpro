@@ -8,15 +8,15 @@ namespace SalonPro.SalonOperations.Infrastructure.Repositories;
 
 public class CashRegisterRepository(SalonOpsDbContext db) : ICashRegisterRepository
 {
-    public async Task<CashRegister?> GetCurrentOpenByTenantAsync(int tenantId, CancellationToken ct = default) =>
+    public async Task<CashRegister?> GetCurrentOpenByTenantAsync(int tenantId, int branchId, CancellationToken ct = default) =>
         await db.CashRegisters
             .Include(c => c.Details)
-            .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Status == CashRegisterStatus.Open, ct);
+            .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.BranchId == branchId && c.Status == CashRegisterStatus.Open, ct);
 
-    public async Task<IEnumerable<CashRegister>> GetAllByTenantAsync(int tenantId, CancellationToken ct = default) =>
+    public async Task<IEnumerable<CashRegister>> GetAllByTenantAsync(int tenantId, int branchId, CancellationToken ct = default) =>
         await db.CashRegisters
             .Include(c => c.Details)
-            .Where(c => c.TenantId == tenantId)
+            .Where(c => c.TenantId == tenantId && c.BranchId == branchId)
             .OrderByDescending(c => c.OpenedAt)
             .ToListAsync(ct);
 

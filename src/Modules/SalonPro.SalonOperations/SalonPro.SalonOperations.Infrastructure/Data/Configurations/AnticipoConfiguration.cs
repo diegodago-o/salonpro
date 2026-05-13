@@ -11,6 +11,7 @@ public class AnticipoConfiguration : IEntityTypeConfiguration<Anticipo>
         builder.ToTable("Anticipos");
         builder.HasKey(a => a.Id);
         builder.Property(a => a.TenantId).IsRequired();
+        builder.Property(a => a.BranchId);
         builder.Property(a => a.ClientName).IsRequired().HasMaxLength(200);
         builder.Property(a => a.ClientDocument).IsRequired().HasMaxLength(50);
         builder.Property(a => a.ClientPhone).IsRequired().HasMaxLength(20);

@@ -43,10 +43,11 @@ export class LiquidacionesService {
   private mockData = [...MOCK_LIQUIDACIONES];
   private nextId = 4;
 
-  getLiquidaciones(): Observable<ApiResponse<LiquidacionResumen[]>> {
+  getLiquidaciones(branchId?: number | null): Observable<ApiResponse<LiquidacionResumen[]>> {
     if (!environment.production)
       return of({ success: true, data: [...this.mockData], message: '', errors: [] });
-    return this.http.get<ApiResponse<LiquidacionResumen[]>>(`${this.api}/liquidaciones`);
+    const params = branchId ? `?branchId=${branchId}` : '';
+    return this.http.get<ApiResponse<LiquidacionResumen[]>>(`${this.api}/liquidaciones${params}`);
   }
 
   getDetalle(id: number): Observable<ApiResponse<LiquidacionDetalle>> {
