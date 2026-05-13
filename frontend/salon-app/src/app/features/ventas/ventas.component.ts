@@ -130,6 +130,21 @@ export class VentasComponent implements OnInit {
 
   readonly hayServicios = computed(() => this.items().some(i => i.type === 'Service'));
 
+  /** Desglose de deducciones por método de pago, solo los que tienen deducción > 0 */
+  readonly deduccionesPorPago = computed(() =>
+    this.pagos()
+      .filter(p => p.paymentMethodId !== null && p.amount > 0)
+      .map(p => {
+        const m = this.metodosPago().find(m => m.id === p.paymentMethodId);
+        if (!m || !m.hasDeduction || m.deductionPercent === 0) return null;
+        return { name: m.name, pct: m.deductionPercent, amount: Math.round(p.amount * m.deductionPercent / 100) };
+      })
+      .filter((d): d is { name: string; pct: number; amount: number } => d !== null)
+  );
+
+  /** Total bruto - deducciones = base a repartir */
+  readonly baseNeta = computed(() => this.totalACobrar() - this.calculo().totalDeductions);
+
   // ── Step wizard ───────────────────────────────────────
   readonly step = signal(0);
   readonly ventaExitosa = signal(false);
