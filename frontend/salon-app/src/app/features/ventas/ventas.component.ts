@@ -48,6 +48,9 @@ export class VentasComponent implements OnInit {
   readonly cargandoCatalogos = signal(true);
   readonly Math = Math;
 
+  /** Propina como signal reactiva — sincronizada con formVenta.tipAmount */
+  readonly tipAmountSig = signal(0);
+
   readonly wizardSteps = [
     { n: '01', t: 'Peluquero',  sub: '¿Quién prestará el servicio?' },
     { n: '02', t: 'Servicios',  sub: 'Agrega los servicios a facturar' },
@@ -87,6 +90,7 @@ export class VentasComponent implements OnInit {
   readonly formAnular = this.fb.group({ reason: ['', Validators.required] });
 
   // ── Deducción ponderada por método de pago ────────────
+  // Usa los montos ingresados por el usuario (que ya incluyen propina si la pagaron junto)
   private readonly deductionPctPonderado = computed(() => {
     const pagos = this.pagos();
     const metodos = this.metodosPago();
@@ -100,15 +104,14 @@ export class VentasComponent implements OnInit {
   });
 
   // ── Cálculo en tiempo real ────────────────────────────
-  readonly calculo = computed<SaleCalculation>(() => {
-    this.items(); // dependencia explícita
-    return calculateSale({
+  readonly calculo = computed<SaleCalculation>(() =>
+    calculateSale({
       items: this.items(),
-      tipAmount: this.formVenta.get('tipAmount')!.value ?? 0,
+      tipAmount: this.tipAmountSig(),          // ← signal reactiva
       deductionPct: this.deductionPctPonderado(),
       stylistCommPct: this.peluqueroSeleccionado()?.commissionPercent ?? 0,
-    });
-  });
+    })
+  );
 
   // ── Totales de pago ───────────────────────────────────
   readonly totalACobrar = computed(() =>
@@ -201,6 +204,13 @@ export class VentasComponent implements OnInit {
 
     this.formVenta.get('stylistId')!.valueChanges.subscribe(id => {
       this.peluqueroSeleccionado.set(this.peluqueros().find(p => p.id === id) ?? null);
+    });
+
+    // Propina: sincronizar con signal para que calculo() y totalACobrar() reaccionen
+    this.formVenta.get('tipAmount')!.valueChanges.subscribe(v => {
+      this.tipAmountSig.set(typeof v === 'number' ? Math.max(0, v) : 0);
+      // Auto-actualizar monto del pago si es un solo método
+      this.sincronizarPagoConTotal();
     });
   }
 
@@ -351,7 +361,7 @@ export class VentasComponent implements OnInit {
   private calcularTotalBruto(): number {
     const items = this.items();
     return items.reduce((s, i) => i.type !== 'ProductInternal' ? s + i.price * i.quantity : s, 0)
-      + (this.formVenta.get('tipAmount')!.value ?? 0);
+      + this.tipAmountSig();
   }
 
   nombreMetodoPago(id: number | null): string {
