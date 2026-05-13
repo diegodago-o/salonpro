@@ -14,16 +14,23 @@ namespace SalonPro.Identity.Api.Controllers;
 public class UsersController(IMediator mediator) : ControllerBase
 {
     private int GetTenantId() => int.Parse(User.FindFirst("tenantId")?.Value ?? "0");
+    private int GetBranchId() => int.Parse(User.FindFirst("branchId")?.Value ?? "0");
+
+    /// Prefiere el branchId enviado por query param (TenantOwner cambia sede en UI),
+    /// si no viene usa el del JWT (Cashier/Stylist tienen sede fija).
+    private int? GetEffectiveBranchId(int? requested) =>
+        requested.HasValue && requested.Value > 0 ? requested : (GetBranchId() > 0 ? GetBranchId() : null);
 
     /// <summary>
-    /// Returns users for the current tenant, optionally filtered by role.
-    /// GET /api/v1/users?role=Stylist
+    /// Returns users for the current tenant, optionally filtered by role and/or branch.
+    /// GET /api/v1/users?role=Stylist&amp;branchId=2
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<ApiResponse<IEnumerable<UserDto>>>> GetByRole(
-        [FromQuery] string? role, CancellationToken ct)
+        [FromQuery] string? role, [FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await mediator.Send(new GetUsersByRoleQuery(GetTenantId(), role ?? string.Empty), ct);
+        var result = await mediator.Send(
+            new GetUsersByRoleQuery(GetTenantId(), role ?? string.Empty, GetEffectiveBranchId(branchId)), ct);
         return Ok(ApiResponse<IEnumerable<UserDto>>.Ok(result));
     }
 

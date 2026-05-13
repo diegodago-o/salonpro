@@ -40,9 +40,12 @@ export class UserService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/users`;
 
-  getAll(role?: string) {
-    const url = role ? `${this.base}?role=${role}` : this.base;
-    return this.http.get<ApiResponse<SalonUser[]>>(url).pipe(map(r => r.data));
+  getAll(role?: string, branchId?: number | null) {
+    const qs = new URLSearchParams();
+    if (role)     qs.set('role',     role);
+    if (branchId) qs.set('branchId', String(branchId));
+    const params = qs.toString() ? `?${qs.toString()}` : '';
+    return this.http.get<ApiResponse<SalonUser[]>>(`${this.base}${params}`).pipe(map(r => r.data));
   }
 
   create(req: CreateUserRequest) {
