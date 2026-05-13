@@ -32,38 +32,30 @@ jobs:
           dotnet publish ${{ env.PROJECT_PATH }}
           -c Release
           -o ./publish
-          --no-restore
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
 
       - name: Copiar artefactos a la VM
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host:     ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key:      ${{ secrets.VM_SSH_KEY }}
-          port:     22
-          source:   "publish/*"
-          target:   "/tmp/salonpro-deploy"
+        run: |
+          scp -i ~/.ssh/deploy_key -r \
+            ./publish/ \
+            ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/tmp/salonpro-deploy
 
       - name: Desplegar y reiniciar servicio
-        uses: appleboy/ssh-action@v1
-        with:
-          host:     ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key:      ${{ secrets.VM_SSH_KEY }}
-          port:     22
-          script: |
-            set -e
-            echo "→ Deteniendo servicio..."
-            sudo systemctl stop ${{ env.SERVICE_NAME }} || true
-
-            echo "→ Sincronizando archivos..."
-            sudo rsync -a --delete /tmp/salonpro-deploy/publish/ ${{ env.DEPLOY_PATH }}/
-            sudo chown -R salonpro:salonpro ${{ env.DEPLOY_PATH }}
-
-            echo "→ Iniciando servicio..."
-            sudo systemctl start ${{ env.SERVICE_NAME }}
-            sleep 3
-            sudo systemctl status ${{ env.SERVICE_NAME }} --no-pager
-
-            echo "→ Limpiando temporal..."
-            rm -rf /tmp/salonpro-deploy
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'ENDSSH'
+              set -e
+              sudo systemctl stop salonpro-api || true
+              sudo rsync -a --delete /tmp/salonpro-deploy/ /var/www/salonpro-api/
+              sudo chown -R salonpro:salonpro /var/www/salonpro-api
+              sudo systemctl start salonpro-api
+              sleep 3
+              sudo systemctl status salonpro-api --no-pager
+              rm -rf /tmp/salonpro-deploy
+          ENDSSH

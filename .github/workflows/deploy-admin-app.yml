@@ -34,28 +34,22 @@ jobs:
           npm ci
           npx ng build --configuration=production
 
-      - name: Copiar dist a la VM
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host:     ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key:      ${{ secrets.VM_SSH_KEY }}
-          port:     22
-          source:   "${{ env.APP_DIR }}/dist/admin-app/browser/*"
-          target:   "/tmp/admin-deploy"
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Publicar en nginx root
-        uses: appleboy/ssh-action@v1
-        with:
-          host:     ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key:      ${{ secrets.VM_SSH_KEY }}
-          port:     22
-          script: |
-            set -e
-            sudo rsync -a --delete \
-              "/tmp/admin-deploy/${{ env.APP_DIR }}/dist/admin-app/browser/" \
-              ${{ env.DEPLOY_PATH }}/
-            sudo chown -R www-data:www-data ${{ env.DEPLOY_PATH }}
-            rm -rf /tmp/admin-deploy
-            echo "✓ admin-app desplegada"
+      - name: Copiar y publicar en VM
+        run: |
+          scp -i ~/.ssh/deploy_key -r \
+            ${{ env.APP_DIR }}/dist/admin-app/browser/ \
+            ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/tmp/admin-deploy
+
+          ssh -i ~/.ssh/deploy_key \
+            ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "sudo rsync -a --delete /tmp/admin-deploy/ ${{ env.DEPLOY_PATH }}/ && \
+             sudo chown -R www-data:www-data ${{ env.DEPLOY_PATH }} && \
+             rm -rf /tmp/admin-deploy && \
+             echo '✓ admin-app desplegada'"
