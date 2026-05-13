@@ -14,7 +14,7 @@ public class SaleRepository(SalonOpsDbContext db) : ISaleRepository
         return await db.Sales
             .Include(s => s.Payments)
             .Where(s => s.TenantId == tenantId && s.SaleDateTime >= today && s.SaleDateTime < tomorrow
-                        && (branchId == null || s.BranchId == branchId))
+                        && (branchId == null || s.BranchId == null || s.BranchId == branchId))
             .OrderByDescending(s => s.SaleDateTime)
             .ToListAsync(ct);
     }
@@ -24,7 +24,7 @@ public class SaleRepository(SalonOpsDbContext db) : ISaleRepository
         await db.Sales
             .Include(s => s.Payments)
             .Where(s => s.TenantId == tenantId && s.SaleDateTime >= from && s.SaleDateTime <= to
-                        && (branchId == null || s.BranchId == branchId))
+                        && (branchId == null || s.BranchId == null || s.BranchId == branchId))
             .OrderByDescending(s => s.SaleDateTime)
             .ToListAsync(ct);
 
@@ -34,7 +34,7 @@ public class SaleRepository(SalonOpsDbContext db) : ISaleRepository
             .Include(s => s.Payments)
             .Where(s => s.TenantId == tenantId && s.StylistId == stylistId
                         && s.SaleDateTime >= from && s.SaleDateTime <= to
-                        && (branchId == null || s.BranchId == branchId))
+                        && (branchId == null || s.BranchId == null || s.BranchId == branchId))
             .OrderByDescending(s => s.SaleDateTime)
             .ToListAsync(ct);
 
