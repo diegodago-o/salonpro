@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { VentasService } from '../../core/services/ventas.service';
 import { CajaService } from '../../core/services/caja.service';
 import { BranchService } from '../../core/services/branch.service';
@@ -17,7 +17,7 @@ type Vista = 'lista' | 'nueva-venta' | 'anular';
 
 @Component({
   selector: 'app-ventas',
-  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, DecimalPipe, IconComponent],
+  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, IconComponent],
   templateUrl: './ventas.component.html',
   styleUrl: './ventas.component.scss'
 })

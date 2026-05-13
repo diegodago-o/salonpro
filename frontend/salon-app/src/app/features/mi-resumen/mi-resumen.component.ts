@@ -2,13 +2,13 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { VentasService } from '../../core/services/ventas.service';
 import { Sale } from '../../core/models/ventas.models';
-import { IconComponent } from '../../shared/components/icon/icon.component';
+
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-mi-resumen',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, IconComponent],
+  imports: [CurrencyPipe, DatePipe],
   templateUrl: './mi-resumen.component.html',
   styleUrl: './mi-resumen.component.scss'
 })

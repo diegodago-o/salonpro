@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
 import { VentasService } from '../../core/services/ventas.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { Sale } from '../../core/models/ventas.models';
@@ -7,7 +7,7 @@ import { Sale } from '../../core/models/ventas.models';
 @Component({
   selector: 'app-reportes',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, IconComponent],
+  imports: [CurrencyPipe, IconComponent],
   templateUrl: './reportes.component.html',
   styleUrl: './reportes.component.scss'
 })
