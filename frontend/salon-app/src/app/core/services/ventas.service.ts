@@ -20,10 +20,10 @@ const MOCK_SERVICES: ServiceOption[] = [
 ];
 
 const MOCK_PRODUCTS: ProductOption[] = [
-  { id: 1, name: 'Shampoo Loreal', brand: 'Loreal', category: 'Cabello', purchasePrice: 18000, salePrice: 32000, stock: 15, isForSale: true },
-  { id: 2, name: 'Tinte Igora Royal', brand: 'Schwarzkopf', category: 'Tintura', purchasePrice: 12000, salePrice: 0, stock: 20, isForSale: false },
-  { id: 3, name: 'Oxidante 20vol', brand: 'Schwarzkopf', category: 'Tintura', purchasePrice: 8000, salePrice: 0, stock: 30, isForSale: false },
-  { id: 4, name: 'Mascarilla Keratina', brand: 'Loreal', category: 'Tratamiento', purchasePrice: 22000, salePrice: 45000, stock: 8, isForSale: true },
+  { id: 1, name: 'Shampoo Loreal', brand: 'Loreal', category: 'Cabello', purchasePrice: 18000, salePrice: 32000, stylistCommissionPercent: 10, stock: 15, isForSale: true },
+  { id: 2, name: 'Tinte Igora Royal', brand: 'Schwarzkopf', category: 'Tintura', purchasePrice: 12000, salePrice: 0, stylistCommissionPercent: 10, stock: 20, isForSale: false },
+  { id: 3, name: 'Oxidante 20vol', brand: 'Schwarzkopf', category: 'Tintura', purchasePrice: 8000, salePrice: 0, stylistCommissionPercent: 10, stock: 30, isForSale: false },
+  { id: 4, name: 'Mascarilla Keratina', brand: 'Loreal', category: 'Tratamiento', purchasePrice: 22000, salePrice: 45000, stylistCommissionPercent: 10, stock: 8, isForSale: true },
 ];
 
 const MOCK_STYLISTS: StylistOption[] = [

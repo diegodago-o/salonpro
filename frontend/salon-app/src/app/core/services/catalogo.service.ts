@@ -17,12 +17,12 @@ const MOCK_SERVICIOS: Servicio[] = [
 ];
 
 const MOCK_PRODUCTOS: Producto[] = [
-  { id: 1, name: 'Shampoo Loreal', brand: 'Loreal', category: 'Cabello', purchasePrice: 18000, salePrice: 32000, stock: 15, isForSale: true, isActive: true },
-  { id: 2, name: 'Tinte Igora Royal', brand: 'Schwarzkopf', category: 'Tintura', purchasePrice: 12000, salePrice: 0, stock: 20, isForSale: false, isActive: true },
-  { id: 3, name: 'Oxidante 20vol', brand: 'Schwarzkopf', category: 'Tintura', purchasePrice: 8000, salePrice: 0, stock: 30, isForSale: false, isActive: true },
-  { id: 4, name: 'Mascarilla Keratina', brand: 'Loreal', category: 'Tratamiento', purchasePrice: 22000, salePrice: 45000, stock: 8, isForSale: true, isActive: true },
-  { id: 5, name: 'Aceite Argan', brand: 'Moroccanoil', category: 'Tratamiento', purchasePrice: 35000, salePrice: 65000, stock: 5, isForSale: true, isActive: true },
-  { id: 6, name: 'Decolorante', brand: 'Schwarzkopf', category: 'Tintura', purchasePrice: 15000, salePrice: 0, stock: 12, isForSale: false, isActive: true },
+  { id: 1, name: 'Shampoo Loreal', brand: 'Loreal', category: 'Cabello', purchasePrice: 18000, salePrice: 32000, stylistCommissionPercent: 10, stock: 15, isForSale: true, isActive: true },
+  { id: 2, name: 'Tinte Igora Royal', brand: 'Schwarzkopf', category: 'Tintura', purchasePrice: 12000, salePrice: 0, stylistCommissionPercent: 10, stock: 20, isForSale: false, isActive: true },
+  { id: 3, name: 'Oxidante 20vol', brand: 'Schwarzkopf', category: 'Tintura', purchasePrice: 8000, salePrice: 0, stylistCommissionPercent: 10, stock: 30, isForSale: false, isActive: true },
+  { id: 4, name: 'Mascarilla Keratina', brand: 'Loreal', category: 'Tratamiento', purchasePrice: 22000, salePrice: 45000, stylistCommissionPercent: 10, stock: 8, isForSale: true, isActive: true },
+  { id: 5, name: 'Aceite Argan', brand: 'Moroccanoil', category: 'Tratamiento', purchasePrice: 35000, salePrice: 65000, stylistCommissionPercent: 10, stock: 5, isForSale: true, isActive: true },
+  { id: 6, name: 'Decolorante', brand: 'Schwarzkopf', category: 'Tintura', purchasePrice: 15000, salePrice: 0, stylistCommissionPercent: 10, stock: 12, isForSale: false, isActive: true },
 ];
 
 @Injectable({ providedIn: 'root' })

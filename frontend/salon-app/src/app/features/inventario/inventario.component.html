@@ -141,6 +141,11 @@
             <input class="input mono" type="number" formControlName="salePrice" min="0"
               [attr.disabled]="!formProducto.get('isForSale')?.value ? true : null" />
           </label>
+          <label class="field">
+            <span class="label">Comisión estilista (%)</span>
+            <input class="input mono" type="number" formControlName="stylistCommissionPercent" min="0" max="100" step="1" />
+            <span style="font-size:11px;color:var(--ink-4)">% del precio neto al vender (default 10%)</span>
+          </label>
         </div>
 
         <div style="display:flex;align-items:center;gap:12px;margin-top:14px;padding:14px;background:var(--bone);border-radius:8px">

@@ -7,6 +7,7 @@ public record SalonProductDto(
     string Category,
     decimal PurchasePrice,
     decimal SalePrice,
+    decimal StylistCommissionPercent,
     int Stock,
     bool IsForSale,
     bool IsActive);

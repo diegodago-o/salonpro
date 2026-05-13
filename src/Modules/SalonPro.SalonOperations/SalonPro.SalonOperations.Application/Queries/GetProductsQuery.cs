@@ -13,6 +13,7 @@ public class GetProductsHandler(ISalonProductRepository repo)
     {
         var products = await repo.GetAllByBranchAsync(query.TenantId, query.BranchId, ct);
         return products.Select(p => new SalonProductDto(
-            p.Id, p.Name, p.Brand, p.Category, p.PurchasePrice, p.SalePrice, p.Stock, p.IsForSale, p.IsActive));
+            p.Id, p.Name, p.Brand, p.Category, p.PurchasePrice, p.SalePrice,
+            p.StylistCommissionPercent, p.Stock, p.IsForSale, p.IsActive));
     }
 }

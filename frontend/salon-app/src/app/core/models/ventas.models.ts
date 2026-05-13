@@ -17,6 +17,8 @@ export interface ProductOption {
   category: string;
   purchasePrice: number;
   salePrice: number;
+  /** Porcentaje de comisión del estilista sobre el precio neto de este producto (0–100). Default: 10 */
+  stylistCommissionPercent: number;
   stock: number;
   isForSale: boolean;
 }
@@ -60,6 +62,8 @@ export interface SaleProductItem {
   name: string;
   price: number;    // editable
   quantity: number; // editable, mín 1
+  /** Comisión del estilista sobre este producto (0–100). Default: 10 */
+  stylistCommissionPercent: number;
 }
 
 export type SaleItem = SaleServiceItem | SaleProductItem;

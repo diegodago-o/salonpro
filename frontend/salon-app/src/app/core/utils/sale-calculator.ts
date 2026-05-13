@@ -1,4 +1,4 @@
-import { SaleCalculation, SaleItem, SaleServiceItem } from '../models/ventas.models';
+import { SaleCalculation, SaleItem, SaleProductItem, SaleServiceItem } from '../models/ventas.models';
 
 export interface SaleInput {
   items: SaleItem[];
@@ -66,9 +66,15 @@ export function calculateSale(input: SaleInput): SaleCalculation {
   stylistCommServices = round(stylistCommServices);
   salonCommServices   = round(salonCommServices);
 
-  // Comisiones de productos: peluquero 10%, salón 90%
-  const stylistCommProducts = round(baseProducts * 0.10);
-  const salonCommProducts   = round(baseProducts * 0.90);
+  // Comisiones de productos: comisión configurable por producto
+  let stylistCommProducts = 0;
+  let salonCommProducts   = 0;
+  for (const item of items.filter(i => i.type === 'ProductSale') as SaleProductItem[]) {
+    const itemBase    = item.price * item.quantity * (1 - pct);
+    const prodSPct    = (item.stylistCommissionPercent ?? 10) / 100;
+    stylistCommProducts += round(itemBase * prodSPct);
+    salonCommProducts   += round(itemBase * (1 - prodSPct));
+  }
 
   // PASO 5 — Netos
   const stylistTotal = stylistCommServices + stylistCommProducts + netTip;

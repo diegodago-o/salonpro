@@ -91,7 +91,7 @@ export class VentasComponent implements OnInit {
 
   // ── Deducción ponderada por método de pago ────────────
   // Usa los montos ingresados por el usuario (que ya incluyen propina si la pagaron junto)
-  private readonly deductionPctPonderado = computed(() => {
+  readonly deductionPctPonderado = computed(() => {
     const pagos = this.pagos();
     const metodos = this.metodosPago();
     const totalPagado = pagos.reduce((s, p) => s + (p.amount || 0), 0);
@@ -147,6 +147,43 @@ export class VentasComponent implements OnInit {
 
   /** Total bruto - deducciones = base a repartir */
   readonly baseNeta = computed(() => this.totalACobrar() - this.calculo().totalDeductions);
+
+  /** Desglose por ítem: cuánto va al estilista y al salón de cada servicio/producto */
+  readonly desgloseItems = computed(() => {
+    const pct  = this.deductionPctPonderado() / 100;
+    const sPct = (this.peluqueroSeleccionado()?.commissionPercent ?? 0) / 100;
+    return this.items()
+      .filter(i => i.type !== 'ProductInternal')
+      .map(item => {
+        const subtotal = item.price * item.quantity;
+        const netBase  = Math.round(subtotal * (1 - pct));
+        if (item.type === 'Service') {
+          const svc = item as SaleServiceItem;
+          let stylistAmt: number, salonAmt: number, feeAmt = 0;
+          if (svc.hasSalonFee && svc.salonFeePercent > 0) {
+            feeAmt     = Math.round(netBase * svc.salonFeePercent / 100);
+            const rem  = netBase - feeAmt;
+            stylistAmt = Math.round(rem * sPct);
+            salonAmt   = Math.round(rem * (1 - sPct)) + feeAmt;
+          } else {
+            stylistAmt = Math.round(netBase * sPct);
+            salonAmt   = Math.round(netBase * (1 - sPct));
+          }
+          return { name: item.name, type: 'Servicio', subtotal, netBase,
+            stylistPct: this.peluqueroSeleccionado()?.commissionPercent ?? 0,
+            stylistAmt, salonAmt, hasFee: svc.hasSalonFee && svc.salonFeePercent > 0,
+            feeAmt, feePct: svc.salonFeePercent };
+        } else {
+          const prod     = item as SaleProductItem;
+          const prodSPct = (prod.stylistCommissionPercent ?? 10) / 100;
+          const stylistAmt = Math.round(netBase * prodSPct);
+          const salonAmt   = Math.round(netBase * (1 - prodSPct));
+          return { name: item.name, type: 'Producto', subtotal, netBase,
+            stylistPct: prod.stylistCommissionPercent ?? 10,
+            stylistAmt, salonAmt, hasFee: false, feeAmt: 0, feePct: 0 };
+        }
+      });
+  });
 
   // ── Step wizard ───────────────────────────────────────
   readonly step = signal(0);
@@ -288,7 +325,7 @@ export class VentasComponent implements OnInit {
     if (existente) {
       this.items.update(l => l.map(i => i === existente ? { ...existente, quantity: existente.quantity + 1 } : i));
     } else {
-      this.items.update(l => [...l, { type: 'ProductSale', productId: producto.id, name: producto.name, price: producto.salePrice, quantity: 1 } as SaleProductItem]);
+      this.items.update(l => [...l, { type: 'ProductSale', productId: producto.id, name: producto.name, price: producto.salePrice, quantity: 1, stylistCommissionPercent: producto.stylistCommissionPercent ?? 10 } as SaleProductItem]);
     }
     this.sincronizarPagoConTotal();
   }
@@ -298,7 +335,7 @@ export class VentasComponent implements OnInit {
     if (existente) {
       this.items.update(l => l.map(i => i === existente ? { ...existente, quantity: existente.quantity + 1 } : i));
     } else {
-      this.items.update(l => [...l, { type: 'ProductInternal', productId: producto.id, name: producto.name, price: producto.purchasePrice, quantity: 1 } as SaleProductItem]);
+      this.items.update(l => [...l, { type: 'ProductInternal', productId: producto.id, name: producto.name, price: producto.purchasePrice, quantity: 1, stylistCommissionPercent: 0 } as SaleProductItem]);
     }
   }
 

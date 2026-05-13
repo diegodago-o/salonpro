@@ -10,6 +10,8 @@ public class SalonProduct
     public string Category { get; private set; } = string.Empty;
     public decimal PurchasePrice { get; private set; }
     public decimal SalePrice { get; private set; }
+    /// <summary>Porcentaje de comisión del estilista sobre el precio neto de este producto (0–100). Por defecto 10.</summary>
+    public decimal StylistCommissionPercent { get; private set; }
     public int Stock { get; private set; }
     public bool IsForSale { get; private set; }
     public bool IsActive { get; private set; }
@@ -18,7 +20,7 @@ public class SalonProduct
     private SalonProduct() { }
 
     public static SalonProduct Create(int tenantId, int branchId, string name, string brand, string category,
-        decimal purchasePrice, decimal salePrice, int stock, bool isForSale)
+        decimal purchasePrice, decimal salePrice, int stock, bool isForSale, decimal stylistCommissionPercent = 10m)
     {
         return new SalonProduct
         {
@@ -29,6 +31,7 @@ public class SalonProduct
             Category = category.Trim(),
             PurchasePrice = purchasePrice,
             SalePrice = salePrice,
+            StylistCommissionPercent = Math.Clamp(stylistCommissionPercent, 0m, 100m),
             Stock = stock,
             IsForSale = isForSale,
             IsActive = true,
@@ -37,7 +40,7 @@ public class SalonProduct
     }
 
     public void Update(string name, string brand, string category, decimal purchasePrice,
-        decimal salePrice, bool isForSale)
+        decimal salePrice, bool isForSale, decimal stylistCommissionPercent)
     {
         Name = name.Trim();
         Brand = brand.Trim();
@@ -45,6 +48,7 @@ public class SalonProduct
         PurchasePrice = purchasePrice;
         SalePrice = salePrice;
         IsForSale = isForSale;
+        StylistCommissionPercent = Math.Clamp(stylistCommissionPercent, 0m, 100m);
     }
 
     public void AdjustStock(int stock) => Stock = stock;

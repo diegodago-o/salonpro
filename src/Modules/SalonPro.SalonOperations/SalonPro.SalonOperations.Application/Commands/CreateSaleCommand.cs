@@ -127,10 +127,16 @@ public class CreateSaleHandler(
             }
         }
 
-        // --- Products: fixed split (stylist 10%, salon 90%) ---
-        var baseProducts          = grossProducts * (1 - pct);
-        var stylistCommProducts   = Math.Round(baseProducts * 0.10m, 2);
-        var salonCommProducts     = Math.Round(baseProducts * 0.90m, 2);
+        // --- Products: per-product stylist commission % ---
+        decimal stylistCommProducts = 0;
+        decimal salonCommProducts   = 0;
+        foreach (var (prod, price) in productSoldItems)
+        {
+            var itemBase    = price * (1 - pct);
+            var prodCommPct = prod.StylistCommissionPercent / 100m;
+            stylistCommProducts += Math.Round(itemBase * prodCommPct, 2);
+            salonCommProducts   += Math.Round(itemBase * (1 - prodCommPct), 2);
+        }
 
         // --- Tip: net of deduction, goes entirely to stylist ---
         var netTip = Math.Round(req.TipAmount * (1 - pct), 2);

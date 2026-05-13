@@ -37,13 +37,14 @@ export class InventarioComponent implements OnInit {
 
   // Form producto
   readonly formProducto = this.fb.group({
-    name:          ['', Validators.required],
-    brand:         [''],
-    category:      ['', Validators.required],
-    purchasePrice: [0, [Validators.required, Validators.min(0)]],
-    salePrice:     [0, [Validators.min(0)]],
-    stock:         [0, [Validators.required, Validators.min(0)]],
-    isForSale:     [false],
+    name:                    ['', Validators.required],
+    brand:                   [''],
+    category:                ['', Validators.required],
+    purchasePrice:           [0, [Validators.required, Validators.min(0)]],
+    salePrice:               [0, [Validators.min(0)]],
+    stylistCommissionPercent:[10, [Validators.required, Validators.min(0), Validators.max(100)]],
+    stock:                   [0, [Validators.required, Validators.min(0)]],
+    isForSale:               [false],
   });
 
   // Form entrada de stock
@@ -82,7 +83,7 @@ export class InventarioComponent implements OnInit {
   // ── Modal Producto ──────────────────────────────────────
   abrirNuevo(): void {
     this.editandoId.set(null);
-    this.formProducto.reset({ name: '', brand: '', category: '', purchasePrice: 0, salePrice: 0, stock: 0, isForSale: false });
+    this.formProducto.reset({ name: '', brand: '', category: '', purchasePrice: 0, salePrice: 0, stylistCommissionPercent: 10, stock: 0, isForSale: false });
     this.errorMsg.set(null);
     this.modalProducto.set(true);
   }
@@ -92,6 +93,7 @@ export class InventarioComponent implements OnInit {
     this.formProducto.patchValue({
       name: p.name, brand: p.brand, category: p.category,
       purchasePrice: p.purchasePrice, salePrice: p.salePrice,
+      stylistCommissionPercent: p.stylistCommissionPercent,
       stock: p.stock, isForSale: p.isForSale
     });
     this.errorMsg.set(null);
@@ -108,6 +110,7 @@ export class InventarioComponent implements OnInit {
     const req = {
       name: v.name!, brand: v.brand || '', category: v.category!,
       purchasePrice: v.purchasePrice!, salePrice: v.isForSale ? (v.salePrice ?? 0) : 0,
+      stylistCommissionPercent: v.stylistCommissionPercent ?? 10,
       stock: v.stock!, isForSale: v.isForSale ?? false
     };
     const op$ = this.modoEdicion()

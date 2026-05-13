@@ -6,8 +6,7 @@
       <div class="deck">{{ productos().length }} productos · {{ conStockBajo() }} con stock bajo</div>
     </div>
     <div style="display:flex;gap:10px">
-      <button class="btn btn-ghost"><sp-icon name="download" [size]="14" /> Entrada</button>
-      <button class="btn btn-primary"><sp-icon name="plus" [size]="14" /> Nuevo producto</button>
+      <button class="btn btn-primary" (click)="abrirNuevo()"><sp-icon name="plus" [size]="14" /> Nuevo producto</button>
     </div>
   </div>
 
@@ -27,7 +26,9 @@
             <tr>
               <th>Producto</th><th>Marca</th><th>Tipo</th>
               <th style="text-align:right">Compra</th><th style="text-align:right">Venta</th>
-              <th style="text-align:right">Margen</th><th>Stock</th><th></th>
+              <th style="text-align:right">Margen</th>
+              <th style="text-align:right">Com. pelqro</th>
+              <th>Stock</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -50,6 +51,13 @@
                 <td class="tnum" style="text-align:right" [style.color]="margen(p) > 40 ? 'var(--success)' : 'var(--ink-3)'">
                   {{ p.salePrice ? margen(p) + '%' : '—' }}
                 </td>
+                <td class="tnum" style="text-align:right">
+                  @if (p.isForSale) {
+                    <span style="font-weight:600;color:var(--accent-deep)">{{ p.stylistCommissionPercent }}%</span>
+                  } @else {
+                    <span style="color:var(--ink-4)">—</span>
+                  }
+                </td>
                 <td>
                   <div style="display:flex;align-items:center;gap:8px">
                     <span class="serif tnum" style="font-size:17px" [style.color]="p.stock <= 5 ? 'var(--warn)' : 'var(--ink)'">{{ p.stock }}</span>
@@ -59,7 +67,7 @@
                     <div class="bar-fill" [style.width]="(p.stock / 30 * 100) + '%'" [style.background]="p.stock <= 5 ? 'var(--warn)' : 'var(--ink-3)'"></div>
                   </div>
                 </td>
-                <td><button class="btn btn-icon btn-ghost"><sp-icon name="edit" [size]="14" /></button></td>
+                <td><button class="btn btn-icon btn-ghost" (click)="abrirEditar(p)"><sp-icon name="edit" [size]="14" /></button></td>
               </tr>
             }
           </tbody>
@@ -71,3 +79,82 @@
     }
   </div>
 </div>
+
+<!-- ── Modal crear / editar ──────────────────────────── -->
+@if (modalAbierto()) {
+  <div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:flex;align-items:center;justify-content:center;padding:24px"
+    (click)="cerrarModal()">
+    <div class="card fade-in" style="padding:32px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto"
+      (click)="$event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <h2 class="serif" style="font-size:26px;font-weight:400;margin:0">
+          {{ editandoId() ? 'Editar producto' : 'Nuevo producto' }}
+        </h2>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarModal()"><sp-icon name="x" [size]="16" /></button>
+      </div>
+
+      <form [formGroup]="form" style="display:flex;flex-direction:column;gap:16px">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <label class="field" style="grid-column:1/-1">
+            <span class="label">Nombre *</span>
+            <input class="input" formControlName="name" placeholder="Ej: Shampoo Loreal" />
+          </label>
+
+          <label class="field">
+            <span class="label">Marca *</span>
+            <input class="input" formControlName="brand" placeholder="Ej: Loreal" />
+          </label>
+
+          <label class="field">
+            <span class="label">Categoría *</span>
+            <input class="input" formControlName="category" placeholder="Ej: Cabello" />
+          </label>
+
+          <label class="field">
+            <span class="label">Precio de compra *</span>
+            <input class="input mono" type="number" formControlName="purchasePrice" min="0" placeholder="0" />
+          </label>
+
+          <label class="field">
+            <span class="label">Precio de venta</span>
+            <input class="input mono" type="number" formControlName="salePrice" min="0" placeholder="0" />
+            <span style="font-size:11px;color:var(--ink-4)">Solo si se vende al cliente</span>
+          </label>
+
+          <label class="field">
+            <span class="label">Stock inicial</span>
+            <input class="input mono" type="number" formControlName="stock" min="0" placeholder="0" />
+          </label>
+
+          <!-- CAMPO CLAVE: comisión del estilista -->
+          <label class="field">
+            <span class="label">Comisión del estilista (%)</span>
+            <input class="input mono" type="number" formControlName="stylistCommissionPercent" min="0" max="100" step="1" placeholder="10" />
+            <span style="font-size:11px;color:var(--ink-4)">% del precio neto que recibe el estilista cuando se vende</span>
+          </label>
+        </div>
+
+        <!-- Toggle venta a cliente -->
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;background:var(--bone);border-radius:6px">
+          <input type="checkbox" formControlName="isForSale" style="width:16px;height:16px;accent-color:var(--accent)" />
+          <div>
+            <div style="font-weight:500;font-size:13px">Disponible para venta a cliente</div>
+            <div style="font-size:11px;color:var(--ink-4)">Si no, solo se usa como consumo interno en servicios</div>
+          </div>
+        </label>
+
+        @if (errorMsg()) {
+          <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px">{{ errorMsg() }}</div>
+        }
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+          <button type="button" class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
+          <button type="button" class="btn btn-primary btn-lg" (click)="guardar()" [disabled]="form.invalid || guardando()">
+            <sp-icon name="check" [size]="14" /> {{ guardando() ? 'Guardando…' : (editandoId() ? 'Guardar cambios' : 'Crear producto') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

@@ -23,6 +23,8 @@ export interface Producto {
   category: string;
   purchasePrice: number;
   salePrice: number;
+  /** Porcentaje de comisión del estilista sobre venta neta de este producto (0–100). Default: 10 */
+  stylistCommissionPercent: number;
   stock: number;
   isForSale: boolean;
   isActive: boolean;
@@ -34,6 +36,7 @@ export interface CreateProductoRequest {
   category: string;
   purchasePrice: number;
   salePrice: number;
+  stylistCommissionPercent: number;
   stock: number;
   isForSale: boolean;
 }
