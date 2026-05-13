@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, effect, inject, OnInit, signal, computed } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogoService } from '../../core/services/catalogo.service';
+import { BranchService } from '../../core/services/branch.service';
 import { Servicio } from '../../core/models/catalogo.models';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
@@ -14,6 +15,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
 })
 export class ServiciosComponent implements OnInit {
   private readonly catalogoService = inject(CatalogoService);
+  private readonly branchService = inject(BranchService);
   private readonly fb = inject(FormBuilder);
 
   readonly servicios  = signal<Servicio[]>([]);
@@ -42,13 +44,19 @@ export class ServiciosComponent implements OnInit {
     return this.servicios().filter(s => s.category === cat);
   }
 
-  ngOnInit(): void {
-    this.cargar();
+  constructor() {
+    effect(() => {
+      this.branchService.selectedBranch(); // track branch changes
+      this.cargar();
+    });
   }
+
+  ngOnInit(): void { /* cargar se dispara desde el effect() */ }
 
   private cargar(): void {
     this.cargando.set(true);
-    this.catalogoService.getServicios().subscribe({
+    const branchId = this.branchService.currentBranchId;
+    this.catalogoService.getServicios(branchId).subscribe({
       next: r => { if (r.success && r.data) this.servicios.set(r.data); },
       error: () => {},
       complete: () => this.cargando.set(false)
@@ -91,9 +99,10 @@ export class ServiciosComponent implements OnInit {
       salonFeePercent: v.hasSalonFee ? (v.salonFeePercent ?? 0) : 0,
     };
 
+    const branchId = this.branchService.currentBranchId;
     const op$ = this.modoEdicion()
       ? this.catalogoService.actualizarServicio(this.editandoId()!, req)
-      : this.catalogoService.crearServicio(req);
+      : this.catalogoService.crearServicio(req, branchId);
 
     op$.subscribe({
       next: () => { this.cargar(); this.cerrarModal(); this.guardando.set(false); },

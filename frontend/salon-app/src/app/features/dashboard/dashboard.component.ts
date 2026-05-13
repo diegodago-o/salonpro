@@ -1,9 +1,10 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { VentasService } from '../../core/services/ventas.service';
+import { BranchService } from '../../core/services/branch.service';
 import { Sale } from '../../core/models/ventas.models';
 
 @Component({
@@ -16,6 +17,7 @@ import { Sale } from '../../core/models/ventas.models';
 export class DashboardComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly ventasService = inject(VentasService);
+  private readonly branchService = inject(BranchService);
   private readonly router = inject(Router);
 
   readonly user = this.authService.currentUser;
@@ -35,8 +37,17 @@ export class DashboardComponent implements OnInit {
     this.today.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
   );
 
-  ngOnInit(): void {
-    this.ventasService.getVentasHoy().subscribe({
+  constructor() {
+    effect(() => {
+      const branchId = this.branchService.selectedBranch()?.id;
+      this.cargar(branchId);
+    });
+  }
+
+  ngOnInit(): void { /* cargar se dispara desde el effect() */ }
+
+  private cargar(branchId?: number): void {
+    this.ventasService.getVentas(undefined, undefined, branchId).subscribe({
       next: r => { if (r.success && r.data) this.ventas.set(r.data); },
       error: () => {}
     });

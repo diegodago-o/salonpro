@@ -25,7 +25,7 @@ public class CloseCashRegisterHandler(ICashRegisterRepository cashRepo, ISaleRep
 
         // Calculate expected cash from today's sales
         var sales = await saleRepo.GetByTenantAndDateRangeAsync(
-            cr.TenantId, cr.OpenedAt, DateTime.UtcNow, ct);
+            cr.TenantId, cr.OpenedAt, DateTime.UtcNow, ct: ct);
 
         var activeSales = sales.Where(s => s.Status == SaleStatus.Active).ToList();
 

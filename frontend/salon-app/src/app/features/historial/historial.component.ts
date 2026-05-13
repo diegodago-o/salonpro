@@ -1,7 +1,8 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VentasService } from '../../core/services/ventas.service';
+import { BranchService } from '../../core/services/branch.service';
 import { Sale } from '../../core/models/ventas.models';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
@@ -14,6 +15,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
 })
 export class HistorialComponent implements OnInit {
   private readonly ventasService = inject(VentasService);
+  private readonly branchService = inject(BranchService);
 
   readonly ventas       = signal<Sale[]>([]);
   readonly loading      = signal(true);
@@ -55,15 +57,24 @@ export class HistorialComponent implements OnInit {
     };
   });
 
-  ngOnInit(): void { this.cargar(); }
+  constructor() {
+    effect(() => {
+      this.branchService.selectedBranch(); // track branch changes
+      this.cargar();
+    });
+  }
+
+  ngOnInit(): void { /* cargar se dispara desde el effect() */ }
 
   cargar(): void {
     this.loading.set(true);
     const desde = this.filtroFechaDesde;
     const hasta = this.filtroFechaHasta;
+    const branchId = this.branchService.currentBranchId;
     this.ventasService.getVentas(
       desde ? new Date(desde + 'T00:00:00').toISOString() : undefined,
-      hasta ? new Date(hasta + 'T23:59:59').toISOString() : undefined
+      hasta ? new Date(hasta + 'T23:59:59').toISOString() : undefined,
+      branchId
     ).subscribe(r => {
       this.ventas.set(r.data ?? []);
       this.loading.set(false);

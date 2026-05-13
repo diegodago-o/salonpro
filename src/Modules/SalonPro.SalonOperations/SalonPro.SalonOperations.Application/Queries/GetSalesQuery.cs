@@ -43,7 +43,8 @@ public static class SaleDtoMapper
 public record GetSalesQuery(
     int TenantId,
     DateTime? From = null,
-    DateTime? To = null) : IRequest<IEnumerable<SaleDto>>;
+    DateTime? To = null,
+    int? BranchId = null) : IRequest<IEnumerable<SaleDto>>;
 
 public class GetSalesHandler(ISaleRepository repo)
     : IRequestHandler<GetSalesQuery, IEnumerable<SaleDto>>
@@ -52,9 +53,9 @@ public class GetSalesHandler(ISaleRepository repo)
     {
         IEnumerable<Sale> sales;
         if (query.From.HasValue && query.To.HasValue)
-            sales = await repo.GetByTenantAndDateRangeAsync(query.TenantId, query.From.Value, query.To.Value, ct);
+            sales = await repo.GetByTenantAndDateRangeAsync(query.TenantId, query.From.Value, query.To.Value, query.BranchId, ct);
         else
-            sales = await repo.GetTodayByTenantAsync(query.TenantId, ct);
+            sales = await repo.GetTodayByTenantAsync(query.TenantId, query.BranchId, ct);
 
         return sales.Select(s => SaleDtoMapper.ToDto(s));
     }

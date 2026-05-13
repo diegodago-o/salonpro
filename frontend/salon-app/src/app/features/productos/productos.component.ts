@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, effect, inject, OnInit, signal, computed } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { CatalogoService } from '../../core/services/catalogo.service';
+import { BranchService } from '../../core/services/branch.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { Producto } from '../../core/models/catalogo.models';
 
@@ -16,6 +17,7 @@ type Tab = 'all' | 'sale' | 'internal';
 })
 export class ProductosComponent implements OnInit {
   private readonly catalogoService = inject(CatalogoService);
+  private readonly branchService = inject(BranchService);
   private readonly fb = inject(FormBuilder);
 
   readonly productos = signal<Producto[]>([]);
@@ -52,13 +54,19 @@ export class ProductosComponent implements OnInit {
     return p.salePrice > 0 ? Math.round((p.salePrice - p.purchasePrice) / p.salePrice * 100) : 0;
   }
 
-  ngOnInit(): void {
-    this.cargar();
+  constructor() {
+    effect(() => {
+      this.branchService.selectedBranch(); // track branch changes
+      this.cargar();
+    });
   }
+
+  ngOnInit(): void { /* cargar se dispara desde el effect() */ }
 
   private cargar(): void {
     this.cargando.set(true);
-    this.catalogoService.getProductos().subscribe(r => {
+    const branchId = this.branchService.currentBranchId;
+    this.catalogoService.getProductos(branchId).subscribe(r => {
       if (r.success && r.data) this.productos.set(r.data);
       this.cargando.set(false);
     });
@@ -113,9 +121,10 @@ export class ProductosComponent implements OnInit {
     };
 
     const id = this.editandoId();
+    const branchId = this.branchService.currentBranchId;
     const op$ = id
       ? this.catalogoService.actualizarProducto(id, req)
-      : this.catalogoService.crearProducto(req);
+      : this.catalogoService.crearProducto(req, branchId);
 
     op$.subscribe({
       next: r => {

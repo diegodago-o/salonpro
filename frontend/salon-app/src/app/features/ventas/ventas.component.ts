@@ -252,11 +252,12 @@ export class VentasComponent implements OnInit {
   }
 
   private cargarCatalogos(): void {
-    this.ventasService.getServicios().subscribe({
+    const branchId = this.branchService.currentBranchId;
+    this.ventasService.getServicios(branchId).subscribe({
       next: r => this.servicios.set(r.data),
       error: () => {}
     });
-    this.ventasService.getProductos().subscribe({
+    this.ventasService.getProductos(branchId).subscribe({
       next: r => this.productos.set(r.data),
       error: () => {}
     });
@@ -271,7 +272,8 @@ export class VentasComponent implements OnInit {
   }
 
   private cargarVentas(): void {
-    this.ventasService.getVentasHoy().subscribe(r => this.ventas.set(r.data));
+    const branchId = this.branchService.currentBranchId;
+    this.ventasService.getVentas(undefined, undefined, branchId).subscribe(r => this.ventas.set(r.data));
   }
 
   private verificarCaja(): void {
@@ -429,6 +431,7 @@ export class VentasComponent implements OnInit {
       stylistId: vv.stylistId!,
       stylistName: this.peluqueroSeleccionado()?.fullName ?? '',
       commissionPercent: this.peluqueroSeleccionado()?.commissionPercent ?? 0,
+      branchId: this.branchService.selectedBranch()?.id ?? undefined,
       branchName: this.branchService.selectedBranch()?.name ?? undefined,
       clientDocumentType: cv.documentType || 'CC',
       clientDocumentNumber: docNumber,

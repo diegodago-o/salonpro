@@ -19,12 +19,19 @@ public class SalesController(IMediator mediator) : ControllerBase
         var val = User.FindFirst("cashRegisterId")?.Value;
         return val is null ? null : int.TryParse(val, out var id) ? id : null;
     }
+    private int? GetEffectiveBranchId(int? requested)
+    {
+        if (requested.HasValue && requested.Value > 0) return requested.Value;
+        var val = User.FindFirst("branchId")?.Value;
+        return val is null ? null : int.TryParse(val, out var id) && id > 0 ? id : null;
+    }
 
     [HttpGet]
     public async Task<ActionResult<ApiResponse<IEnumerable<SaleDto>>>> GetSales(
-        [FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to,
+        [FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await mediator.Send(new GetSalesQuery(GetTenantId(), from, to), ct);
+        var result = await mediator.Send(new GetSalesQuery(GetTenantId(), from, to, GetEffectiveBranchId(branchId)), ct);
         return Ok(ApiResponse<IEnumerable<SaleDto>>.Ok(result));
     }
 

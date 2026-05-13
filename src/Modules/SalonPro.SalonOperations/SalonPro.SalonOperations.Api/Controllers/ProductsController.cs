@@ -14,20 +14,25 @@ namespace SalonPro.SalonOperations.Api.Controllers;
 public class ProductsController(IMediator mediator) : ControllerBase
 {
     private int GetTenantId() => int.Parse(User.FindFirst("tenantId")?.Value ?? "0");
-    private int GetBranchId() => int.Parse(User.FindFirst("branchId")?.Value ?? "0");
+    private int GetEffectiveBranchId(int? requested = null)
+    {
+        if (requested.HasValue && requested.Value > 0) return requested.Value;
+        return int.Parse(User.FindFirst("branchId")?.Value ?? "0");
+    }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<IEnumerable<SalonProductDto>>>> GetAll(CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<IEnumerable<SalonProductDto>>>> GetAll(
+        [FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await mediator.Send(new GetProductsQuery(GetTenantId(), GetBranchId()), ct);
+        var result = await mediator.Send(new GetProductsQuery(GetTenantId(), GetEffectiveBranchId(branchId)), ct);
         return Ok(ApiResponse<IEnumerable<SalonProductDto>>.Ok(result));
     }
 
     [HttpPost]
     public async Task<ActionResult<ApiResponse<SalonProductDto>>> Create(
-        [FromBody] CreateProductRequest request, CancellationToken ct)
+        [FromBody] CreateProductRequest request, [FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await mediator.Send(new CreateProductCommand(GetTenantId(), GetBranchId(), request), ct);
+        var result = await mediator.Send(new CreateProductCommand(GetTenantId(), GetEffectiveBranchId(branchId), request), ct);
         return CreatedAtAction(nameof(GetAll), ApiResponse<SalonProductDto>.Ok(result, "Producto creado."));
     }
 
