@@ -1,8 +1,10 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { LiquidacionesService } from '../../core/services/liquidaciones.service';
 import { VentasService } from '../../core/services/ventas.service';
+import { BranchService } from '../../core/services/branch.service';
 import { LiquidacionDetalle, LiquidacionResumen } from '../../core/models/liquidaciones.models';
 import { StylistOption } from '../../core/models/ventas.models';
 import { IconComponent } from '../../shared/components/icon/icon.component';
@@ -19,9 +21,10 @@ interface PeriodoOpt { key: Periodo; label: string; }
   styleUrl: './liquidaciones.component.scss'
 })
 export class LiquidacionesComponent implements OnInit {
-  private readonly fb          = inject(FormBuilder);
-  private readonly liqService  = inject(LiquidacionesService);
-  private readonly ventasService = inject(VentasService);
+  private readonly fb             = inject(FormBuilder);
+  private readonly liqService     = inject(LiquidacionesService);
+  private readonly ventasService  = inject(VentasService);
+  private readonly branchService  = inject(BranchService);
 
   readonly vista         = signal<Vista>('lista');
   readonly liquidaciones = signal<LiquidacionResumen[]>([]);
@@ -83,8 +86,13 @@ export class LiquidacionesComponent implements OnInit {
   readonly abiertas = computed(() => this.liquidaciones().filter(l => l.status === 'Open'));
   readonly cerradas = computed(() => this.liquidaciones().filter(l => l.status === 'Closed'));
 
+  constructor() {
+    toObservable(this.branchService.selectedBranch)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.cargar());
+  }
+
   ngOnInit(): void {
-    this.cargar();
     this.ventasService.getPeluqueros().subscribe({
       next: r => this.peluqueros.set(r.data),
       error: () => {}
@@ -92,7 +100,8 @@ export class LiquidacionesComponent implements OnInit {
   }
 
   private cargar(): void {
-    this.liqService.getLiquidaciones().subscribe({
+    const branchId = this.branchService.currentBranchId;
+    this.liqService.getLiquidaciones(branchId).subscribe({
       next: r => this.liquidaciones.set(r.data),
       error: () => {}
     });

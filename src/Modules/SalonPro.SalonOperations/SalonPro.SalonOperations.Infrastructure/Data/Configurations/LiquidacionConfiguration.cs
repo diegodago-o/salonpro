@@ -11,6 +11,7 @@ public class LiquidacionConfiguration : IEntityTypeConfiguration<Liquidacion>
         builder.ToTable("Liquidaciones");
         builder.HasKey(l => l.Id);
         builder.Property(l => l.TenantId).IsRequired();
+        builder.Property(l => l.BranchId);
         builder.Property(l => l.StylistId).IsRequired();
         builder.Property(l => l.StylistName).IsRequired().HasMaxLength(200);
         builder.Property(l => l.GrossServices).HasColumnType("decimal(18,2)");

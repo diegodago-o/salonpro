@@ -21,17 +21,26 @@ public class CashRegistersController(IMediator mediator) : ControllerBase
     private string GetUserName() => User.FindFirst("fullName")?.Value
         ?? User.Identity?.Name ?? "Unknown";
 
+    /// Prefiere el branchId enviado por query param (para TenantOwner que cambia sede en UI),
+    /// si no viene usa el del JWT (Cashier/Stylist tienen su sede fija).
+    private int GetEffectiveBranchId(int? requested) =>
+        requested.HasValue && requested.Value > 0 ? requested.Value : GetBranchId();
+
     [HttpGet("current")]
-    public async Task<ActionResult<ApiResponse<CashRegisterDto?>>> GetCurrent(CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<CashRegisterDto?>>> GetCurrent(
+        [FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await mediator.Send(new GetCurrentCashRegisterQuery(GetTenantId()), ct);
+        var result = await mediator.Send(
+            new GetCurrentCashRegisterQuery(GetTenantId(), GetEffectiveBranchId(branchId)), ct);
         return Ok(ApiResponse<CashRegisterDto?>.Ok(result));
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<IEnumerable<CashRegisterDto>>>> GetHistory(CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<IEnumerable<CashRegisterDto>>>> GetHistory(
+        [FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await mediator.Send(new GetCashRegisterHistoryQuery(GetTenantId()), ct);
+        var result = await mediator.Send(
+            new GetCashRegisterHistoryQuery(GetTenantId(), GetEffectiveBranchId(branchId)), ct);
         return Ok(ApiResponse<IEnumerable<CashRegisterDto>>.Ok(result));
     }
 

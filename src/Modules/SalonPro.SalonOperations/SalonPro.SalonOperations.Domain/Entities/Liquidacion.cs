@@ -6,6 +6,7 @@ public class Liquidacion
 {
     public int Id { get; private set; }
     public int TenantId { get; private set; }
+    public int? BranchId { get; private set; }
     public int StylistId { get; private set; }
     public string StylistName { get; private set; } = string.Empty;
     public DateTime StartDate { get; private set; }
@@ -26,12 +27,13 @@ public class Liquidacion
 
     private Liquidacion() { }
 
-    public static Liquidacion Create(int tenantId, int stylistId, string stylistName,
+    public static Liquidacion Create(int tenantId, int? branchId, int stylistId, string stylistName,
         DateTime startDate, DateTime endDate)
     {
         return new Liquidacion
         {
             TenantId = tenantId,
+            BranchId = branchId,
             StylistId = stylistId,
             StylistName = stylistName,
             StartDate = startDate,

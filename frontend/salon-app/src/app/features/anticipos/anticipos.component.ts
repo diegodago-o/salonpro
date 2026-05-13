@@ -1,8 +1,10 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { AnticipasService } from '../../core/services/anticipos.service';
 import { VentasService } from '../../core/services/ventas.service';
+import { BranchService } from '../../core/services/branch.service';
 import { Anticipo, CreateAnticipoRequest } from '../../core/models/anticipos.models';
 import { PaymentMethodOption } from '../../core/models/ventas.models';
 
@@ -19,6 +21,7 @@ export class AnticiposComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly anticiposService = inject(AnticipasService);
   private readonly ventasService = inject(VentasService);
+  private readonly branchService = inject(BranchService);
 
   readonly vista = signal<Vista>('lista');
   readonly anticipos = signal<Anticipo[]>([]);
@@ -49,14 +52,20 @@ export class AnticiposComponent implements OnInit {
 
   readonly formValido = signal(false);
 
+  constructor() {
+    toObservable(this.branchService.selectedBranch)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.cargar());
+  }
+
   ngOnInit(): void {
-    this.cargar();
     this.ventasService.getMetodosPago().subscribe(r => this.metodosPago.set(r.data));
     this.form.statusChanges.subscribe(s => this.formValido.set(s === 'VALID'));
   }
 
   private cargar(): void {
-    this.anticiposService.getAnticipos().subscribe(r => this.anticipos.set(r.data));
+    const branchId = this.branchService.currentBranchId;
+    this.anticiposService.getAnticipos(undefined, branchId).subscribe(r => this.anticipos.set(r.data));
   }
 
   abrirNuevo(): void {

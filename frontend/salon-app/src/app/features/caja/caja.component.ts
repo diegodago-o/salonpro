@@ -1,7 +1,9 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { CajaService } from '../../core/services/caja.service';
+import { BranchService } from '../../core/services/branch.service';
 import { CashRegister } from '../../core/models/caja.models';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
@@ -14,8 +16,9 @@ type Vista = 'loading' | 'sin-caja' | 'caja-abierta' | 'cerrar-caja' | 'detalle'
   templateUrl: './caja.component.html',
   styleUrl: './caja.component.scss'
 })
-export class CajaComponent implements OnInit {
+export class CajaComponent {
   private readonly cajaService = inject(CajaService);
+  private readonly branchService = inject(BranchService);
   private readonly fb = inject(FormBuilder);
 
   readonly vista = signal<Vista>('loading');
@@ -47,11 +50,16 @@ export class CajaComponent implements OnInit {
     return (this.formCerrar.value.declaredCash ?? 0) - this.expectedCash;
   }
 
-  ngOnInit(): void { this.cargarEstado(); }
+  constructor() {
+    toObservable(this.branchService.selectedBranch)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.cargarEstado());
+  }
 
   private cargarEstado(): void {
+    const branchId = this.branchService.currentBranchId;
     this.vista.set('loading');
-    this.cajaService.getCajaActual().subscribe(res => {
+    this.cajaService.getCajaActual(branchId).subscribe(res => {
       if (res.success && res.data) {
         this.cajaActual.set(res.data);
         this.vista.set('caja-abierta');
@@ -63,7 +71,8 @@ export class CajaComponent implements OnInit {
   }
 
   private cargarHistorial(): void {
-    this.cajaService.getHistorial().subscribe(res => {
+    const branchId = this.branchService.currentBranchId;
+    this.cajaService.getHistorial(branchId).subscribe(res => {
       if (res.success && res.data) this.historial.set(res.data);
     });
   }

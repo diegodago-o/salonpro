@@ -4,14 +4,14 @@ using SalonPro.SalonOperations.Domain.Interfaces;
 
 namespace SalonPro.SalonOperations.Application.Queries;
 
-public record GetCurrentCashRegisterQuery(int TenantId) : IRequest<CashRegisterDto?>;
+public record GetCurrentCashRegisterQuery(int TenantId, int BranchId) : IRequest<CashRegisterDto?>;
 
 public class GetCurrentCashRegisterHandler(ICashRegisterRepository repo)
     : IRequestHandler<GetCurrentCashRegisterQuery, CashRegisterDto?>
 {
     public async Task<CashRegisterDto?> Handle(GetCurrentCashRegisterQuery query, CancellationToken ct)
     {
-        var cr = await repo.GetCurrentOpenByTenantAsync(query.TenantId, ct);
+        var cr = await repo.GetCurrentOpenByTenantAsync(query.TenantId, query.BranchId, ct);
         if (cr is null) return null;
         return MapToDto(cr);
     }

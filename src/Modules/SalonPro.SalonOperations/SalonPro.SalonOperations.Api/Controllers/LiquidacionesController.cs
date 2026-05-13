@@ -14,11 +14,15 @@ namespace SalonPro.SalonOperations.Api.Controllers;
 public class LiquidacionesController(IMediator mediator) : ControllerBase
 {
     private int GetTenantId() => int.Parse(User.FindFirst("tenantId")?.Value ?? "0");
+    private int GetBranchId() => int.Parse(User.FindFirst("branchId")?.Value ?? "0");
+    private int? GetEffectiveBranchId(int? requested) =>
+        requested.HasValue && requested.Value > 0 ? requested : GetBranchId();
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<IEnumerable<LiquidacionResumenDto>>>> GetAll(CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<IEnumerable<LiquidacionResumenDto>>>> GetAll(
+        [FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await mediator.Send(new GetLiquidacionesQuery(GetTenantId()), ct);
+        var result = await mediator.Send(new GetLiquidacionesQuery(GetTenantId(), GetEffectiveBranchId(branchId)), ct);
         return Ok(ApiResponse<IEnumerable<LiquidacionResumenDto>>.Ok(result));
     }
 
@@ -33,7 +37,7 @@ public class LiquidacionesController(IMediator mediator) : ControllerBase
     public async Task<ActionResult<ApiResponse<LiquidacionResumenDto>>> Create(
         [FromBody] CreateLiquidacionRequest request, CancellationToken ct)
     {
-        var result = await mediator.Send(new CreateLiquidacionCommand(GetTenantId(), request), ct);
+        var result = await mediator.Send(new CreateLiquidacionCommand(GetTenantId(), GetBranchId(), request), ct);
         return CreatedAtAction(nameof(GetById), new { id = result.Id },
             ApiResponse<LiquidacionResumenDto>.Ok(result, "Liquidación creada."));
     }

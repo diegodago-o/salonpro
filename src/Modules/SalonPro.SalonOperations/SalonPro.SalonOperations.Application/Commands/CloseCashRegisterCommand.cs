@@ -23,9 +23,9 @@ public class CloseCashRegisterHandler(ICashRegisterRepository cashRepo, ISaleRep
         if (cr.Status == CashRegisterStatus.Closed)
             throw new ConflictException("La caja ya está cerrada.");
 
-        // Calculate expected cash from today's sales
+        // Calculate expected cash from today's sales — filtrado por la sede de esta caja
         var sales = await saleRepo.GetByTenantAndDateRangeAsync(
-            cr.TenantId, cr.OpenedAt, DateTime.UtcNow, ct: ct);  // sin filtro de sede: la caja ya es por sede
+            cr.TenantId, cr.OpenedAt, DateTime.UtcNow, branchId: cr.BranchId, ct: ct);
 
         var activeSales = sales.Where(s => s.Status == SaleStatus.Active).ToList();
 

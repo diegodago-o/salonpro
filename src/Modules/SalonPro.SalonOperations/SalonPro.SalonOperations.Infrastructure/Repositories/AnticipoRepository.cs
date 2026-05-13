@@ -8,10 +8,12 @@ namespace SalonPro.SalonOperations.Infrastructure.Repositories;
 
 public class AnticipoRepository(SalonOpsDbContext db) : IAnticipoRepository
 {
-    public async Task<IEnumerable<Anticipo>> GetAllByTenantAsync(int tenantId, AnticipoStatus? status = null,
-        CancellationToken ct = default)
+    public async Task<IEnumerable<Anticipo>> GetAllByTenantAsync(int tenantId, int? branchId = null,
+        AnticipoStatus? status = null, CancellationToken ct = default)
     {
         var query = db.Anticipos.Where(a => a.TenantId == tenantId);
+        if (branchId.HasValue && branchId.Value > 0)
+            query = query.Where(a => a.BranchId == branchId.Value || a.BranchId == null);
         if (status.HasValue)
             query = query.Where(a => a.Status == status.Value);
         return await query.OrderByDescending(a => a.CreatedAt).ToListAsync(ct);

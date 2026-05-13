@@ -18,12 +18,15 @@ export class AnticipasService {
   private mockData = [...MOCK_ANTICIPOS];
   private nextId = 4;
 
-  getAnticipos(status?: AnticipoStatus): Observable<ApiResponse<Anticipo[]>> {
+  getAnticipos(status?: AnticipoStatus, branchId?: number | null): Observable<ApiResponse<Anticipo[]>> {
     if (!environment.production) {
       const data = status ? this.mockData.filter(a => a.status === status) : [...this.mockData];
       return of({ success: true, data, message: '', errors: [] });
     }
-    const params = status ? `?status=${status}` : '';
+    const qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    if (branchId) qs.set('branchId', String(branchId));
+    const params = qs.toString() ? `?${qs.toString()}` : '';
     return this.http.get<ApiResponse<Anticipo[]>>(`${this.api}/anticipos${params}`);
   }
 
