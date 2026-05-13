@@ -96,7 +96,7 @@ export class VentasService {
     return this.http.get<ApiResponse<ClientOption | null>>(`${this.api}/clients/search?document=${documentNumber}`);
   }
 
-  getVentas(from?: string, to?: string, branchId?: number | null): Observable<ApiResponse<Sale[]>> {
+  getVentas(from?: string, to?: string, branchId?: number | null, branchName?: string | null): Observable<ApiResponse<Sale[]>> {
     if (!environment.production)
       return of({ success: true, data: this.mockSales, message: '', errors: [] });
     let url = `${this.api}/sales`;
@@ -104,6 +104,7 @@ export class VentasService {
     if (from) params.push(`from=${encodeURIComponent(from)}`);
     if (to) params.push(`to=${encodeURIComponent(to)}`);
     if (branchId) params.push(`branchId=${branchId}`);
+    if (branchName) params.push(`branchName=${encodeURIComponent(branchName)}`);
     if (params.length) url += '?' + params.join('&');
     return this.http.get<ApiResponse<Sale[]>>(url);
   }

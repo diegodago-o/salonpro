@@ -272,8 +272,8 @@ export class VentasComponent implements OnInit {
   }
 
   private cargarVentas(): void {
-    const branchId = this.branchService.currentBranchId;
-    this.ventasService.getVentas(undefined, undefined, branchId).subscribe(r => this.ventas.set(r.data));
+    const branch = this.branchService.selectedBranch();
+    this.ventasService.getVentas(undefined, undefined, branch?.id, branch?.name).subscribe(r => this.ventas.set(r.data));
   }
 
   private verificarCaja(): void {

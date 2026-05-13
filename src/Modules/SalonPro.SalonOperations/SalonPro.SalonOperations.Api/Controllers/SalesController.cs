@@ -29,9 +29,11 @@ public class SalesController(IMediator mediator) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiResponse<IEnumerable<SaleDto>>>> GetSales(
         [FromQuery] DateTime? from, [FromQuery] DateTime? to,
-        [FromQuery] int? branchId, CancellationToken ct)
+        [FromQuery] int? branchId, [FromQuery] string? branchName, CancellationToken ct)
     {
-        var result = await mediator.Send(new GetSalesQuery(GetTenantId(), from, to, GetEffectiveBranchId(branchId)), ct);
+        var effectiveBranchId = GetEffectiveBranchId(branchId);
+        var result = await mediator.Send(
+            new GetSalesQuery(GetTenantId(), from, to, effectiveBranchId, branchName), ct);
         return Ok(ApiResponse<IEnumerable<SaleDto>>.Ok(result));
     }
 

@@ -70,11 +70,12 @@ export class HistorialComponent implements OnInit {
     this.loading.set(true);
     const desde = this.filtroFechaDesde;
     const hasta = this.filtroFechaHasta;
-    const branchId = this.branchService.currentBranchId;
+    const branch = this.branchService.selectedBranch();
     this.ventasService.getVentas(
       desde ? new Date(desde + 'T00:00:00').toISOString() : undefined,
       hasta ? new Date(hasta + 'T23:59:59').toISOString() : undefined,
-      branchId
+      branch?.id,
+      branch?.name
     ).subscribe(r => {
       this.ventas.set(r.data ?? []);
       this.loading.set(false);

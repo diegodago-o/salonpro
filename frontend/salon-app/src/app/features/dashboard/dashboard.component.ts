@@ -39,15 +39,15 @@ export class DashboardComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      const branchId = this.branchService.selectedBranch()?.id;
-      this.cargar(branchId);
+      const branch = this.branchService.selectedBranch();
+      this.cargar(branch?.id, branch?.name);
     }, { allowSignalWrites: true });
   }
 
   ngOnInit(): void { /* cargar se dispara desde el effect() */ }
 
-  private cargar(branchId?: number): void {
-    this.ventasService.getVentas(undefined, undefined, branchId).subscribe({
+  private cargar(branchId?: number, branchName?: string): void {
+    this.ventasService.getVentas(undefined, undefined, branchId, branchName).subscribe({
       next: r => { if (r.success && r.data) this.ventas.set(r.data); },
       error: () => {}
     });
