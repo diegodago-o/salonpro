@@ -169,6 +169,11 @@
                     <label style="font-size:13px;font-weight:600;color:#374151">Documento</label>
                     <input class="input" [value]="userForm().documentNumber ?? ''" (input)="updateForm('documentNumber', $any($event.target).value || null)" placeholder="CC 1234567890" />
                   </div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:13px;font-weight:600;color:#374151">Código colaborador</label>
+                    <input class="input" [value]="userForm().employeeCode ?? ''" (input)="updateForm('employeeCode', $any($event.target).value || null)" placeholder="Ej. COL-001" style="text-transform:uppercase" />
+                    <span style="font-size:11px;color:#9ca3af">Se mostrará en el Punto de Venta</span>
+                  </div>
                   @if (userForm().role === 'Stylist') {
                     <div style="display:flex;flex-direction:column;gap:6px">
                       <label style="font-size:13px;font-weight:600;color:#374151">Comisión (%)</label>

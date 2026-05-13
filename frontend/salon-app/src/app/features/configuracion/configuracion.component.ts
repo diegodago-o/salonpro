@@ -45,7 +45,7 @@ export class ConfiguracionComponent implements OnInit {
     fullName: '', email: '', password: '', role: 'Cashier',
     branchId: null, branchName: null,
     documentType: null, documentNumber: null, phone: null,
-    commissionPercent: 0
+    commissionPercent: 0, employeeCode: null
   });
 
   get branches() { return this.branchSvc.branches(); }
@@ -130,7 +130,7 @@ export class ConfiguracionComponent implements OnInit {
       branchId: branch?.id ?? null,
       branchName: branch?.name ?? null,
       documentType: null, documentNumber: null, phone: null,
-      commissionPercent: 0
+      commissionPercent: 0, employeeCode: null
     });
     this.modalError.set('');
     this.showUserModal.set(true);

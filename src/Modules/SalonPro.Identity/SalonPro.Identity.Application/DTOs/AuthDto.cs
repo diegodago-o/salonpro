@@ -21,7 +21,8 @@ public record UserDto(
     decimal CommissionPercent,
     string? BranchName,
     string? TenantName,
-    bool IsActive = true
+    bool IsActive = true,
+    string? EmployeeCode = null
 );
 
 public record CreateUserRequest(
@@ -36,7 +37,8 @@ public record CreateUserRequest(
     string? Phone,
     decimal CommissionPercent = 0,
     string? BranchName = null,
-    string? TenantName = null
+    string? TenantName = null,
+    string? EmployeeCode = null
 );
 
 public record UpdateUserRequest(

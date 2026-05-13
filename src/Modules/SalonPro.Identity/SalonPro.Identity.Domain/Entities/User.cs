@@ -15,6 +15,7 @@ public class User
     public string? Phone { get; private set; }
     public string? BranchName { get; private set; }
     public string? TenantName { get; private set; }
+    public string? EmployeeCode { get; private set; }
     public UserRole Role { get; private set; }
     public decimal CommissionPercent { get; private set; }
     public bool IsActive { get; private set; }
@@ -29,7 +30,8 @@ public class User
         UserRole role, int? tenantId = null, int? branchId = null,
         string? documentType = null, string? documentNumber = null,
         string? phone = null, decimal commissionPercent = 0,
-        string? branchName = null, string? tenantName = null)
+        string? branchName = null, string? tenantName = null,
+        string? employeeCode = null)
     {
         return new User
         {
@@ -45,10 +47,17 @@ public class User
             CommissionPercent = commissionPercent,
             BranchName = branchName,
             TenantName = tenantName,
+            EmployeeCode = employeeCode,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
+    }
+
+    public void UpdateEmployeeCode(string? employeeCode)
+    {
+        EmployeeCode = employeeCode;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void UpdateProfile(string fullName, string? phone, string? documentType, string? documentNumber)

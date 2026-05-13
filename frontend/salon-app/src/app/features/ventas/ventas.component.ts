@@ -52,7 +52,7 @@ export class VentasComponent implements OnInit {
   readonly tipAmountSig = signal(0);
 
   readonly wizardSteps = [
-    { n: '01', t: 'Peluquero',  sub: '¿Quién prestará el servicio?' },
+    { n: '01', t: 'Colaborador', sub: 'Selecciona el colaborador que prestará el servicio' },
     { n: '02', t: 'Servicios',  sub: 'Agrega los servicios a facturar' },
     { n: '03', t: 'Productos',  sub: 'Venta a cliente o consumo interno' },
     { n: '04', t: 'Pago',       sub: 'Método y desglose' },

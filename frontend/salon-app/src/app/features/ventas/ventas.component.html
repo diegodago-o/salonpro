@@ -38,7 +38,7 @@
       <div class="card" style="overflow:hidden">
         <div class="table-wrap">
           <table class="tbl">
-            <thead><tr><th>#</th><th>Hora</th><th>Cliente</th><th>Peluquero</th><th>Método</th><th style="text-align:right">Total</th><th style="text-align:right">Com. peluquero</th><th>Estado</th><th></th></tr></thead>
+            <thead><tr><th>#</th><th>Hora</th><th>Cliente</th><th>Colaborador</th><th>Método</th><th style="text-align:right">Total</th><th style="text-align:right">Com. colaborador</th><th>Estado</th><th></th></tr></thead>
             <tbody>
               @for (v of ventas(); track v.id) {
                 <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'">
@@ -119,7 +119,7 @@
             <div class="serif tnum" style="font-size:22px">{{ ventaExitosaData()!.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
           </div>
           <div>
-            <div class="eyebrow" style="margin-bottom:4px;color:var(--accent-deep)">Peluquero</div>
+            <div class="eyebrow" style="margin-bottom:4px;color:var(--accent-deep)">Colaborador</div>
             <div class="serif tnum" style="font-size:22px;color:var(--accent-deep)">{{ ventaExitosaData()!.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
           </div>
         </div>
@@ -174,7 +174,7 @@
             </div>
           </div>
 
-          <!-- STEP 0: Peluquero -->
+          <!-- STEP 0: Colaborador -->
           @if (step() === 0) {
             @if (cargandoCatalogos()) {
               <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
@@ -185,7 +185,7 @@
               <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--ink-4)">Cargando equipo…</div>
             } @else if (peluqueros().length === 0) {
               <div style="padding:32px;text-align:center;color:var(--ink-4)">
-                <div style="font-size:14px">No hay peluqueros registrados.</div>
+                <div style="font-size:14px">No hay colaboradores registrados.</div>
                 <div style="font-size:12px;margin-top:6px">Agrégalos en Configuración → Usuarios.</div>
               </div>
             } @else {
@@ -197,7 +197,9 @@
                     <span class="avatar avatar-lg">{{ p.fullName.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() }}</span>
                     <div style="flex:1">
                       <div class="serif" style="font-size:18px;line-height:1.1">{{ p.fullName }}</div>
-                      <div class="tile-meta" style="margin-top:4px">desde el salón</div>
+                      <div class="tile-meta" style="margin-top:4px;font-weight:600;letter-spacing:0.05em">
+                        {{ p.employeeCode ?? '—' }}
+                      </div>
                     </div>
                     <div style="text-align:right">
                       <div class="tile-meta">Comisión</div>
@@ -277,7 +279,7 @@
               </div>
               @if (productosVentaFiltrados().length === 0) { <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Opcional · sin productos para venta</div> }
             } @else {
-              <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Productos aplicados por el peluquero durante el servicio.</div>
+              <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Productos aplicados por el colaborador durante el servicio.</div>
               <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
                 @for (p of productosInternosFiltrados(); track p.id) {
                   <button [class]="'tile' + (productoInternoYaAgregado(p.id) ? ' selected' : '')" (click)="agregarProductoInterno(p)">
@@ -400,7 +402,7 @@
                   <div style="display:grid;grid-template-columns:1fr auto auto;gap:3px 12px;font-size:11px;align-items:baseline">
                     <span style="color:var(--ink-4);font-size:10px">Ítem</span>
                     <span style="color:var(--ink-4);font-size:10px;text-align:right">Salón</span>
-                    <span style="color:var(--accent-deep);font-size:10px;text-align:right">Peluquero</span>
+                    <span style="color:var(--accent-deep);font-size:10px;text-align:right">Colaborador</span>
                     @for (d of desgloseItems(); track $index) {
                       <div>
                         <span style="font-weight:500">{{ d.name }}</span>
@@ -426,7 +428,7 @@
                       <div class="tnum" style="font-size:15px;font-weight:600">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
                     </div>
                     <div style="flex:1;background:var(--accent-deep);border-radius:6px;padding:8px 10px;font-size:12px;color:#fff">
-                      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;opacity:.8">{{ (peluqueroSeleccionado()?.fullName ?? 'Peluquero').split(' ')[0] }}</div>
+                      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;opacity:.8">{{ (peluqueroSeleccionado()?.fullName ?? 'Colaborador').split(' ')[0] }}</div>
                       <div class="tnum" style="font-size:15px;font-weight:600">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
                     </div>
                   </div>
@@ -461,7 +463,7 @@
                 <div class="serif" style="font-size:24px;font-weight:400">Studio 54</div>
                 <div class="eyebrow" style="margin-top:4px">Hair &amp; Beauty</div>
               </div>
-              <div class="row"><span style="color:var(--ink-3)">Peluquero</span><span>{{ peluqueroSeleccionado()?.fullName }}</span></div>
+              <div class="row"><span style="color:var(--ink-3)">Colaborador</span><span>{{ peluqueroSeleccionado()?.fullName }}</span></div>
               <div class="row"><span style="color:var(--ink-3)">Comisión</span><span class="tnum">{{ peluqueroSeleccionado()?.commissionPercent }}%</span></div>
               @if (formCliente.get('fullName')!.value) {
                 <div class="row"><span style="color:var(--ink-3)">Cliente</span><span>{{ formCliente.get('fullName')!.value }}</span></div>
@@ -538,9 +540,9 @@
 
               <hr class="hr-dotted" style="margin:8px 0" />
 
-              <!-- Split salón / peluquero -->
+              <!-- Split salón / colaborador -->
               <div class="row" style="font-size:13px;font-weight:600"><span style="color:var(--ink-3)">Parte salón</span><span class="tnum">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-              <div class="row" style="font-size:13px;font-weight:600"><span style="color:var(--accent-deep)">Parte {{ (peluqueroSeleccionado()?.fullName ?? 'peluquero').split(' ')[0] }}</span><span class="tnum" style="color:var(--accent-deep)">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+              <div class="row" style="font-size:13px;font-weight:600"><span style="color:var(--accent-deep)">Parte {{ (peluqueroSeleccionado()?.fullName ?? 'colaborador').split(' ')[0] }}</span><span class="tnum" style="color:var(--accent-deep)">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
             </div>
             @if (errorMsg()) {
               <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-top:16px">{{ errorMsg() }}</div>
@@ -555,7 +557,7 @@
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
               @if (!canNext() && step() < 4) {
                 <div style="font-size:11px;color:var(--ink-4)">
-                  @if (step() === 0) { Selecciona un peluquero para continuar }
+                  @if (step() === 0) { Selecciona un colaborador para continuar }
                   @if (step() === 1) { Agrega al menos un servicio para continuar }
                   @if (step() === 3) { El total recibido debe cuadrar con el total a cobrar }
                 </div>
@@ -570,7 +572,7 @@
                   <div style="font-size:11px;color:var(--danger);text-align:right">
                     @if (!pagosValidos()) { El pago no cuadra con el total }
                     @else if (!hayServicios()) { Agrega al menos un servicio }
-                    @else if (!formVentaValido()) { Selecciona un peluquero }
+                    @else if (!formVentaValido()) { Selecciona un colaborador }
                   </div>
                 }
                 <button class="btn btn-accent btn-lg" (click)="guardarVenta()"
@@ -594,7 +596,7 @@
             </div>
             <hr style="margin:20px 0;border:0;border-top:1px dashed rgba(245,241,234,0.20)" />
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-              <span style="font-size:12px;color:var(--ink-5)">Peluquero</span>
+              <span style="font-size:12px;color:var(--ink-5)">Colaborador</span>
               <span style="font-size:13px">{{ peluqueroSeleccionado()?.fullName || '—' }}</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
@@ -607,7 +609,7 @@
                 <div class="serif tnum" style="font-size:20px;margin-top:2px">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
               </div>
               <div style="background:var(--accent);padding:12px;border-radius:6px">
-                <div style="font-size:10px;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.12em">Peluquero</div>
+                <div style="font-size:10px;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.12em">Colaborador</div>
                 <div class="serif tnum" style="font-size:20px;margin-top:2px;color:white">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
               </div>
             </div>

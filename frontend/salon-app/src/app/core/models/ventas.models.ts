@@ -27,6 +27,7 @@ export interface StylistOption {
   id: number;
   fullName: string;
   commissionPercent: number;
+  employeeCode?: string | null;
 }
 
 export interface PaymentMethodOption {

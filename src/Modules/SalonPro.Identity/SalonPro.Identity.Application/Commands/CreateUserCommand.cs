@@ -25,13 +25,14 @@ public class CreateUserHandler(IUserRepository userRepo, IPasswordHasher hasher)
             cmd.Request.TenantId, cmd.Request.BranchId,
             cmd.Request.DocumentType, cmd.Request.DocumentNumber,
             cmd.Request.Phone, cmd.Request.CommissionPercent,
-            cmd.Request.BranchName, cmd.Request.TenantName);
+            cmd.Request.BranchName, cmd.Request.TenantName,
+            cmd.Request.EmployeeCode);
 
         await userRepo.AddAsync(user, ct);
         await userRepo.SaveChangesAsync(ct);
 
         return new UserDto(user.Id, user.FullName, user.Email, user.Role.ToString(),
             user.TenantId, user.BranchId, user.CommissionPercent,
-            user.BranchName, user.TenantName, user.IsActive);
+            user.BranchName, user.TenantName, user.IsActive, user.EmployeeCode);
     }
 }

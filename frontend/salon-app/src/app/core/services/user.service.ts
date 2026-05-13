@@ -14,6 +14,7 @@ export interface SalonUser {
   branchName: string | null;
   tenantName: string | null;
   isActive: boolean;
+  employeeCode: string | null;
 }
 
 export interface CreateUserRequest {
@@ -29,6 +30,7 @@ export interface CreateUserRequest {
   commissionPercent: number;
   tenantId?: number | null;
   tenantName?: string | null;
+  employeeCode?: string | null;
 }
 
 interface ApiResponse<T> { success: boolean; data: T; message: string; errors: string[]; }
