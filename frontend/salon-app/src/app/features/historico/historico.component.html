@@ -1,0 +1,658 @@
+<!-- ═══════════════════════════════════════════════════════ LISTA ══ -->
+@if (vista() === 'lista') {
+  <div class="page fade-in">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Carga histórica</div>
+        <h1><span class="serif">Ventas</span> <span class="serif-italic">históricas</span></h1>
+        <div style="font-size:13px;color:var(--ink-3);margin-top:4px">
+          Registra ventas de períodos anteriores para completar tus reportes.
+        </div>
+      </div>
+      <button class="btn btn-primary btn-lg" (click)="nuevaVenta()" [disabled]="cargandoCatalogos()">
+        @if (cargandoCatalogos()) {
+          <span class="spinner"></span> Cargando…
+        } @else {
+          <sp-icon name="plus" [size]="14" /> Nueva venta histórica
+        }
+      </button>
+    </div>
+
+    @if (successMsg()) {
+      <div class="toast" style="position:static;transform:none;margin-bottom:16px;display:inline-flex">
+        <sp-icon name="check" [size]="14" /> {{ successMsg() }}
+      </div>
+    }
+
+    <!-- Filtros -->
+    <div class="card" style="padding:16px 20px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-3)">
+        <sp-icon name="filter" [size]="14" /> Período:
+      </div>
+      <select class="select" style="width:auto" [value]="filtroAnio()" (change)="filtroAnio.set($any($event.target).value)">
+        @for (a of anios(); track a) { <option [value]="a">{{ a }}</option> }
+      </select>
+      <select class="select" style="width:auto" [value]="filtroMes()" (change)="filtroMes.set($any($event.target).value)">
+        @for (m of meses(); track m.value) { <option [value]="m.value">{{ m.label }}</option> }
+      </select>
+      <button class="btn btn-ghost btn-sm" (click)="cargarVentasHistoricas()" [disabled]="cargandoVentas()">
+        <sp-icon name="refresh" [size]="13" /> {{ cargandoVentas() ? 'Cargando…' : 'Actualizar' }}
+      </button>
+      @if (ventas().length > 0) {
+        <span style="margin-left:auto;font-size:12px;color:var(--ink-4)">{{ ventas().length }} ventas encontradas</span>
+      }
+    </div>
+
+    @if (ventas().length === 0 && !cargandoVentas()) {
+      <div class="card" style="padding:60px;text-align:center">
+        <div class="eyebrow" style="margin-bottom:8px">Sin ventas</div>
+        <div style="color:var(--ink-4);font-size:14px">No hay ventas en el período seleccionado.</div>
+        <button class="btn btn-primary btn-lg" style="margin-top:20px" (click)="nuevaVenta()">
+          <sp-icon name="plus" [size]="14" /> Registrar primera venta histórica
+        </button>
+      </div>
+    } @else {
+      <div class="card" style="overflow:hidden">
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Fecha y hora</th>
+                <th>Cliente</th>
+                <th>Colaborador</th>
+                <th>Método</th>
+                <th style="text-align:right">Total</th>
+                <th style="text-align:right">Com. colaborador</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (v of ventas(); track v.id) {
+                <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'">
+                  <td class="mono" style="font-size:11px">{{ v.id }}</td>
+                  <td>
+                    <div style="font-weight:500">{{ v.saleDateTime | date:'dd/MM/yyyy' }}</div>
+                    <div style="font-size:11px;color:var(--ink-4)">{{ v.saleDateTime | date:'HH:mm' }}</div>
+                  </td>
+                  <td style="font-weight:500">{{ v.clientName }}</td>
+                  <td>{{ v.stylistName }}</td>
+                  <td>{{ v.paymentMethodName }}</td>
+                  <td class="tnum serif" style="text-align:right;font-size:16px">
+                    {{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                  </td>
+                  <td class="tnum" style="text-align:right;color:var(--accent-deep)">
+                    {{ v.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                  </td>
+                  <td>
+                    @if (v.status === 'Active') {
+                      <span class="pill pill-success"><span class="pill-dot"></span>Activa</span>
+                    } @else {
+                      <span class="pill pill-danger"><span class="pill-dot"></span>Anulada</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  </div>
+
+<!-- ══════════════════════════════════════════════ WIZARD ══ -->
+} @else if (vista() === 'nueva-venta') {
+
+  <!-- SUCCESS SCREEN -->
+  @if (ventaExitosa() && ventaExitosaData()) {
+    <div class="pos-stage" style="display:flex;align-items:center;justify-content:center;min-height:80vh">
+      <div class="card fade-in" style="padding:56px;text-align:center;max-width:520px">
+        <div style="width:72px;height:72px;border-radius:999px;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;margin:0 auto 24px">
+          <sp-icon name="check" [size]="32" />
+        </div>
+        <div class="eyebrow">Venta histórica registrada</div>
+        <h2 class="serif" style="font-size:40px;font-weight:300;margin:8px 0 4px;letter-spacing:-0.025em">
+          {{ ventaExitosaData()!.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+        </h2>
+        <div style="color:var(--ink-3);font-size:13px">
+          {{ folioVenta() }} · {{ ventaExitosaData()!.stylistName }}
+        </div>
+        <div style="margin-top:8px;padding:6px 14px;background:var(--warn-soft);color:var(--warn);border-radius:6px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600">
+          <sp-icon name="calendar" [size]="13" /> Fecha: {{ ventaExitosaData()!.fecha }}
+        </div>
+        <hr class="hr-dotted" style="margin:24px 0" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
+          <div>
+            <div class="eyebrow" style="margin-bottom:4px">Salón</div>
+            <div class="serif tnum" style="font-size:22px">{{ ventaExitosaData()!.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+          </div>
+          <div>
+            <div class="eyebrow" style="margin-bottom:4px;color:var(--accent-deep)">Colaborador</div>
+            <div class="serif tnum" style="font-size:22px;color:var(--accent-deep)">{{ ventaExitosaData()!.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:28px">
+          <button class="btn btn-ghost" (click)="volverALista()"><sp-icon name="arrow-left" [size]="14" /> Volver al listado</button>
+          <button class="btn btn-primary btn-lg" (click)="nuevaVentaDesdeExito()"><sp-icon name="plus" [size]="14" /> Otra venta histórica</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- POS WIZARD -->
+  @if (!ventaExitosa()) {
+    <div class="pos-stage fade-in">
+
+      <!-- Header con banner de modo histórico -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+        <div>
+          <div class="eyebrow">Carga histórica</div>
+          <h1 class="serif" style="font-size:40px;font-weight:300;margin:6px 0 0;letter-spacing:-0.025em">
+            Venta <span class="serif-italic" style="color:var(--warn)">histórica</span>
+          </h1>
+        </div>
+        <button class="btn btn-ghost" (click)="volverALista()">
+          <sp-icon name="arrow-left" [size]="14" /> Cancelar
+        </button>
+      </div>
+
+      <!-- Banner fecha histórica -->
+      <div style="padding:10px 16px;background:var(--warn-soft);border:1px solid var(--warn);border-radius:8px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:13px">
+        <sp-icon name="alert" [size]="16" style="color:var(--warn);flex-shrink:0" />
+        <div>
+          <strong style="color:var(--warn)">Modo histórico</strong>
+          @if (step() > 0 && historialDateValida()) {
+            <span style="color:var(--ink-2)"> · Fecha de la venta: <strong>{{ fechaFormateada() }}</strong></span>
+          } @else if (step() === 0) {
+            <span style="color:var(--ink-3)"> · Elige la fecha y hora de esta venta antes de continuar.</span>
+          }
+        </div>
+      </div>
+
+      <!-- Step trail -->
+      <div class="step-trail" style="margin-bottom:28px">
+        @for (s of wizardSteps; track s.n; let i = $index) {
+          <div style="display:flex;align-items:center;gap:10px">
+            <div [class]="'step-dot' + (step() === i ? ' active' : step() > i ? ' done' : '')">
+              @if (step() > i) { <sp-icon name="check" [size]="12" /> } @else { {{ s.n }} }
+            </div>
+            <div style="min-width:60px">
+              <div style="font-size:12px;font-weight:500" [style.color]="step() >= i ? 'var(--ink)' : 'var(--ink-4)'">{{ s.t }}</div>
+            </div>
+          </div>
+          @if (i < 5) { <div class="step-line"></div> }
+        }
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:28px;align-items:start">
+        <!-- LEFT: step content -->
+        <div class="card" style="padding:32px;min-height:400px">
+          <div style="margin-bottom:24px">
+            <div class="eyebrow">Paso {{ wizardSteps[step()].n }}</div>
+            <h2 class="serif" style="font-size:30px;font-weight:400;margin:4px 0;letter-spacing:-0.02em">
+              {{ wizardSteps[step()].t }}
+            </h2>
+            <div style="color:var(--ink-3);font-size:13px">{{ wizardSteps[step()].sub }}</div>
+          </div>
+
+          <!-- ╔══ STEP 0: Fecha y hora ══╗ -->
+          @if (step() === 0) {
+            <div style="max-width:420px">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:20px">
+                <label class="field" style="margin-bottom:0">
+                  <span class="label">Fecha de la venta *</span>
+                  <input class="input" type="date"
+                    [value]="historialDate()"
+                    [max]="maxDate"
+                    [min]="minDate"
+                    (change)="historialDate.set($any($event.target).value)" />
+                </label>
+                <label class="field" style="margin-bottom:0">
+                  <span class="label">Hora *</span>
+                  <input class="input mono" type="time"
+                    [value]="historialTime()"
+                    (change)="historialTime.set($any($event.target).value)" />
+                </label>
+              </div>
+
+              @if (historialDate() && historialTime()) {
+                @if (historialDateValida()) {
+                  <div style="padding:12px 16px;background:var(--success-soft);border-radius:8px;display:flex;align-items:center;gap:8px;font-size:13px">
+                    <sp-icon name="check" [size]="15" style="color:var(--success)" />
+                    <span>Fecha válida: <strong>{{ fechaFormateada() }}</strong></span>
+                  </div>
+                } @else {
+                  <div style="padding:12px 16px;background:var(--danger-soft);border-radius:8px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--danger)">
+                    <sp-icon name="alert" [size]="15" />
+                    @if (saleDateTimeISO() && saleDateTimeISO()! > (maxDate + 'T23:59')) {
+                      La fecha no puede ser futura.
+                    } @else {
+                      La fecha mínima permitida es el 01/01/2025.
+                    }
+                  </div>
+                }
+              }
+
+              <div style="margin-top:20px;padding:14px;background:var(--bone);border-radius:8px;font-size:12px;color:var(--ink-4);line-height:1.6">
+                <strong style="color:var(--ink-3)">¿Qué ocurre al registrar una venta histórica?</strong><br/>
+                · Aparecerá en los reportes del período elegido.<br/>
+                · El stock actual se descuenta (como si fuera una venta normal).<br/>
+                · Quedará incluida en la próxima liquidación del colaborador.<br/>
+                · Solo los administradores pueden registrar ventas históricas.
+              </div>
+            </div>
+          }
+
+          <!-- ╔══ STEP 1: Colaborador ══╗ -->
+          @if (step() === 1) {
+            @if (cargandoCatalogos()) {
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+                @for (s of [1,2,3,4]; track s) {
+                  <div style="height:88px;background:var(--bone);border-radius:8px;border:1px solid var(--hair-2);animation:pulse 1.4s ease-in-out infinite"></div>
+                }
+              </div>
+              <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--ink-4)">Cargando equipo…</div>
+            } @else if (peluqueros().length === 0) {
+              <div style="padding:32px;text-align:center;color:var(--ink-4)">
+                <div style="font-size:14px">No hay colaboradores registrados.</div>
+                <div style="font-size:12px;margin-top:6px">Agrégalos en Configuración → Usuarios.</div>
+              </div>
+            } @else {
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+                @for (p of peluqueros(); track p.id) {
+                  <button [class]="'tile' + (peluqueroSeleccionado()?.id === p.id ? ' selected' : '')"
+                    (click)="seleccionarPeluquero(p)"
+                    style="display:flex;align-items:center;gap:14px;padding:18px">
+                    <span class="avatar avatar-lg">{{ p.fullName.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() }}</span>
+                    <div style="flex:1">
+                      <div class="serif" style="font-size:18px;line-height:1.1">{{ p.fullName }}</div>
+                      <div class="tile-meta" style="margin-top:4px;font-weight:600;letter-spacing:0.05em">{{ p.employeeCode ?? '—' }}</div>
+                    </div>
+                    <div style="text-align:right">
+                      <div class="tile-meta">Comisión</div>
+                      <div class="serif tnum" style="font-size:18px">{{ p.commissionPercent }}%</div>
+                    </div>
+                  </button>
+                }
+              </div>
+            }
+          }
+
+          <!-- ╔══ STEP 2: Servicios ══╗ -->
+          @if (step() === 2) {
+            <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+              @for (cat of categoriasServicio(); track cat) {
+                <button [class]="'btn btn-sm ' + (categoriaServicio() === cat ? 'btn-primary' : 'btn-ghost')"
+                  (click)="categoriaServicio.set(cat)">{{ cat }}</button>
+              }
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+              @for (s of serviciosFiltrados(); track s.id) {
+                <button [class]="'tile' + (servicioYaAgregado(s.id) ? ' selected' : '')" (click)="agregarServicio(s)">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                    <div>
+                      <div style="font-weight:500;font-size:14px">{{ s.name }}</div>
+                      <div class="tile-meta" style="margin-top:2px">{{ s.category }}</div>
+                    </div>
+                    <div class="serif tnum" style="font-size:17px">{{ s.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+                  </div>
+                </button>
+              }
+            </div>
+            @if (itemsServicio().length > 0) {
+              <div style="margin-top:20px;padding:16px;background:var(--bone);border-radius:6px">
+                <div class="eyebrow" style="margin-bottom:10px">Editar cantidades y precios</div>
+                @for (item of itemsServicio(); track trackItem($index, item)) {
+                  <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+                    <span style="flex:1;font-size:13px">{{ item.name }}</span>
+                    <input class="input mono" type="number" [value]="item.quantity" min="1" style="width:60px;text-align:center"
+                      (change)="actualizarCantidad(item, $any($event.target).valueAsNumber)" />
+                    <span style="color:var(--ink-4);font-size:11px">×</span>
+                    <input class="input mono" type="number" [value]="item.price" min="0" style="width:110px"
+                      (change)="actualizarPrecio(item, $any($event.target).valueAsNumber)" />
+                    <button class="btn btn-icon btn-ghost" (click)="quitarItem(item)"><sp-icon name="x" [size]="12" /></button>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+          <!-- ╔══ STEP 3: Productos ══╗ -->
+          @if (step() === 3) {
+            <div style="display:flex;gap:6px;margin-bottom:18px;padding:3px;background:var(--bone);border-radius:7px;width:fit-content">
+              <button [class]="'btn btn-sm ' + (filtroProductoVenta() !== '__internal__' ? 'btn-primary' : 'btn-ghost')"
+                (click)="filtroProductoVenta.set('')">
+                <sp-icon name="bag" [size]="12" /> Venta a cliente
+              </button>
+              <button [class]="'btn btn-sm ' + (filtroProductoVenta() === '__internal__' ? 'btn-primary' : 'btn-ghost')"
+                (click)="filtroProductoVenta.set('__internal__')">
+                <sp-icon name="sparkle" [size]="12" /> Consumo interno
+              </button>
+            </div>
+            @if (filtroProductoVenta() !== '__internal__') {
+              <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Productos que el cliente se llevó.</div>
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+                @for (p of productosVentaFiltrados(); track p.id) {
+                  <button [class]="'tile' + (productoVentaYaAgregado(p.id) ? ' selected' : '')" (click)="agregarProductoVenta(p)">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                      <div>
+                        <div style="font-weight:500;font-size:14px">{{ p.name }}</div>
+                        <div class="tile-meta" style="margin-top:2px">{{ p.brand }}</div>
+                      </div>
+                      <div class="serif tnum" style="font-size:16px">{{ p.salePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+                    </div>
+                  </button>
+                }
+              </div>
+              @if (productosVentaFiltrados().length === 0) { <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Opcional · sin productos para venta</div> }
+            } @else {
+              <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Productos usados por el colaborador durante el servicio.</div>
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+                @for (p of productosInternosFiltrados(); track p.id) {
+                  <button [class]="'tile' + (productoInternoYaAgregado(p.id) ? ' selected' : '')" (click)="agregarProductoInterno(p)">
+                    <div style="font-weight:500;font-size:14px">{{ p.name }}</div>
+                    <div class="tile-meta" style="margin-top:2px">{{ p.brand }}</div>
+                  </button>
+                }
+              </div>
+              @if (productosInternosFiltrados().length === 0) { <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Opcional · sin consumos internos</div> }
+            }
+          }
+
+          <!-- ╔══ STEP 4: Pago ══╗ -->
+          @if (step() === 4) {
+            <div [formGroup]="formCliente">
+              <div class="eyebrow" style="margin-bottom:8px">Cliente (opcional)</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
+                <label class="field">
+                  <span class="label">Nombre completo</span>
+                  <input class="input" formControlName="fullName" placeholder="Nombre del cliente" />
+                </label>
+                <label class="field">
+                  <span class="label">Teléfono</span>
+                  <input class="input" formControlName="phone" placeholder="3001234567" />
+                </label>
+                <label class="field">
+                  <span class="label">Correo (opcional)</span>
+                  <input class="input" type="email" formControlName="email" placeholder="correo@email.com" />
+                </label>
+                <div style="display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:end">
+                  <label class="field" style="margin-bottom:0">
+                    <span class="label">Tipo</span>
+                    <select class="select" formControlName="documentType">
+                      <option value="CC">CC</option><option value="CE">CE</option>
+                      <option value="NIT">NIT</option><option value="PP">PP</option>
+                    </select>
+                  </label>
+                  <label class="field" style="margin-bottom:0">
+                    <span class="label">Documento</span>
+                    <input class="input mono" formControlName="documentNumber" placeholder="Número" (keyup.enter)="buscarCliente()" />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="eyebrow" style="margin-bottom:8px">Método de pago</div>
+            @for (pago of pagos(); track trackPago($index)) {
+              <div style="display:flex;gap:10px;margin-bottom:10px;align-items:center">
+                <select class="select" style="flex:1"
+                  (change)="actualizarPagoMetodo($index, +$any($event.target).value)">
+                  <option value="">— Selecciona —</option>
+                  @for (m of metodosPagoDisponibles($index); track m.id) {
+                    <option [value]="m.id" [selected]="pago.paymentMethodId === m.id">{{ m.name }}</option>
+                  }
+                </select>
+                <input class="input mono" type="number" [value]="pago.amount" min="0" style="width:160px"
+                  (change)="actualizarPagoMonto($index, $any($event.target).valueAsNumber)" />
+                @if (pagos().length > 1) {
+                  <button class="btn btn-icon btn-ghost" (click)="quitarPago($index)"><sp-icon name="x" [size]="12" /></button>
+                }
+              </div>
+            }
+            @if (pagos().length < metodosPago().length) {
+              <button class="btn btn-ghost btn-sm" (click)="agregarPago()" style="margin-top:4px">
+                <sp-icon name="plus" [size]="12" /> Pago mixto
+              </button>
+            }
+
+            <!-- Propina -->
+            <div [formGroup]="formVenta" style="margin-top:16px">
+              <label class="field" style="max-width:200px">
+                <span class="label" style="display:flex;align-items:center;gap:6px">
+                  Propina (opcional)
+                  @if (hasCashPayment()) {
+                    <span style="font-size:10px;background:var(--warn-soft);color:var(--warn);padding:1px 6px;border-radius:4px;font-weight:600">BLOQUEADA</span>
+                  }
+                </span>
+                <input class="input mono" type="number" formControlName="tipAmount" min="0" placeholder="0"
+                  [style.opacity]="hasCashPayment() ? '0.45' : '1'"
+                  [style.cursor]="hasCashPayment() ? 'not-allowed' : 'auto'" />
+              </label>
+            </div>
+
+            <!-- Resumen financiero -->
+            <div style="margin-top:20px;border-radius:8px;overflow:hidden;border:1px solid var(--border)">
+              <div style="padding:14px 16px;background:var(--surface-2);font-size:13px;display:flex;flex-direction:column;gap:5px">
+                @if (calculo().grossTip > 0) {
+                  <div style="display:flex;justify-content:space-between;color:var(--ink-3)">
+                    <span>Servicios / Productos</span>
+                    <span class="tnum">{{ (calculo().grossServices + calculo().grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;color:var(--ink-3)">
+                    <span>Propina</span>
+                    <span class="tnum">{{ calculo().grossTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                  <hr style="margin:2px 0;border:0;border-top:1px dashed var(--border)" />
+                }
+                <div style="display:flex;justify-content:space-between;font-weight:600">
+                  <span>Total bruto</span>
+                  <span class="tnum">{{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                </div>
+                @for (ded of deduccionesPorPago(); track $index) {
+                  <div style="display:flex;justify-content:space-between;color:#c53030">
+                    <span>− {{ ded.name }} ({{ ded.pct }}%)</span>
+                    <span class="tnum">−{{ ded.amount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                }
+                @if (calculo().totalDeductions > 0) {
+                  <hr style="margin:4px 0;border:0;border-top:1px dashed var(--border)" />
+                  <div style="display:flex;justify-content:space-between;font-weight:600">
+                    <span>Base neta</span>
+                    <span class="tnum">{{ baseNeta() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                }
+                @if (calculo().stylistTotal > 0 || calculo().salonTotal > 0) {
+                  <div style="display:flex;gap:8px;margin-top:8px">
+                    <div style="flex:1;background:var(--surface-1);border-radius:6px;padding:8px 10px;font-size:12px">
+                      <div style="color:var(--ink-4);font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Salón</div>
+                      <div class="tnum" style="font-size:15px;font-weight:600">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+                    </div>
+                    <div style="flex:1;background:var(--accent-deep);border-radius:6px;padding:8px 10px;font-size:12px;color:#fff">
+                      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;opacity:.8">{{ (peluqueroSeleccionado()?.fullName ?? 'Colaborador').split(' ')[0] }}</div>
+                      <div class="tnum" style="font-size:15px;font-weight:600">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+                    </div>
+                  </div>
+                }
+              </div>
+              <div style="padding:12px 16px;font-size:13px;display:flex;flex-direction:column;gap:4px"
+                [style.background]="pagosValidos() ? 'var(--success-soft)' : 'var(--warn-soft)'">
+                <div style="display:flex;justify-content:space-between">
+                  <span>Total a cobrar</span>
+                  <span class="tnum">{{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                  <span>Recibido</span>
+                  <span class="tnum">{{ totalRecibido() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                </div>
+                <hr style="margin:4px 0;border:0;border-top:1px dashed currentColor;opacity:0.3" />
+                <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px">
+                  <span>{{ diferenciaPago() > 0 ? 'Falta' : diferenciaPago() < 0 ? 'Cambio' : 'Cuadrado' }}</span>
+                  <span class="tnum">{{ Math.abs(diferenciaPago()) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- ╔══ STEP 5: Confirmar ══╗ -->
+          @if (step() === 5) {
+            <!-- Aviso fecha histórica en el recibo -->
+            <div style="margin-bottom:16px;padding:10px 14px;background:var(--warn-soft);border-left:3px solid var(--warn);border-radius:4px;font-size:13px;display:flex;align-items:center;gap:8px">
+              <sp-icon name="calendar" [size]="14" style="color:var(--warn)" />
+              <span>Fecha histórica: <strong>{{ fechaFormateada() }}</strong></span>
+            </div>
+            <div class="receipt">
+              <div style="text-align:center;padding-bottom:16px;border-bottom:1px dashed var(--hair-3);margin-bottom:12px">
+                <div class="serif" style="font-size:24px;font-weight:400">Venta Histórica</div>
+                <div class="eyebrow" style="margin-top:4px">Carga retroactiva</div>
+              </div>
+              <div class="row"><span style="color:var(--ink-3)">Fecha</span><span><strong>{{ fechaFormateada() }}</strong></span></div>
+              <div class="row"><span style="color:var(--ink-3)">Colaborador</span><span>{{ peluqueroSeleccionado()?.fullName }}</span></div>
+              <div class="row"><span style="color:var(--ink-3)">Comisión</span><span class="tnum">{{ peluqueroSeleccionado()?.commissionPercent }}%</span></div>
+              @if (formCliente.get('fullName')!.value) {
+                <div class="row"><span style="color:var(--ink-3)">Cliente</span><span>{{ formCliente.get('fullName')!.value }}</span></div>
+              }
+              <hr class="hr-dotted" style="margin:8px 0" />
+              @for (item of itemsServicio(); track trackItem($index, item)) {
+                <div class="row"><span>{{ item.name }}{{ item.quantity > 1 ? ' ×' + item.quantity : '' }}</span><span class="tnum">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+              }
+              @for (item of itemsProductoVenta(); track trackItem($index, item)) {
+                <div class="row"><span>{{ item.name }}</span><span class="tnum">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+              }
+              @if (itemsProductoInterno().length > 0) {
+                <hr class="hr-dotted" style="margin:8px 0" />
+                <div style="font-size:11px;color:var(--ink-4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Consumo interno</div>
+                @for (item of itemsProductoInterno(); track trackItem($index, item)) {
+                  <div class="row" style="color:var(--ink-4);font-size:12px"><span>{{ item.name }}</span><span>—</span></div>
+                }
+              }
+              @if (calculo().grossTip > 0) {
+                <div class="row" style="color:var(--ink-3)"><span>Propina</span><span class="tnum">{{ calculo().grossTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+              }
+              <div class="row total"><span>Total bruto</span><span class="tnum">{{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+              <hr class="hr-dotted" style="margin:8px 0" />
+              @for (pago of pagos(); track trackPago($index)) {
+                <div class="row" style="font-size:12px;color:var(--ink-3)">
+                  <span>{{ nombreMetodoPago(pago.paymentMethodId) }}</span>
+                  <span class="tnum">{{ pago.amount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                </div>
+              }
+              @for (ded of deduccionesPorPago(); track $index) {
+                <div class="row" style="font-size:12px;color:#c53030">
+                  <span>− {{ ded.name }} ({{ ded.pct }}%)</span>
+                  <span class="tnum">−{{ ded.amount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                </div>
+              }
+              <hr class="hr-dotted" style="margin:8px 0" />
+              <div class="row" style="font-size:13px;font-weight:600"><span style="color:var(--ink-3)">Parte salón</span><span class="tnum">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+              <div class="row" style="font-size:13px;font-weight:600"><span style="color:var(--accent-deep)">Parte {{ (peluqueroSeleccionado()?.fullName ?? 'colaborador').split(' ')[0] }}</span><span class="tnum" style="color:var(--accent-deep)">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+            </div>
+            @if (errorMsg()) {
+              <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-top:16px">{{ errorMsg() }}</div>
+            }
+          }
+
+          <!-- Navegación -->
+          <hr class="hr" style="margin:32px 0 20px" />
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <button class="btn btn-ghost" [disabled]="step() === 0" (click)="prevStep()">
+              <sp-icon name="arrow-left" [size]="14" /> Atrás
+            </button>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+              @if (!canNext() && step() < 5) {
+                <div style="font-size:11px;color:var(--ink-4)">
+                  @if (step() === 0) { Elige una fecha válida (entre 01/01/2025 y hoy) }
+                  @if (step() === 1) { Selecciona un colaborador para continuar }
+                  @if (step() === 2) { Agrega al menos un servicio para continuar }
+                  @if (step() === 4) { El total recibido debe cuadrar con el total a cobrar }
+                </div>
+              }
+              @if (step() < 5) {
+                <button class="btn btn-primary btn-lg" [disabled]="!canNext()" (click)="nextStep()"
+                  [style.opacity]="canNext() ? '1' : '0.4'">
+                  Continuar <sp-icon name="arrow-right" [size]="14" />
+                </button>
+              } @else {
+                <button class="btn btn-accent btn-lg" (click)="guardarVenta()"
+                  [disabled]="!puedeRegistrar()" [style.opacity]="puedeRegistrar() ? '1' : '0.5'">
+                  <sp-icon name="check" [size]="14" /> {{ guardando() ? 'Registrando…' : 'Registrar venta histórica' }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Live ticker -->
+        <div style="position:sticky;top:28px">
+          <div class="card" style="padding:24px;background:var(--ink);color:var(--bone);border:none">
+            <div class="eyebrow" style="color:var(--ink-5)">Total</div>
+            <div class="ticker" style="font-size:56px;line-height:1;margin:8px 0 4px">
+              {{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+            </div>
+            <div style="font-size:11px;color:var(--ink-5);text-transform:uppercase;letter-spacing:0.12em">
+              {{ items().length }} ítem{{ items().length !== 1 ? 's' : '' }}
+            </div>
+            @if (historialDateValida()) {
+              <div style="margin-top:12px;padding:6px 10px;background:rgba(255,255,255,0.08);border-radius:6px;font-size:11px;color:rgba(245,241,234,0.7);display:flex;align-items:center;gap:6px">
+                <sp-icon name="calendar" [size]="11" /> {{ fechaFormateada() }}
+              </div>
+            }
+            <hr style="margin:20px 0;border:0;border-top:1px dashed rgba(245,241,234,0.20)" />
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <span style="font-size:12px;color:var(--ink-5)">Colaborador</span>
+              <span style="font-size:13px">{{ peluqueroSeleccionado()?.fullName || '—' }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+              <span style="font-size:12px;color:var(--ink-5)">Comisión</span>
+              <span class="tnum" style="font-size:14px;font-weight:500">{{ peluqueroSeleccionado()?.commissionPercent ?? 0 }}%</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div style="background:rgba(255,255,255,0.06);padding:12px;border-radius:6px">
+                <div style="font-size:10px;color:var(--ink-5);text-transform:uppercase;letter-spacing:0.12em">Salón</div>
+                <div class="serif tnum" style="font-size:20px;margin-top:2px">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+              </div>
+              <div style="background:var(--accent);padding:12px;border-radius:6px">
+                <div style="font-size:10px;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.12em">Colaborador</div>
+                <div class="serif tnum" style="font-size:20px;margin-top:2px;color:white">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+              </div>
+            </div>
+          </div>
+
+          @if (items().length > 0) {
+            <div class="card" style="padding:20px;margin-top:12px">
+              <div class="eyebrow" style="margin-bottom:10px">Ítems</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                @for (item of itemsServicio(); track trackItem($index, item)) {
+                  <div style="display:flex;justify-content:space-between;font-size:12px;align-items:center">
+                    <div style="flex:1;min-width:0">
+                      <div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.name }}</div>
+                      <div style="color:var(--ink-4);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Servicio{{ item.quantity > 1 ? ' · ×' + item.quantity : '' }}</div>
+                    </div>
+                    <span class="tnum">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                }
+                @for (item of itemsProductoVenta(); track trackItem($index, item)) {
+                  <div style="display:flex;justify-content:space-between;font-size:12px;align-items:center">
+                    <div style="flex:1;min-width:0">
+                      <div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.name }}</div>
+                      <div style="color:var(--ink-4);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Producto</div>
+                    </div>
+                    <span class="tnum">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                }
+                @for (item of itemsProductoInterno(); track trackItem($index, item)) {
+                  <div style="display:flex;justify-content:space-between;font-size:12px;align-items:center">
+                    <div style="flex:1;min-width:0">
+                      <div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-4)">{{ item.name }}</div>
+                      <div style="color:var(--ink-4);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Consumo interno</div>
+                    </div>
+                    <span class="tnum" style="color:var(--ink-4)">—</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+}

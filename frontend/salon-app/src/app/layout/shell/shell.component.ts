@@ -9,15 +9,16 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
 interface NavItem { id: string; label: string; icon: string; route: string; roles?: string[]; badge?: string; }
 
 const NAV_OWNER: NavItem[] = [
-  { id:'dashboard',      label:'Dashboard',       icon:'home',     route:'/dashboard' },
-  { id:'ventas',         label:'Punto de venta',  icon:'pos',      route:'/ventas' },
-  { id:'historial',      label:'Historial',        icon:'history',  route:'/historial' },
-  { id:'servicios',      label:'Servicios',        icon:'scissors', route:'/servicios' },
-  { id:'inventario',     label:'Inventario',       icon:'box',      route:'/inventario', badge:'Stock bajo' },
-  { id:'liquidaciones',  label:'Liquidaciones',    icon:'wallet',   route:'/liquidaciones' },
-  { id:'caja',           label:'Caja',             icon:'cash',     route:'/caja' },
-  { id:'reportes',       label:'Reportes',         icon:'chart',    route:'/reportes' },
-  { id:'configuracion',  label:'Configuración',    icon:'gear',     route:'/configuracion' },
+  { id:'dashboard',      label:'Dashboard',         icon:'home',     route:'/dashboard' },
+  { id:'ventas',         label:'Punto de venta',    icon:'pos',      route:'/ventas' },
+  { id:'historial',      label:'Historial',          icon:'history',  route:'/historial' },
+  { id:'historico',      label:'Carga histórica',    icon:'calendar', route:'/historico' },
+  { id:'servicios',      label:'Servicios',          icon:'scissors', route:'/servicios' },
+  { id:'inventario',     label:'Inventario',         icon:'box',      route:'/inventario', badge:'Stock bajo' },
+  { id:'liquidaciones',  label:'Liquidaciones',      icon:'wallet',   route:'/liquidaciones' },
+  { id:'caja',           label:'Caja',               icon:'cash',     route:'/caja' },
+  { id:'reportes',       label:'Reportes',           icon:'chart',    route:'/reportes' },
+  { id:'configuracion',  label:'Configuración',      icon:'gear',     route:'/configuracion' },
 ];
 
 const NAV_CASHIER: NavItem[] = [

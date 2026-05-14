@@ -29,6 +29,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
             NotFoundException nfe => (StatusCodes.Status404NotFound, nfe.Message),
             ConflictException ce => (StatusCodes.Status409Conflict, ce.Message),
             ForbiddenException fe => (StatusCodes.Status403Forbidden, fe.Message),
+            BadRequestException bre => (StatusCodes.Status400BadRequest, bre.Message),
             FluentValidation.ValidationException ve => (StatusCodes.Status400BadRequest, "Datos inválidos."),
             _ => (StatusCodes.Status500InternalServerError, "Error interno del servidor.")
         };
