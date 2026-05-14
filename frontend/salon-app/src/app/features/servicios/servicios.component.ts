@@ -41,6 +41,25 @@ export class ServiciosComponent {
     [...new Set(this.servicios().map(s => s.category))]
   );
 
+  // ── Combo-box de categoría ────────────────────────────
+  readonly showCatDropdown = signal(false);
+
+  readonly categoriasFiltradas = computed(() => {
+    const typed = (this.form.get('category')?.value ?? '').toLowerCase().trim();
+    const all   = this.categorias();
+    return typed ? all.filter(c => c.toLowerCase().includes(typed)) : all;
+  });
+
+  selectCategory(cat: string) {
+    this.form.get('category')!.setValue(cat);
+    this.showCatDropdown.set(false);
+  }
+
+  onCatBlur() {
+    // Pequeño delay para que el click en la opción se registre antes del blur
+    setTimeout(() => this.showCatDropdown.set(false), 160);
+  }
+
   serviciosPorCategoria(cat: string): Servicio[] {
     return this.servicios().filter(s => s.category === cat);
   }

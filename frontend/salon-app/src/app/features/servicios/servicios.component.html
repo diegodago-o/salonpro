@@ -100,14 +100,54 @@
           <input class="input" formControlName="name" placeholder="Ej: Corte dama" />
         </label>
 
-        <!-- Categoría -->
-        <label class="field" style="margin-bottom:14px">
+        <!-- Categoría (combo-box personalizado) -->
+        <div class="field" style="margin-bottom:14px;position:relative">
           <span class="label">Categoría *</span>
-          <input class="input" formControlName="category" placeholder="Ej: Corte, Tintura, Manos…" list="cats-list" />
-          <datalist id="cats-list">
-            @for (c of categorias(); track c) { <option [value]="c"></option> }
-          </datalist>
-        </label>
+          <div style="position:relative">
+            <input class="input" formControlName="category"
+              placeholder="Ej: Corte, Tintura, Manos…"
+              autocomplete="off"
+              (focus)="showCatDropdown.set(true)"
+              (blur)="onCatBlur()" />
+            <!-- Flecha -->
+            <button type="button"
+              style="position:absolute;right:0;top:0;bottom:0;width:38px;background:none;border:none;
+                     cursor:pointer;display:flex;align-items:center;justify-content:center;
+                     color:var(--ink-4);border-left:1px solid var(--border);border-radius:0 8px 8px 0;
+                     transition:background .15s"
+              (mousedown)="$event.preventDefault()"
+              (click)="showCatDropdown.update(v => !v)">
+              <span style="font-size:11px;transition:transform .2s"
+                [style.transform]="showCatDropdown() ? 'rotate(180deg)' : 'rotate(0deg)'">▾</span>
+            </button>
+          </div>
+
+          <!-- Dropdown panel -->
+          @if (showCatDropdown() && categoriasFiltradas().length > 0) {
+            <div style="position:absolute;z-index:300;top:calc(100% + 4px);left:0;right:0;
+                        background:var(--surface-1);border:1px solid var(--border);
+                        border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.13);
+                        overflow:hidden;max-height:220px;overflow-y:auto">
+              @for (c of categoriasFiltradas(); track c) {
+                <div
+                  style="padding:10px 16px;font-size:13px;cursor:pointer;
+                         display:flex;align-items:center;gap:8px;transition:background .1s"
+                  [style.background]="form.get('category')?.value === c ? 'var(--accent-soft)' : ''"
+                  [style.color]="form.get('category')?.value === c ? 'var(--accent-deep)' : 'var(--ink-1)'"
+                  [style.fontWeight]="form.get('category')?.value === c ? '600' : '400'"
+                  (mousedown)="$event.preventDefault()"
+                  (click)="selectCategory(c)">
+                  @if (form.get('category')?.value === c) {
+                    <span style="font-size:10px">✓</span>
+                  } @else {
+                    <span style="font-size:10px;opacity:0"></span>
+                  }
+                  {{ c }}
+                </div>
+              }
+            </div>
+          }
+        </div>
 
         <!-- Precio -->
         <label class="field" style="margin-bottom:14px">
