@@ -44,7 +44,7 @@ public class Sale
         int? cashRegisterId, int? branchId, string? branchName, decimal commissionPercent,
         decimal grossServices, decimal grossProducts, decimal internalConsumption,
         decimal tipAmount, decimal totalDeductions, decimal stylistTotal, decimal salonTotal,
-        string? notes)
+        string? notes, DateTime? saleDateTime = null)
     {
         var grossTotal = grossServices + grossProducts + tipAmount;
         return new Sale
@@ -62,7 +62,7 @@ public class Sale
             BranchId = branchId,
             BranchName = branchName,
             CommissionPercent = commissionPercent,
-            SaleDateTime = DateTime.UtcNow,
+            SaleDateTime = saleDateTime ?? DateTime.UtcNow,
             GrossServices = grossServices,
             GrossProducts = grossProducts,
             InternalConsumption = internalConsumption,

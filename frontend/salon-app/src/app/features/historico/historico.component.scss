@@ -1,0 +1,17 @@
+// El componente historico reutiliza todos los estilos globales (pos-stage, step-trail, tile,
+// receipt, ticker, etc.) definidos en los estilos globales de la aplicación.
+// Solo se agregan sobrescrituras específicas para el modo histórico.
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

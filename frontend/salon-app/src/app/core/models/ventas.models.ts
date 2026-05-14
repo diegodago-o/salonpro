@@ -125,6 +125,8 @@ export interface CreateSaleRequest {
   services: { serviceId: number; price: number }[];
   productsSold: { productId: number; price: number }[];
   productsInternal: { productId: number; price: number }[];
+  /** ISO 8601 datetime string. Si se omite, el backend usa DateTime.UtcNow (venta en tiempo real). */
+  saleDateTime?: string;
 }
 
 // Ítem de una venta (detalle)

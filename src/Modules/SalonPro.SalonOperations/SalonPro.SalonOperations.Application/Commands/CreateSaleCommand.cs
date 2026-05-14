@@ -28,7 +28,8 @@ public record CreateSaleRequest(
     string? Notes,
     List<SaleServiceItemRequest> Services,
     List<SaleProductItemRequest> ProductsSold,
-    List<SaleProductItemRequest> ProductsInternal);
+    List<SaleProductItemRequest> ProductsInternal,
+    DateTime? SaleDateTime = null);
 
 public record CreateSaleCommand(int TenantId, int? CashRegisterId, CreateSaleRequest Request) : IRequest<SaleDto>;
 
@@ -145,7 +146,24 @@ public class CreateSaleHandler(
         decimal stylistTotal = Math.Round(stylistCommServices + stylistCommProducts + netTip, 2);
         decimal salonTotal   = Math.Round(salonCommServices   + salonCommProducts, 2);
 
-        // 7. Create sale
+        // 7. Validate and resolve sale datetime
+        DateTime saleDateTime;
+        if (req.SaleDateTime.HasValue)
+        {
+            saleDateTime = req.SaleDateTime.Value.Kind == DateTimeKind.Utc
+                ? req.SaleDateTime.Value
+                : req.SaleDateTime.Value.ToUniversalTime();
+            if (saleDateTime > DateTime.UtcNow.AddMinutes(5))
+                throw new BadRequestException("No se puede registrar una venta con fecha futura.");
+            if (saleDateTime < new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc))
+                throw new BadRequestException("La fecha mínima permitida es el 1 de enero de 2025.");
+        }
+        else
+        {
+            saleDateTime = DateTime.UtcNow;
+        }
+
+        // 8. Create sale
         var sale = Sale.Create(
             cmd.TenantId,
             req.StylistId,
@@ -167,9 +185,10 @@ public class CreateSaleHandler(
             totalDeductions,
             stylistTotal,
             salonTotal,
-            req.Notes);
+            req.Notes,
+            saleDateTime);
 
-        // 8. Add sale items
+        // 9. Add sale items
         foreach (var (svc, price) in serviceItems)
             sale.Items.Add(SaleItem.CreateForSale(sale, SaleItemType.Service, svc.Id, svc.Name,
                 price, 1, svc.HasSalonFee ? svc.SalonFeePercent : 0));
@@ -188,16 +207,16 @@ public class CreateSaleHandler(
             prod.DecrementStock(1);
         }
 
-        // 9. Add payments
+        // 10. Add payments
         foreach (var (methodId, methodName, amount, deductionPct) in paymentDetails)
             sale.Payments.Add(SalePayment.CreateForSale(sale, methodId, methodName, amount, deductionPct));
 
         await saleRepo.AddAsync(sale, ct);
 
-        // 10. Update client stats
+        // 11. Update client stats
         client.RecordVisit(sale.GrossTotal);
 
-        // 11. Save products (stock decrements)
+        // 12. Save products (stock decrements)
         await productRepo.SaveChangesAsync(ct);
         await clientRepo.SaveChangesAsync(ct);
         await saleRepo.SaveChangesAsync(ct);

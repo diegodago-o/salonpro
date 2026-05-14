@@ -75,6 +75,11 @@ export const routes: Routes = [
           import('./features/configuracion/configuracion.component').then(m => m.ConfiguracionComponent)
       },
       {
+        path: 'historico',
+        loadComponent: () =>
+          import('./features/historico/historico.component').then(m => m.HistoricoComponent)
+      },
+      {
         path: 'mi-resumen',
         loadComponent: () =>
           import('./features/mi-resumen/mi-resumen.component').then(m => m.MiResumenComponent)
