@@ -29,7 +29,7 @@ public record CreateSaleRequest(
     List<SaleServiceItemRequest> Services,
     List<SaleProductItemRequest> ProductsSold,
     List<SaleProductItemRequest> ProductsInternal,
-    DateTime? SaleDateTime = null);
+    string? SaleDateTime = null);
 
 public record CreateSaleCommand(int TenantId, int? CashRegisterId, CreateSaleRequest Request) : IRequest<SaleDto>;
 
@@ -148,11 +148,21 @@ public class CreateSaleHandler(
 
         // 7. Validate and resolve sale datetime
         DateTime saleDateTime;
-        if (req.SaleDateTime.HasValue)
+        if (!string.IsNullOrWhiteSpace(req.SaleDateTime))
         {
-            saleDateTime = req.SaleDateTime.Value.Kind == DateTimeKind.Utc
-                ? req.SaleDateTime.Value
-                : req.SaleDateTime.Value.ToUniversalTime();
+            if (!DateTime.TryParse(req.SaleDateTime,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.RoundtripKind,
+                    out var parsed))
+                throw new BadRequestException($"Formato de fecha inválido: '{req.SaleDateTime}'.");
+
+            // Normalizar a UTC
+            saleDateTime = parsed.Kind == DateTimeKind.Utc
+                ? parsed
+                : parsed.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(parsed, DateTimeKind.Utc) // tratar Unspecified como UTC
+                    : parsed.ToUniversalTime();
+
             if (saleDateTime > DateTime.UtcNow.AddMinutes(5))
                 throw new BadRequestException("No se puede registrar una venta con fecha futura.");
             if (saleDateTime < new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc))
