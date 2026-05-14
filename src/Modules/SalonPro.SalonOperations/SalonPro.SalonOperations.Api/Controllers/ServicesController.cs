@@ -38,16 +38,16 @@ public class ServicesController(IMediator mediator) : ControllerBase
 
     [HttpPut("{id:int}")]
     public async Task<ActionResult<ApiResponse<SalonServiceDto>>> Update(
-        int id, [FromBody] CreateServiceRequest request, CancellationToken ct)
+        int id, [FromBody] CreateServiceRequest request, [FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await mediator.Send(new UpdateServiceCommand(id, GetTenantId(), request), ct);
+        var result = await mediator.Send(new UpdateServiceCommand(id, GetTenantId(), GetEffectiveBranchId(branchId), request), ct);
         return Ok(ApiResponse<SalonServiceDto>.Ok(result));
     }
 
     [HttpPatch("{id:int}/toggle")]
-    public async Task<ActionResult<ApiResponse<object>>> Toggle(int id, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<object>>> Toggle(int id, [FromQuery] int? branchId, CancellationToken ct)
     {
-        await mediator.Send(new ToggleServiceCommand(id, GetTenantId()), ct);
+        await mediator.Send(new ToggleServiceCommand(id, GetTenantId(), GetEffectiveBranchId(branchId)), ct);
         return Ok(ApiResponse.Ok("Estado actualizado."));
     }
 }

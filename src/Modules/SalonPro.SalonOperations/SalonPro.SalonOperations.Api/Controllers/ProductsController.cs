@@ -38,25 +38,25 @@ public class ProductsController(IMediator mediator) : ControllerBase
 
     [HttpPut("{id:int}")]
     public async Task<ActionResult<ApiResponse<SalonProductDto>>> Update(
-        int id, [FromBody] CreateProductRequest request, CancellationToken ct)
+        int id, [FromBody] CreateProductRequest request, [FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await mediator.Send(new UpdateProductCommand(id, GetTenantId(), request), ct);
+        var result = await mediator.Send(new UpdateProductCommand(id, GetTenantId(), GetEffectiveBranchId(branchId), request), ct);
         return Ok(ApiResponse<SalonProductDto>.Ok(result));
     }
 
     [HttpPatch("{id:int}/stock")]
     public async Task<ActionResult<ApiResponse<object>>> AdjustStock(
-        int id, [FromBody] AdjustStockRequest request, CancellationToken ct)
+        int id, [FromBody] AdjustStockRequest request, [FromQuery] int? branchId, CancellationToken ct)
     {
-        await mediator.Send(new AdjustStockCommand(id, GetTenantId(), request), ct);
+        await mediator.Send(new AdjustStockCommand(id, GetTenantId(), GetEffectiveBranchId(branchId), request), ct);
         return Ok(ApiResponse.Ok("Stock actualizado."));
     }
 
     [HttpPatch("{id:int}/toggle")]
     public async Task<ActionResult<ApiResponse<object>>> ToggleActive(
-        int id, [FromBody] ToggleActiveRequest request, CancellationToken ct)
+        int id, [FromBody] ToggleActiveRequest request, [FromQuery] int? branchId, CancellationToken ct)
     {
-        await mediator.Send(new ToggleProductCommand(id, GetTenantId(), request.IsActive), ct);
+        await mediator.Send(new ToggleProductCommand(id, GetTenantId(), GetEffectiveBranchId(branchId), request.IsActive), ct);
         return Ok(ApiResponse.Ok("Estado actualizado."));
     }
 }

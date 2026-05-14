@@ -5,7 +5,7 @@ using SalonPro.Shared.Exceptions;
 
 namespace SalonPro.SalonOperations.Application.Queries;
 
-public record GetLiquidacionDetalleQuery(int Id) : IRequest<LiquidacionDetalleDto>;
+public record GetLiquidacionDetalleQuery(int Id, int TenantId) : IRequest<LiquidacionDetalleDto>;
 
 public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo)
     : IRequestHandler<GetLiquidacionDetalleQuery, LiquidacionDetalleDto>
@@ -14,6 +14,7 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo)
     {
         var l = await repo.GetByIdWithVentasAsync(query.Id, ct)
             ?? throw new NotFoundException("Liquidacion", query.Id);
+        if (l.TenantId != query.TenantId) throw new ForbiddenException();
 
         var ventas = l.Ventas.Select(v => new LiquidacionVentaDto(
             v.SaleId, v.SaleDateTime.ToString("o"), v.ClientName,

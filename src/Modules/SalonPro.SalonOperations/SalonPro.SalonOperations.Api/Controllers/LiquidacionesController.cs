@@ -29,7 +29,7 @@ public class LiquidacionesController(IMediator mediator) : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ApiResponse<LiquidacionDetalleDto>>> GetById(int id, CancellationToken ct)
     {
-        var result = await mediator.Send(new GetLiquidacionDetalleQuery(id), ct);
+        var result = await mediator.Send(new GetLiquidacionDetalleQuery(id, GetTenantId()), ct);
         return Ok(ApiResponse<LiquidacionDetalleDto>.Ok(result));
     }
 

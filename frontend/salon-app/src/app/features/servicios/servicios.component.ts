@@ -99,7 +99,7 @@ export class ServiciosComponent {
 
     const branchId = this.branchService.currentBranchId;
     const op$ = this.modoEdicion()
-      ? this.catalogoService.actualizarServicio(this.editandoId()!, req)
+      ? this.catalogoService.actualizarServicio(this.editandoId()!, req, branchId)
       : this.catalogoService.crearServicio(req, branchId);
 
     op$.subscribe({
@@ -109,7 +109,8 @@ export class ServiciosComponent {
   }
 
   toggle(s: Servicio): void {
-    this.catalogoService.toggleServicio(s.id, !s.isActive).subscribe({
+    const branchId = this.branchService.currentBranchId;
+    this.catalogoService.toggleServicio(s.id, !s.isActive, branchId).subscribe({
       next: () => this.cargar(),
       error: () => {}
     });

@@ -123,7 +123,7 @@ export class InventarioComponent {
     };
     const branchId = this.branchService.currentBranchId;
     const op$ = this.modoEdicion()
-      ? this.catalogoService.actualizarProducto(this.editandoId()!, req)
+      ? this.catalogoService.actualizarProducto(this.editandoId()!, req, branchId)
       : this.catalogoService.crearProducto(req, branchId);
     op$.subscribe({
       next: () => { this.cargar(); this.cerrarModalProducto(); this.guardando.set(false); },
@@ -147,7 +147,8 @@ export class InventarioComponent {
     if (!p) return;
     this.guardando.set(true);
     const nuevoStock = p.stock + (this.formEntrada.value.cantidad ?? 0);
-    this.catalogoService.ajustarStock(p.id, nuevoStock).subscribe({
+    const branchId = this.branchService.currentBranchId;
+    this.catalogoService.ajustarStock(p.id, nuevoStock, branchId).subscribe({
       next: () => { this.cargar(); this.cerrarModalEntrada(); this.guardando.set(false); },
       error: () => { this.errorMsg.set('Error al actualizar stock.'); this.guardando.set(false); }
     });

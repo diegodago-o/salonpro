@@ -52,22 +52,24 @@ export class CatalogoService {
     return this.http.post<ApiResponse<Servicio>>(`${this.api}/services${qs}`, req);
   }
 
-  actualizarServicio(id: number, req: CreateServicioRequest): Observable<ApiResponse<Servicio>> {
+  actualizarServicio(id: number, req: CreateServicioRequest, branchId?: number | null): Observable<ApiResponse<Servicio>> {
     if (!environment.production) {
       const idx = this.mockServicios.findIndex(s => s.id === id);
       if (idx >= 0) this.mockServicios[idx] = { ...this.mockServicios[idx], ...req };
       return of({ success: true, data: this.mockServicios[idx >= 0 ? idx : 0], message: 'Actualizado', errors: [] });
     }
-    return this.http.put<ApiResponse<Servicio>>(`${this.api}/services/${id}`, req);
+    const qs = branchId ? `?branchId=${branchId}` : '';
+    return this.http.put<ApiResponse<Servicio>>(`${this.api}/services/${id}${qs}`, req);
   }
 
-  toggleServicio(id: number, isActive: boolean): Observable<ApiResponse<void>> {
+  toggleServicio(id: number, isActive: boolean, branchId?: number | null): Observable<ApiResponse<void>> {
     if (!environment.production) {
       const s = this.mockServicios.find(s => s.id === id);
       if (s) s.isActive = isActive;
       return of({ success: true, data: undefined, message: '', errors: [] });
     }
-    return this.http.patch<ApiResponse<void>>(`${this.api}/services/${id}/toggle`, { isActive });
+    const qs = branchId ? `?branchId=${branchId}` : '';
+    return this.http.patch<ApiResponse<void>>(`${this.api}/services/${id}/toggle${qs}`, { isActive });
   }
 
   // ── Productos ─────────────────────────────────────────
@@ -88,30 +90,33 @@ export class CatalogoService {
     return this.http.post<ApiResponse<Producto>>(`${this.api}/products${qs}`, req);
   }
 
-  actualizarProducto(id: number, req: CreateProductoRequest): Observable<ApiResponse<Producto>> {
+  actualizarProducto(id: number, req: CreateProductoRequest, branchId?: number | null): Observable<ApiResponse<Producto>> {
     if (!environment.production) {
       const idx = this.mockProductos.findIndex(p => p.id === id);
       if (idx >= 0) this.mockProductos[idx] = { ...this.mockProductos[idx], ...req };
       return of({ success: true, data: this.mockProductos[idx >= 0 ? idx : 0], message: 'Actualizado', errors: [] });
     }
-    return this.http.put<ApiResponse<Producto>>(`${this.api}/products/${id}`, req);
+    const qs = branchId ? `?branchId=${branchId}` : '';
+    return this.http.put<ApiResponse<Producto>>(`${this.api}/products/${id}${qs}`, req);
   }
 
-  ajustarStock(id: number, stock: number): Observable<ApiResponse<void>> {
+  ajustarStock(id: number, stock: number, branchId?: number | null): Observable<ApiResponse<void>> {
     if (!environment.production) {
       const p = this.mockProductos.find(p => p.id === id);
       if (p) p.stock = stock;
       return of({ success: true, data: undefined, message: '', errors: [] });
     }
-    return this.http.patch<ApiResponse<void>>(`${this.api}/products/${id}/stock`, { stock });
+    const qs = branchId ? `?branchId=${branchId}` : '';
+    return this.http.patch<ApiResponse<void>>(`${this.api}/products/${id}/stock${qs}`, { stock });
   }
 
-  toggleProducto(id: number, isActive: boolean): Observable<ApiResponse<void>> {
+  toggleProducto(id: number, isActive: boolean, branchId?: number | null): Observable<ApiResponse<void>> {
     if (!environment.production) {
       const p = this.mockProductos.find(p => p.id === id);
       if (p) p.isActive = isActive;
       return of({ success: true, data: undefined, message: '', errors: [] });
     }
-    return this.http.patch<ApiResponse<void>>(`${this.api}/products/${id}/toggle`, { isActive });
+    const qs = branchId ? `?branchId=${branchId}` : '';
+    return this.http.patch<ApiResponse<void>>(`${this.api}/products/${id}/toggle${qs}`, { isActive });
   }
 }
