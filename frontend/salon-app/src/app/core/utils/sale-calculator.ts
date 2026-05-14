@@ -4,7 +4,9 @@ export interface SaleInput {
   items: SaleItem[];
   tipAmount: number;
   /** $ fijo de deducción bancaria: suma de (valor_pago × % del método).
-   *  Se aplica SOLO a servicios+productos, nunca a la propina. */
+   *  Se distribuye proporcionalmente sobre TODOS los conceptos cobrados
+   *  (servicios + productos + propina), ya que el procesador cobra el %
+   *  sobre el total de la transacción. */
   deductionAmount: number;
   stylistCommPct: number; // % del colaborador (ej: 50)
 }
@@ -26,19 +28,21 @@ export function calculateSale(input: SaleInput): SaleCalculation {
     .filter(i => i.type === 'ProductInternal')
     .reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-  const grossTip  = tipAmount;
-  const grossItems = grossServices + grossProducts; // base sobre la que se distribuye la deducción
+  const grossTip   = tipAmount;
+  const grossItems = grossServices + grossProducts;
+  // Base total sobre la que se distribuye la deducción (el procesador cobra sobre todo)
+  const grossAll   = grossItems + grossTip;
 
-  // PASO 2 — Deducciones: SOLO en servicios+productos, la propina no tiene deducción bancaria
-  const totalDeductions    = round(deductionAmount);
-  const deductionServices  = grossItems > 0 ? round(totalDeductions * grossServices / grossItems) : 0;
-  const deductionProducts  = grossItems > 0 ? round(totalDeductions * grossProducts / grossItems) : 0;
-  const deductionTip       = 0; // la propina va íntegra al colaborador
+  // PASO 2 — Deducciones: distribuidas proporcionalmente sobre grossAll (servicios+productos+propina)
+  const totalDeductions   = round(deductionAmount);
+  const deductionServices = grossAll > 0 ? round(totalDeductions * grossServices / grossAll) : 0;
+  const deductionProducts = grossAll > 0 ? round(totalDeductions * grossProducts / grossAll) : 0;
+  const deductionTip      = grossAll > 0 ? round(totalDeductions * grossTip / grossAll) : 0;
 
   // PASO 3 — Bases netas
   const baseServices = grossServices - deductionServices;
   const baseProducts = grossProducts - deductionProducts;
-  const netTip       = grossTip; // sin deducción
+  const netTip       = grossTip - deductionTip;
 
   // PASO 4 — Comisiones de servicios (por ítem para respetar salonFee individual)
   let salonFeeServices    = 0;
@@ -46,7 +50,8 @@ export function calculateSale(input: SaleInput): SaleCalculation {
   let salonCommServices   = 0;
 
   for (const item of items.filter(i => i.type === 'Service') as SaleServiceItem[]) {
-    const frac     = grossItems > 0 ? (item.price * item.quantity) / grossItems : 0;
+    // Fracción sobre grossAll para que la deducción sea proporcional al total de transacción
+    const frac     = grossAll > 0 ? (item.price * item.quantity) / grossAll : 0;
     const itemBase = item.price * item.quantity - round(totalDeductions * frac);
 
     if (item.hasSalonFee && item.salonFeePercent > 0) {
@@ -69,7 +74,7 @@ export function calculateSale(input: SaleInput): SaleCalculation {
   let stylistCommProducts = 0;
   let salonCommProducts   = 0;
   for (const item of items.filter(i => i.type === 'ProductSale') as SaleProductItem[]) {
-    const frac     = grossItems > 0 ? (item.price * item.quantity) / grossItems : 0;
+    const frac     = grossAll > 0 ? (item.price * item.quantity) / grossAll : 0;
     const itemBase = item.price * item.quantity - round(totalDeductions * frac);
     const prodSPct = (item.stylistCommissionPercent ?? 10) / 100;
     stylistCommProducts += round(itemBase * prodSPct);
@@ -80,8 +85,8 @@ export function calculateSale(input: SaleInput): SaleCalculation {
   const stylistTotal = stylistCommServices + stylistCommProducts + netTip;
   const salonTotal   = salonCommServices   + salonCommProducts;
 
-  // deductionPct: porcentaje efectivo sobre items (referencia informativa para la UI)
-  const deductionPct = grossItems > 0 ? (totalDeductions / grossItems) * 100 : 0;
+  // deductionPct: porcentaje efectivo sobre el total (referencia informativa para la UI)
+  const deductionPct = grossAll > 0 ? (totalDeductions / grossAll) * 100 : 0;
 
   return {
     grossServices, grossProducts, grossTip, internalConsumption,

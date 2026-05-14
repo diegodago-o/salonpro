@@ -158,14 +158,16 @@ export class VentasComponent implements OnInit {
     const grossItems = this.items()
       .filter(i => i.type !== 'ProductInternal')
       .reduce((s, i) => s + i.price * i.quantity, 0);
+    // grossAll incluye la propina: la deducción se distribuye sobre el total de transacción
+    const grossAll = grossItems + this.calculo().grossTip;
     const sPct = (this.peluqueroSeleccionado()?.commissionPercent ?? 0) / 100;
 
     return this.items()
       .filter(i => i.type !== 'ProductInternal')
       .map(item => {
         const subtotal = item.price * item.quantity;
-        // Deducción proporcional al peso del ítem sobre el total de servicios+productos
-        const frac    = grossItems > 0 ? subtotal / grossItems : 0;
+        // Deducción proporcional al peso del ítem sobre el total (servicios+productos+propina)
+        const frac    = grossAll > 0 ? subtotal / grossAll : 0;
         const netBase = Math.round(subtotal - totalDed * frac);
 
         if (item.type === 'Service') {

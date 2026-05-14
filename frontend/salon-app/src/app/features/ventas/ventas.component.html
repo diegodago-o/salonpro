@@ -454,7 +454,13 @@
                     <div style="display:grid;grid-template-columns:1fr 90px 90px;align-items:center;padding:9px 0">
                       <div>
                         <div style="font-size:13px;font-weight:500">Propina</div>
-                        <div style="font-size:11px;color:var(--ink-4);margin-top:1px">Va íntegra al colaborador</div>
+                        <div style="font-size:11px;color:var(--ink-4);margin-top:1px">
+                          @if (calculo().deductionTip > 0) {
+                            Cargo método de pago −{{ calculo().deductionTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                          } @else {
+                            Va íntegra al colaborador
+                          }
+                        </div>
                       </div>
                       <span style="text-align:right;font-size:13px;color:var(--ink-4)">—</span>
                       <span style="text-align:right;font-size:13px;font-weight:700;color:var(--accent-deep)">{{ calculo().netTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
