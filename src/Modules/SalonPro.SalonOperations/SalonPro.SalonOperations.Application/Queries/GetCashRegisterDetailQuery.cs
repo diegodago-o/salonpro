@@ -5,7 +5,7 @@ using SalonPro.Shared.Exceptions;
 
 namespace SalonPro.SalonOperations.Application.Queries;
 
-public record GetCashRegisterDetailQuery(int Id) : IRequest<CashRegisterDto>;
+public record GetCashRegisterDetailQuery(int Id, int TenantId) : IRequest<CashRegisterDto>;
 
 public class GetCashRegisterDetailHandler(ICashRegisterRepository repo)
     : IRequestHandler<GetCashRegisterDetailQuery, CashRegisterDto>
@@ -14,6 +14,7 @@ public class GetCashRegisterDetailHandler(ICashRegisterRepository repo)
     {
         var cr = await repo.GetByIdWithDetailsAsync(query.Id, ct)
             ?? throw new NotFoundException("CashRegister", query.Id);
+        if (cr.TenantId != query.TenantId) throw new ForbiddenException();
         return GetCurrentCashRegisterHandler.MapToDto(cr);
     }
 }

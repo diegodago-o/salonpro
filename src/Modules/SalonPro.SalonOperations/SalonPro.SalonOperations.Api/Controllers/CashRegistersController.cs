@@ -47,7 +47,7 @@ public class CashRegistersController(IMediator mediator) : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ApiResponse<CashRegisterDto>>> GetById(int id, CancellationToken ct)
     {
-        var result = await mediator.Send(new GetCashRegisterDetailQuery(id), ct);
+        var result = await mediator.Send(new GetCashRegisterDetailQuery(id, GetTenantId()), ct);
         return Ok(ApiResponse<CashRegisterDto>.Ok(result));
     }
 
