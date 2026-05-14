@@ -32,6 +32,9 @@ export class ConfiguracionComponent implements OnInit {
   // ── Payment methods tab ────────────────────────────────
   readonly paymentMethods = signal<PaymentMethod[]>([]);
   readonly loadingPayments = signal(false);
+  readonly editingPaymentId = signal<number | null>(null);
+  readonly editPaymentForm = signal<{ name: string; hasDeduction: boolean; deductionPercent: number } | null>(null);
+  readonly savingPayment = signal(false);
 
   readonly tab = signal<Tab>('salon');
 
@@ -114,6 +117,41 @@ export class ConfiguracionComponent implements OnInit {
         next: (updated) => {
           this.paymentMethods.update(list => list.map(x => x.id === updated.id ? updated : x));
         }
+      });
+  }
+
+  startEditPayment(m: PaymentMethod) {
+    this.editingPaymentId.set(m.id);
+    this.editPaymentForm.set({ name: m.name, hasDeduction: m.hasDeduction, deductionPercent: m.deductionPercent });
+  }
+
+  cancelEditPayment() {
+    this.editingPaymentId.set(null);
+    this.editPaymentForm.set(null);
+  }
+
+  updatePaymentForm(field: 'name' | 'hasDeduction' | 'deductionPercent', value: any) {
+    this.editPaymentForm.update(f => {
+      if (!f) return f;
+      const updated = { ...f, [field]: value };
+      // Si se desactiva el cargo, limpiar el porcentaje
+      if (field === 'hasDeduction' && !value) updated.deductionPercent = 0;
+      return updated;
+    });
+  }
+
+  savePaymentMethod(m: PaymentMethod) {
+    const f = this.editPaymentForm();
+    if (!f || !f.name.trim()) return;
+    this.savingPayment.set(true);
+    this.http.patch<ApiResp<PaymentMethod>>(`${this.pmBase}/${m.id}`, f).pipe(map(r => r.data))
+      .subscribe({
+        next: (updated) => {
+          this.paymentMethods.update(list => list.map(x => x.id === updated.id ? updated : x));
+          this.savingPayment.set(false);
+          this.cancelEditPayment();
+        },
+        error: () => this.savingPayment.set(false)
       });
   }
 

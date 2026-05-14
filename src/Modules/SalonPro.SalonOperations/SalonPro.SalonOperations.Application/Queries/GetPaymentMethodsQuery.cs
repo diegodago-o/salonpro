@@ -35,3 +35,29 @@ public class TogglePaymentMethodHandler(IPaymentMethodRepository repo)
         return new PaymentMethodDto(method.Id, method.Name, method.HasDeduction, method.DeductionPercent, method.IsActive);
     }
 }
+
+// ── Update ───────────────────────────────────────────────────────────────
+public record UpdatePaymentMethodCommand(
+    int TenantId, int MethodId,
+    string Name, bool HasDeduction, decimal DeductionPercent) : IRequest<PaymentMethodDto>;
+
+public class UpdatePaymentMethodHandler(IPaymentMethodRepository repo)
+    : IRequestHandler<UpdatePaymentMethodCommand, PaymentMethodDto>
+{
+    public async Task<PaymentMethodDto> Handle(UpdatePaymentMethodCommand cmd, CancellationToken ct)
+    {
+        var method = await repo.GetByIdAsync(cmd.MethodId, ct)
+            ?? throw new KeyNotFoundException($"Método de pago {cmd.MethodId} no encontrado.");
+
+        if (method.TenantId != cmd.TenantId)
+            throw new UnauthorizedAccessException();
+
+        method.Update(
+            string.IsNullOrWhiteSpace(cmd.Name) ? method.Name : cmd.Name.Trim(),
+            cmd.HasDeduction,
+            cmd.HasDeduction ? Math.Max(0, Math.Min(100, cmd.DeductionPercent)) : 0);
+
+        await repo.SaveChangesAsync(ct);
+        return new PaymentMethodDto(method.Id, method.Name, method.HasDeduction, method.DeductionPercent, method.IsActive);
+    }
+}

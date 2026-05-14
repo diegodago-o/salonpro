@@ -5,6 +5,7 @@ using SalonPro.SalonOperations.Application.DTOs;
 using SalonPro.SalonOperations.Application.Queries;
 using SalonPro.Shared.Common;
 using SalonPro.Shared.Interfaces;
+using System.ComponentModel.DataAnnotations;
 
 namespace SalonPro.SalonOperations.Api.Controllers;
 
@@ -55,6 +56,20 @@ public class PaymentMethodsController(IMediator mediator, IPaymentMethodService 
     public async Task<ActionResult<ApiResponse<PaymentMethodDto>>> Toggle(int id, CancellationToken ct)
     {
         var result = await mediator.Send(new TogglePaymentMethodQuery(GetTenantId(), id), ct);
+        return Ok(ApiResponse<PaymentMethodDto>.Ok(result));
+    }
+
+    /// <summary>
+    /// Actualiza nombre y configuración de deducción de un método de pago.
+    /// PATCH /api/v1/payment-methods/{id}
+    /// </summary>
+    [HttpPatch("{id:int}")]
+    [Authorize(Roles = "TenantOwner")]
+    public async Task<ActionResult<ApiResponse<PaymentMethodDto>>> Update(
+        int id, [FromBody] UpdatePaymentMethodRequest req, CancellationToken ct)
+    {
+        var result = await mediator.Send(
+            new UpdatePaymentMethodCommand(GetTenantId(), id, req.Name, req.HasDeduction, req.DeductionPercent), ct);
         return Ok(ApiResponse<PaymentMethodDto>.Ok(result));
     }
 }

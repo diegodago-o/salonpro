@@ -6,3 +6,5 @@ public record PaymentMethodDto(
     bool HasDeduction,
     decimal DeductionPercent,
     bool IsActive = true);
+
+public record UpdatePaymentMethodRequest(string Name, bool HasDeduction, decimal DeductionPercent);

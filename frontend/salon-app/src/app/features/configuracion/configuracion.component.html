@@ -269,17 +269,78 @@
           <div style="text-align:center;padding:32px;color:var(--ink-4)">Cargando métodos…</div>
         } @else {
           @for (m of paymentMethods(); track m.id) {
-            <div style="display:flex;align-items:center;gap:14px;padding:14px;border-bottom:1px dashed var(--hair-2)">
-              <div style="width:36px;height:36px;background:var(--bone);border-radius:6px;display:flex;align-items:center;justify-content:center">
-                <sp-icon [name]="paymentIcon(m.name)" [size]="16" />
-              </div>
-              <div style="flex:1">
-                <div style="font-size:13px;font-weight:500">{{ m.name }}</div>
-                @if (m.hasDeduction) {
-                  <div style="font-size:11px;color:var(--ink-4)">Deducción: {{ m.deductionPercent }}%</div>
-                }
-              </div>
-              <div [class]="'toggle' + (m.isActive ? ' on' : '')" (click)="togglePaymentMethod(m)"></div>
+            <div style="border-bottom:1px dashed var(--hair-2)">
+
+              <!-- MODO EDICIÓN -->
+              @if (editingPaymentId() === m.id && editPaymentForm(); as f) {
+                <div style="padding:16px;background:var(--surface-2);border-radius:6px;margin:6px 0">
+                  <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-4);margin-bottom:10px">Editando método de pago</div>
+                  <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+
+                    <!-- Nombre -->
+                    <label class="field" style="flex:1;min-width:160px">
+                      <span class="label">Nombre</span>
+                      <input class="input" [value]="f.name"
+                        (input)="updatePaymentForm('name', $any($event.target).value)" />
+                    </label>
+
+                    <!-- Toggle tiene cargo -->
+                    <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:3px">
+                      <span class="label">Cobra cargo bancario</span>
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div [class]="'toggle' + (f.hasDeduction ? ' on' : '')"
+                          (click)="updatePaymentForm('hasDeduction', !f.hasDeduction)"></div>
+                        <span style="font-size:12px;color:var(--ink-3)">{{ f.hasDeduction ? 'Sí' : 'No' }}</span>
+                      </div>
+                    </div>
+
+                    <!-- % Deducción -->
+                    <label class="field" style="width:110px">
+                      <span class="label">Deducción %</span>
+                      <input class="input mono" type="number" min="0" max="100" step="0.5"
+                        [value]="f.deductionPercent"
+                        (input)="updatePaymentForm('deductionPercent', +$any($event.target).value)"
+                        [attr.disabled]="f.hasDeduction ? null : true"
+                        [style.opacity]="f.hasDeduction ? '1' : '0.4'" />
+                    </label>
+                  </div>
+
+                  <!-- Botones -->
+                  <div style="display:flex;gap:8px;margin-top:12px">
+                    <button class="btn btn-primary btn-sm" (click)="savePaymentMethod(m)"
+                      [disabled]="savingPayment() || !f.name.trim()">
+                      {{ savingPayment() ? 'Guardando…' : 'Guardar cambios' }}
+                    </button>
+                    <button class="btn btn-ghost btn-sm" (click)="cancelEditPayment()" [disabled]="savingPayment()">
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+
+              <!-- MODO LECTURA -->
+              } @else {
+                <div style="display:flex;align-items:center;gap:14px;padding:14px">
+                  <div style="width:36px;height:36px;background:var(--bone);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <sp-icon [name]="paymentIcon(m.name)" [size]="16" />
+                  </div>
+                  <div style="flex:1">
+                    <div style="font-size:13px;font-weight:500">{{ m.name }}</div>
+                    @if (m.hasDeduction) {
+                      <div style="font-size:11px;color:var(--ink-4)">Deducción: {{ m.deductionPercent }}%</div>
+                    } @else {
+                      <div style="font-size:11px;color:var(--ink-5)">Sin cargo bancario</div>
+                    }
+                  </div>
+                  <button class="btn btn-ghost btn-sm"
+                    style="font-size:11px;padding:4px 10px;color:var(--ink-3)"
+                    (click)="startEditPayment(m)"
+                    [disabled]="editingPaymentId() !== null">
+                    Editar
+                  </button>
+                  <div [class]="'toggle' + (m.isActive ? ' on' : '')" (click)="togglePaymentMethod(m)"></div>
+                </div>
+              }
+
             </div>
           }
           @empty {
