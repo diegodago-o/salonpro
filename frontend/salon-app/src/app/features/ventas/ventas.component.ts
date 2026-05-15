@@ -309,7 +309,10 @@ export class VentasComponent implements OnInit {
 
   private cargarVentas(): void {
     const branch = this.branchService.selectedBranch();
-    this.ventasService.getVentas(undefined, undefined, branch?.id, branch?.name).subscribe(r => this.ventas.set(r.data));
+    const hoy = new Date().toISOString().slice(0, 10);
+    const from = new Date(hoy + 'T00:00:00').toISOString();
+    const to   = new Date(hoy + 'T23:59:59').toISOString();
+    this.ventasService.getVentas(from, to, branch?.id, branch?.name).subscribe(r => this.ventas.set(r.data));
   }
 
   private verificarCaja(): void {
