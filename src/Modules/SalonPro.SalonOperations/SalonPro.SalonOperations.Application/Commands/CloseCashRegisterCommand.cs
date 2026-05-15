@@ -36,6 +36,12 @@ public class CloseCashRegisterHandler(ICashRegisterRepository cashRepo, ISaleRep
             .ToList();
 
         var details = new List<CashRegisterDetail>();
+
+        // expectedCash = dinero físico que debería haber en la caja al cierre.
+        // Solo el Efectivo ingresa al cajón físico.
+        // Tarjeta, Nequi, Daviplata, Transferencia, etc. van al sistema bancario, NO al cajón.
+        // Las deducciones (comisiones bancarias) ya están CONTENIDAS dentro del totalAmount;
+        // no se restan aquí porque no reducen el físico que tiene el cajero en mano.
         decimal expectedCash = cr.OpeningBalance;
 
         foreach (var group in paymentGroups)
@@ -46,9 +52,9 @@ public class CloseCashRegisterHandler(ICashRegisterRepository cashRepo, ISaleRep
                 group.Key.PaymentMethodName, totalAmount, totalDeductions);
             details.Add(detail);
 
-            // Only cash payments add to expected cash
-            // For simplicity, add all net amounts to expected
-            expectedCash += totalAmount - totalDeductions;
+            // Solo el efectivo suma al físico de caja
+            if (group.Key.PaymentMethodName.Equals("Efectivo", StringComparison.OrdinalIgnoreCase))
+                expectedCash += totalAmount;
         }
 
         cr.Close(cmd.Request.DeclaredCash, expectedCash, cmd.Request.Notes);
