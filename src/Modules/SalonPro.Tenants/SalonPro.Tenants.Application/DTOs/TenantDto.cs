@@ -56,3 +56,5 @@ public record UpdateTenantRequest(
 );
 
 public record ChangeTenantStatusRequest(string Status, string? Reason);
+
+public record ResetOwnerPasswordRequest(string NewPassword);

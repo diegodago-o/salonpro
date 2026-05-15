@@ -9,6 +9,7 @@ public interface IUserRepository
     Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
     Task<User?> GetByRefreshTokenAsync(string refreshToken, CancellationToken ct = default);
     Task<IEnumerable<User>> GetByTenantAsync(int tenantId, int? branchId = null, CancellationToken ct = default);
+    Task<User?> GetOwnerByTenantAsync(int tenantId, CancellationToken ct = default);
     Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default);
     Task AddAsync(User user, CancellationToken ct = default);
     Task DeleteByTenantIdAsync(int tenantId, CancellationToken ct = default);

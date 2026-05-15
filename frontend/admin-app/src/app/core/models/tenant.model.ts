@@ -89,3 +89,14 @@ export interface UpdateSubscriptionRequest {
   extraBranches: number;
   billingCycle: string;
 }
+
+export interface TenantOwner {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  documentType: string | null;
+  documentNumber: string | null;
+  isActive: boolean;
+  createdAt: string;
+}

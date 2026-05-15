@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TenantService } from '../../../core/services/tenant.service';
 import { PlanService } from '../../../core/services/plan.service';
-import { Tenant, TenantStatus, Branch, CreateBranchRequest, UpdateSubscriptionRequest } from '../../../core/models/tenant.model';
+import { Tenant, TenantStatus, Branch, CreateBranchRequest, UpdateSubscriptionRequest, TenantOwner } from '../../../core/models/tenant.model';
 import { Plan } from '../../../core/models/plan.model';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
@@ -138,6 +138,59 @@ import { environment } from '../../../../environments/environment';
           </div>
         </div>
 
+        <!-- Owner -->
+        <div class="branches-card" style="margin-bottom:20px">
+          <div class="branches-header">
+            <div class="card-title">👤 Administrador del salón</div>
+            @if (owner()) {
+              <button class="btn-outline btn-sm" (click)="openResetPassword()">🔑 Cambiar contraseña</button>
+            }
+          </div>
+
+          @if (ownerLoading()) {
+            <div class="loading-inline">Cargando datos del administrador…</div>
+          }
+
+          @if (!ownerLoading() && !owner()) {
+            <div class="no-data">No se encontró el administrador del salón.</div>
+          }
+
+          @if (!ownerLoading() && owner(); as o) {
+            <div class="info-grid" style="max-width:600px">
+              <div class="info-item">
+                <span class="info-label">Nombre completo</span>
+                <span class="info-value">{{ o.fullName }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Correo electrónico</span>
+                <span class="info-value">{{ o.email }}</span>
+              </div>
+              @if (o.phone) {
+                <div class="info-item">
+                  <span class="info-label">Teléfono</span>
+                  <span class="info-value">{{ o.phone }}</span>
+                </div>
+              }
+              @if (o.documentNumber) {
+                <div class="info-item">
+                  <span class="info-label">Documento ({{ o.documentType ?? 'CC' }})</span>
+                  <span class="info-value">{{ o.documentNumber }}</span>
+                </div>
+              }
+              <div class="info-item">
+                <span class="info-label">Estado de la cuenta</span>
+                <span class="badge" [class]="o.isActive ? 'badge-active' : 'badge-suspended'">
+                  {{ o.isActive ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Creado</span>
+                <span class="info-value">{{ o.createdAt | date:'dd/MM/yyyy' }}</span>
+              </div>
+            </div>
+          }
+        </div>
+
         <!-- Branches -->
         <div class="branches-card">
           <div class="branches-header">
@@ -255,6 +308,55 @@ import { environment } from '../../../../environments/environment';
               <button class="btn-secondary" (click)="closeModals()">Cancelar</button>
               <button class="btn-primary" (click)="saveBranch()" [disabled]="saving()">
                 {{ saving() ? 'Guardando…' : 'Agregar sede' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- MODAL: Reset owner password -->
+      @if (showPasswordModal()) {
+        <div class="modal-backdrop" (click)="closeModals()">
+          <div class="modal modal-sm" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <h3>🔑 Cambiar contraseña del administrador</h3>
+              <button class="modal-close" (click)="closeModals()">×</button>
+            </div>
+            <div class="modal-body">
+              @if (modalError()) { <div class="alert-error">{{ modalError() }}</div> }
+              <p style="font-size:13px;color:#6b7280;margin:0 0 16px">
+                Se cambiará la contraseña de <strong>{{ owner()?.email }}</strong>.
+                La sesión activa del administrador quedará invalidada.
+              </p>
+              <div class="form-grid">
+                <div class="field full">
+                  <label>Nueva contraseña *</label>
+                  <input [type]="showPwd ? 'text' : 'password'"
+                         [(ngModel)]="passwordForm.newPassword"
+                         placeholder="Mínimo 6 caracteres" />
+                </div>
+                <div class="field full">
+                  <label>Confirmar contraseña *</label>
+                  <input [type]="showPwd ? 'text' : 'password'"
+                         [(ngModel)]="passwordForm.confirmPassword"
+                         placeholder="Repite la contraseña" />
+                </div>
+              </div>
+              @if (passwordForm.newPassword && passwordForm.confirmPassword &&
+                   passwordForm.newPassword !== passwordForm.confirmPassword) {
+                <div class="alert-error" style="margin-top:8px">Las contraseñas no coinciden.</div>
+              }
+              <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#6b7280;margin-top:12px;cursor:pointer">
+                <input type="checkbox" [(ngModel)]="showPwd" /> Mostrar contraseña
+              </label>
+            </div>
+            <div class="modal-footer">
+              <button class="btn-secondary" (click)="closeModals()">Cancelar</button>
+              <button class="btn-primary" (click)="savePassword()"
+                      [disabled]="saving() || !passwordForm.newPassword || !passwordForm.confirmPassword ||
+                                  passwordForm.newPassword !== passwordForm.confirmPassword ||
+                                  passwordForm.newPassword.length < 6">
+                {{ saving() ? 'Guardando…' : 'Cambiar contraseña' }}
               </button>
             </div>
           </div>
@@ -483,12 +585,18 @@ export class TenantDetailComponent implements OnInit {
   loading = signal(true);
   branchesLoading = signal(true);
 
+  owner = signal<TenantOwner | null>(null);
+  ownerLoading = signal(true);
+
   showEditModal = signal(false);
   showBranchModal = signal(false);
   showPlanModal = signal(false);
+  showPasswordModal = signal(false);
   saving = signal(false);
   modalError = signal('');
   selectedPlanId = 0;
+  showPwd = false;
+  passwordForm = { newPassword: '', confirmPassword: '' };
   subForm: UpdateSubscriptionRequest = { planId: 0, extraBranches: 0, billingCycle: 'Monthly' };
 
   editForm = { businessName: '', tradeName: <string | null>null, email: '', phone: <string | null>null, address: <string | null>null, city: <string | null>null };
@@ -509,6 +617,7 @@ export class TenantDetailComponent implements OnInit {
     this.tenantId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadTenant();
     this.loadBranches();
+    this.loadOwner();
     this.planSvc.getAll().subscribe(r => this.plans.set(r));
   }
 
@@ -525,6 +634,38 @@ export class TenantDetailComponent implements OnInit {
     this.svc.getBranches(this.tenantId).subscribe({
       next: b => { this.branches.set(b); this.branchesLoading.set(false); },
       error: () => this.branchesLoading.set(false)
+    });
+  }
+
+  loadOwner() {
+    this.ownerLoading.set(true);
+    this.svc.getOwner(this.tenantId).subscribe({
+      next: o => { this.owner.set(o); this.ownerLoading.set(false); },
+      error: () => { this.owner.set(null); this.ownerLoading.set(false); }
+    });
+  }
+
+  openResetPassword() {
+    this.passwordForm = { newPassword: '', confirmPassword: '' };
+    this.showPwd = false;
+    this.modalError.set('');
+    this.showPasswordModal.set(true);
+  }
+
+  savePassword() {
+    if (this.passwordForm.newPassword !== this.passwordForm.confirmPassword) return;
+    this.saving.set(true);
+    this.modalError.set('');
+    this.svc.resetOwnerPassword(this.tenantId, this.passwordForm.newPassword).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.closeModals();
+        this.toast.success('Contraseña actualizada correctamente.');
+      },
+      error: (err: any) => {
+        this.saving.set(false);
+        this.modalError.set(err.error?.message || 'Error al cambiar la contraseña.');
+      }
     });
   }
 
@@ -616,5 +757,6 @@ export class TenantDetailComponent implements OnInit {
     this.showEditModal.set(false);
     this.showBranchModal.set(false);
     this.showPlanModal.set(false);
+    this.showPasswordModal.set(false);
   }
 }

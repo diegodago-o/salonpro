@@ -102,6 +102,14 @@ public class User
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void ChangePassword(string newPasswordHash)
+    {
+        PasswordHash = newPasswordHash;
+        RefreshToken = null;          // invalidar sesiones activas
+        RefreshTokenExpiresAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public bool IsRefreshTokenValid(string token) =>
         RefreshToken == token && RefreshTokenExpiresAt > DateTime.UtcNow;
 }

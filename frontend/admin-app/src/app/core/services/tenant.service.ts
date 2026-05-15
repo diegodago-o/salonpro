@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Branch, CreateBranchRequest, CreateTenantRequest, CreateTenantResponse, PagedResult, Tenant, UpdateSubscriptionRequest } from '../models/tenant.model';
+import { Branch, CreateBranchRequest, CreateTenantRequest, CreateTenantResponse, PagedResult, Tenant, TenantOwner, UpdateSubscriptionRequest } from '../models/tenant.model';
 import { map } from 'rxjs/operators';
 
 interface ApiResponse<T> { success: boolean; data: T; message: string | null; }
@@ -56,5 +56,14 @@ export class TenantService {
   updateSubscription(tenantId: number, req: UpdateSubscriptionRequest) {
     return this.http.put<ApiResponse<any>>(`${this.base}/${tenantId}/subscription`, req)
       .pipe(map(r => r.data));
+  }
+
+  getOwner(tenantId: number) {
+    return this.http.get<ApiResponse<TenantOwner>>(`${this.base}/${tenantId}/owner`)
+      .pipe(map(r => r.data));
+  }
+
+  resetOwnerPassword(tenantId: number, newPassword: string) {
+    return this.http.patch<ApiResponse<void>>(`${this.base}/${tenantId}/owner/password`, { newPassword });
   }
 }

@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalonPro.Shared.Common;
+using SalonPro.Shared.Exceptions;
 using SalonPro.Tenants.Application.Commands.Branches;
 using SalonPro.Tenants.Application.Commands.Subscriptions;
 using SalonPro.Tenants.Application.Commands.Tenants;
@@ -63,6 +64,23 @@ public class TenantsController(IMediator mediator) : ControllerBase
     {
         await mediator.Send(new ChangeTenantStatusCommand(id, request.Status), ct);
         return Ok(ApiResponse.Ok("Estado actualizado."));
+    }
+
+    // --- Administrador (TenantOwner) ---
+
+    [HttpGet("{tenantId:int}/owner")]
+    public async Task<ActionResult<ApiResponse<TenantOwnerDto>>> GetOwner(int tenantId, CancellationToken ct)
+    {
+        var result = await mediator.Send(new GetTenantOwnerQuery(tenantId), ct);
+        return Ok(ApiResponse<TenantOwnerDto>.Ok(result));
+    }
+
+    [HttpPatch("{tenantId:int}/owner/password")]
+    public async Task<ActionResult<ApiResponse>> ResetOwnerPassword(
+        int tenantId, [FromBody] ResetOwnerPasswordRequest request, CancellationToken ct)
+    {
+        await mediator.Send(new ResetOwnerPasswordCommand(tenantId, request.NewPassword), ct);
+        return Ok(ApiResponse.Ok("Contraseña actualizada correctamente."));
     }
 
     // --- Branches de un tenant ---

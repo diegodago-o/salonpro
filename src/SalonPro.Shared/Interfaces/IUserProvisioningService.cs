@@ -1,5 +1,15 @@
 namespace SalonPro.Shared.Interfaces;
 
+public record TenantOwnerInfo(
+    int Id,
+    string FullName,
+    string Email,
+    string? Phone,
+    string? DocumentType,
+    string? DocumentNumber,
+    bool IsActive,
+    DateTime CreatedAt);
+
 public interface IUserProvisioningService
 {
     Task CreateTenantOwnerAsync(
@@ -12,4 +22,8 @@ public interface IUserProvisioningService
         CancellationToken ct);
 
     Task DeleteTenantUsersAsync(int tenantId, CancellationToken ct);
+
+    Task<TenantOwnerInfo?> GetTenantOwnerAsync(int tenantId, CancellationToken ct);
+
+    Task ResetTenantOwnerPasswordAsync(int tenantId, string newPassword, CancellationToken ct);
 }

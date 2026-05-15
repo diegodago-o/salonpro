@@ -25,6 +25,10 @@ public class UserRepository(IdentityDbContext db) : IUserRepository
         return await query.OrderBy(u => u.FullName).ToListAsync(ct);
     }
 
+    public async Task<User?> GetOwnerByTenantAsync(int tenantId, CancellationToken ct = default) =>
+        await db.Users.FirstOrDefaultAsync(
+            u => u.TenantId == tenantId && u.Role == SalonPro.Identity.Domain.Enums.UserRole.TenantOwner, ct);
+
     public async Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default) =>
         await db.Users.AnyAsync(u => u.Email == email.ToLower().Trim(), ct);
 
