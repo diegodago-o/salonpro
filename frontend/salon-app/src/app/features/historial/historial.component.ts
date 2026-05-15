@@ -6,6 +6,7 @@ import { VentasService } from '../../core/services/ventas.service';
 import { BranchService } from '../../core/services/branch.service';
 import { Sale } from '../../core/models/ventas.models';
 import { IconComponent } from '../../shared/components/icon/icon.component';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-historial',
@@ -95,6 +96,57 @@ export class HistorialComponent {
   cerrarDetalle(): void {
     this.mostrarModal.set(false);
     this.ventaDetalle.set(null);
+  }
+
+  private hoy(): string {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  filtrarHoy(): void {
+    this.filtroFechaDesde = this.hoy();
+    this.filtroFechaHasta = this.hoy();
+    this.cargar();
+  }
+
+  verTodas(): void {
+    this.filtroFechaDesde = '';
+    this.filtroFechaHasta = '';
+    this.cargar();
+  }
+
+  descargarExcel(): void {
+    const ventas = this.ventasFiltradas();
+    if (!ventas.length) return;
+
+    const rows = ventas.map(v => ({
+      'Folio':          v.id,
+      'Fecha':          new Date(v.saleDateTime).toLocaleString('es-CO'),
+      'Sede':           v.branchName ?? '',
+      'Estilista':      v.stylistName,
+      'Comisión %':     v.commissionPercent,
+      'Cliente':        v.clientName,
+      'Documento':      v.clientDocument,
+      'Tipo doc.':      v.clientDocumentType ?? '',
+      'Teléfono':       v.clientPhone ?? '',
+      'Método pago':    v.paymentMethodName,
+      'Servicios':      v.grossServices,
+      'Productos':      v.grossProducts,
+      'Propina':        v.tipAmount,
+      'Deducciones':    v.totalDeductions,
+      'Total bruto':    v.grossTotal,
+      'Est. total':     v.stylistTotal,
+      'Salón total':    v.salonTotal,
+      'Estado':         v.status === 'Active' ? 'Activa' : 'Anulada',
+      'Motivo anul.':   v.voidedReason ?? '',
+      'Notas':          v.notes ?? '',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Ventas');
+
+    const fecha = this.hoy();
+    XLSX.writeFile(wb, `historial-ventas-${fecha}.xlsx`);
   }
 
   itemTypeLabel(type: string): string {

@@ -17,6 +17,15 @@ public class SaleRepository(SalonOpsDbContext db) : ISaleRepository
            || (saleBranchId == null && (branchName == null                         // históricas sin id:
                || saleBranchName == branchName));                                  //   coincide por nombre
 
+    public async Task<IEnumerable<Sale>> GetAllByTenantAsync(int tenantId, int? branchId = null, string? branchName = null, CancellationToken ct = default) =>
+        await db.Sales
+            .Include(s => s.Payments)
+            .Where(s => s.TenantId == tenantId
+                        && (branchId == null || s.BranchId == branchId
+                            || (s.BranchId == null && (branchName == null || s.BranchName == branchName))))
+            .OrderByDescending(s => s.SaleDateTime)
+            .ToListAsync(ct);
+
     public async Task<IEnumerable<Sale>> GetTodayByTenantAsync(int tenantId, int? branchId = null, string? branchName = null, CancellationToken ct = default)
     {
         var today = DateTime.UtcNow.Date;

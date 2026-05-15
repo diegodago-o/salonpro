@@ -56,7 +56,7 @@ public class GetSalesHandler(ISaleRepository repo)
         if (query.From.HasValue && query.To.HasValue)
             sales = await repo.GetByTenantAndDateRangeAsync(query.TenantId, query.From.Value, query.To.Value, query.BranchId, query.BranchName, ct);
         else
-            sales = await repo.GetTodayByTenantAsync(query.TenantId, query.BranchId, query.BranchName, ct);
+            sales = await repo.GetAllByTenantAsync(query.TenantId, query.BranchId, query.BranchName, ct);
 
         return sales.Select(s => SaleDtoMapper.ToDto(s));
     }

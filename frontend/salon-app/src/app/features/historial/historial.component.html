@@ -5,7 +5,9 @@
       <h1><span class="serif">Historial de</span> <span class="serif-italic">ventas</span></h1>
       <div class="deck">{{ ventas().length }} transacciones cargadas</div>
     </div>
-    <button class="btn btn-ghost"><sp-icon name="download" [size]="14" /> CSV</button>
+    <button class="btn btn-ghost" (click)="descargarExcel()" [disabled]="ventasFiltradas().length === 0">
+      <sp-icon name="download" [size]="14" /> Excel
+    </button>
   </div>
 
   <!-- ── Filtros ─────────────────────────────────────────── -->
@@ -33,8 +35,11 @@
         <option value="Voided">Anulada</option>
       </select>
 
-      <button class="btn btn-ghost" style="font-size:12px" (click)="cargar()">
-        <sp-icon name="refresh-cw" [size]="13" /> Hoy
+      <button class="btn btn-ghost" style="font-size:12px" (click)="filtrarHoy()">
+        <sp-icon name="calendar" [size]="13" /> Hoy
+      </button>
+      <button class="btn btn-ghost" style="font-size:12px" (click)="verTodas()">
+        <sp-icon name="refresh-cw" [size]="13" /> Todas
       </button>
     </div>
 
