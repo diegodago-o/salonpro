@@ -17,7 +17,7 @@ public class Client
     private Client() { }
 
     public static Client Create(int tenantId, string documentType, string documentNumber,
-        string fullName, string? email, string phone)
+        string fullName, string? email, string? phone)
     {
         return new Client
         {
@@ -26,20 +26,20 @@ public class Client
             DocumentNumber = documentNumber.Trim(),
             FullName = fullName.Trim(),
             Email = email?.Trim(),
-            Phone = phone.Trim(),
+            Phone = (phone ?? string.Empty).Trim(),
             TotalVisits = 0,
             TotalSpent = 0,
             CreatedAt = DateTime.UtcNow
         };
     }
 
-    public void Update(string documentType, string documentNumber, string fullName, string? email, string phone)
+    public void Update(string documentType, string documentNumber, string fullName, string? email, string? phone)
     {
         DocumentType = documentType.Trim();
         DocumentNumber = documentNumber.Trim();
         FullName = fullName.Trim();
         Email = email?.Trim();
-        Phone = phone.Trim();
+        Phone = (phone ?? string.Empty).Trim();
     }
 
     public void RecordVisit(decimal amount)
