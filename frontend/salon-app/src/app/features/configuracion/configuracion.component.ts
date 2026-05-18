@@ -103,6 +103,25 @@ export class ConfiguracionComponent implements OnInit {
     if (t === 'salon' && !this.salonForm().businessName) this.cargarSalon();
   }
 
+  // ── Helpers ────────────────────────────────────────────
+  /**
+   * Convierte una logoUrl (relativa o absoluta) a una URL HTTPS completa
+   * que el navegador pueda cargar sin errores de mixed-content.
+   *   /uploads/logos/x.jpg            → https://api.host.com/uploads/logos/x.jpg
+   *   http://api.host.com/...         → https://api.host.com/...
+   *   https://api.host.com/...        → sin cambios
+   *   data:image/...                  → sin cambios (preview local)
+   */
+  private resolveLogo(url: string | null | undefined): string {
+    if (!url) return '';
+    if (url.startsWith('/')) {
+      const base = environment.apiUrl.replace(/\/api\/v\d+$/, '');
+      return `${base}${url}`;
+    }
+    if (url.startsWith('http://')) return url.replace('http://', 'https://');
+    return url;
+  }
+
   // ── Datos del salón ─────────────────────────────────────
   cargarSalon(): void {
     this.cargandoSalon.set(true);
@@ -115,7 +134,7 @@ export class ConfiguracionComponent implements OnInit {
           phone:        d.phone       ?? '',
           address:      d.address     ?? '',
           city:         d.city        ?? '',
-          logoUrl:      d.logoUrl     ?? '',
+          logoUrl:      this.resolveLogo(d.logoUrl),
           nit:          d.nit         ?? '',
           email:        d.email       ?? '',
         });
@@ -146,8 +165,8 @@ export class ConfiguracionComponent implements OnInit {
     fd.append('file', file);
     this.http.post<ApiResp<any>>(`${this.profileBase}/logo`, fd).subscribe({
       next: r => {
-        // Reemplazar el base64 por la URL real del servidor
-        this.salonForm.update(f => ({ ...f, logoUrl: r.data.logoUrl }));
+        // Reemplazar el base64 por la URL real del servidor (normalizada a HTTPS)
+        this.salonForm.update(f => ({ ...f, logoUrl: this.resolveLogo(r.data.logoUrl) }));
         this.subiendoLogo.set(false);
       },
       error: () => {

@@ -309,11 +309,21 @@ export class VentasComponent implements OnInit {
       });
   }
 
+  /** Normaliza la URL del logo para evitar mixed-content (http→https, ruta→URL completa). */
+  private resolveLogo(url: string | null | undefined): string {
+    if (!url) return '';
+    if (url.startsWith('/')) return `${environment.apiUrl.replace(/\/api\/v\d+$/, '')}${url}`;
+    if (url.startsWith('http://')) return url.replace('http://', 'https://');
+    return url;
+  }
+
   ngOnInit(): void {
     this.verificarCaja();
     // Cargar logo del salón para el recibo
     this.http.get<any>(`${environment.apiUrl}/tenants/profile`).subscribe({
-      next: r => { if (r?.data?.logoUrl) this.logoSalon.set(r.data.logoUrl); },
+      next: r => {
+        if (r?.data?.logoUrl) this.logoSalon.set(this.resolveLogo(r.data.logoUrl));
+      },
       error: () => {}
     });
 

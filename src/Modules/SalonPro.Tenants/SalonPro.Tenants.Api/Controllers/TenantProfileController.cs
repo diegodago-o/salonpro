@@ -71,7 +71,9 @@ public class TenantProfileController(IMediator mediator) : ControllerBase
         await using var stream = System.IO.File.Create(filePath);
         await file.CopyToAsync(stream, ct);
 
-        var logoUrl = $"{Request.Scheme}://{Request.Host}/uploads/logos/{fileName}";
+        // Se devuelve ruta relativa para que el cliente construya la URL
+        // con su propio esquema (evita mixed-content http/https detrás de proxy).
+        var logoUrl = $"/uploads/logos/{fileName}";
         return Ok(ApiResponse<object>.Ok(new { logoUrl }, "Logo subido correctamente."));
     }
 }
