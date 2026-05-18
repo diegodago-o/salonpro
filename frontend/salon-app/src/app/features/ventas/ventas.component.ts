@@ -5,6 +5,8 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { VentasService } from '../../core/services/ventas.service';
 import { CajaService } from '../../core/services/caja.service';
 import { BranchService } from '../../core/services/branch.service';
+import { ClientesService } from '../../core/services/clientes.service';
+import { Cliente } from '../../core/models/clientes.models';
 import {
   ClientOption, PaymentEntry, PaymentMethodOption, ProductOption,
   SaleCalculation, SaleItem, SaleProductItem, SaleServiceItem,
@@ -40,6 +42,7 @@ export class VentasComponent implements OnInit {
   private readonly ventasService = inject(VentasService);
   private readonly cajaService = inject(CajaService);
   private readonly branchService = inject(BranchService);
+  private readonly clientesService = inject(ClientesService);
 
   readonly vista = signal<Vista>('lista');
   readonly guardando = signal(false);
@@ -57,6 +60,22 @@ export class VentasComponent implements OnInit {
 
   readonly clienteEncontrado = signal<ClientOption | null>(null);
   readonly buscandoCliente = signal(false);
+
+  // ── Buscador de clientes existentes ───────────────────
+  readonly clientesDisponibles = signal<Cliente[]>([]);
+  readonly busquedaCliente = signal('');
+  readonly mostrarSugerencias = signal(false);
+  readonly clientesSugeridos = computed(() => {
+    const q = this.busquedaCliente().toLowerCase().trim();
+    if (q.length < 2) return [];
+    return this.clientesDisponibles()
+      .filter(c =>
+        c.fullName.toLowerCase().includes(q) ||
+        c.documentNumber.includes(q) ||
+        (c.phone && c.phone.includes(q))
+      )
+      .slice(0, 7);
+  });
   readonly items = signal<SaleItem[]>([]);
   readonly peluqueroSeleccionado = signal<StylistOption | null>(null);
   readonly cajaAbierta = signal(false);
@@ -321,6 +340,10 @@ export class VentasComponent implements OnInit {
       next: r => this.metodosPago.set(r.data),
       error: () => {}
     });
+    this.clientesService.getClientes().subscribe({
+      next: r => { if (r.success) this.clientesDisponibles.set(r.data); },
+      error: () => {}
+    });
   }
 
   private cargarVentas(): void {
@@ -362,6 +385,23 @@ export class VentasComponent implements OnInit {
       }
       this.buscandoCliente.set(false);
     });
+  }
+
+  seleccionarClienteExistente(c: Cliente): void {
+    this.formCliente.patchValue({
+      documentType:   c.documentType,
+      documentNumber: c.documentNumber,
+      fullName:       c.fullName,
+      email:          c.email ?? '',
+      phone:          c.phone,
+    });
+    this.busquedaCliente.set('');
+    this.mostrarSugerencias.set(false);
+  }
+
+  onBusquedaBlur(): void {
+    // Pequeño delay para que el mousedown en la sugerencia se procese antes de cerrar
+    setTimeout(() => this.mostrarSugerencias.set(false), 160);
   }
 
   // ── Items ─────────────────────────────────────────────
@@ -655,6 +695,8 @@ export class VentasComponent implements OnInit {
     this.items.set([]);
     this.pagos.set([{ paymentMethodId: null, amount: 0 }]);
     this.clienteEncontrado.set(null);
+    this.busquedaCliente.set('');
+    this.mostrarSugerencias.set(false);
     this.peluqueroSeleccionado.set(null);
     this.filtroServicio.set('');
     this.categoriaServicio.set('Todos');

@@ -369,7 +369,71 @@
           <!-- STEP 3: Pago -->
           @if (step() === 3) {
             <div [formGroup]="formCliente">
-              <div class="eyebrow" style="margin-bottom:8px">Cliente (opcional)</div>
+              <div class="eyebrow" style="margin-bottom:10px">Cliente (opcional)</div>
+
+              <!-- ── Buscador autocomplete ─────────────────────── -->
+              <div style="position:relative;margin-bottom:16px">
+                <div style="position:relative">
+                  <sp-icon name="search" [size]="14"
+                    style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-4);pointer-events:none" />
+                  <input class="input" style="padding-left:36px"
+                    placeholder="Buscar cliente por nombre, documento o teléfono…"
+                    [value]="busquedaCliente()"
+                    (input)="busquedaCliente.set($any($event.target).value); mostrarSugerencias.set(true)"
+                    (focus)="mostrarSugerencias.set(true)"
+                    (blur)="onBusquedaBlur()" />
+                  @if (busquedaCliente()) {
+                    <button type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--ink-4);padding:2px"
+                      (mousedown)="busquedaCliente.set(''); mostrarSugerencias.set(false); formCliente.reset({documentType:'CC'})">
+                      <sp-icon name="x" [size]="12" />
+                    </button>
+                  }
+                </div>
+
+                <!-- Sugerencias -->
+                @if (mostrarSugerencias() && clientesSugeridos().length > 0) {
+                  <div style="position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:200;
+                    background:white;border:1px solid var(--hair-2);border-radius:10px;
+                    box-shadow:0 8px 24px rgba(0,0,0,0.10);overflow:hidden">
+                    @for (c of clientesSugeridos(); track c.id) {
+                      <button type="button"
+                        style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+                          padding:10px 14px;border:none;background:none;cursor:pointer;
+                          border-bottom:1px solid var(--bone)"
+                        (mousedown)="seleccionarClienteExistente(c)">
+                        <div style="width:32px;height:32px;border-radius:999px;background:var(--accent-soft);
+                          color:var(--accent-deep);display:flex;align-items:center;justify-content:center;
+                          font-size:12px;font-weight:600;flex-shrink:0">
+                          {{ c.fullName.split(' ')[0][0] }}{{ (c.fullName.split(' ')[1] || '')[0] || '' }}
+                        </div>
+                        <div style="flex:1;min-width:0">
+                          <div style="font-weight:500;font-size:13px">{{ c.fullName }}</div>
+                          <div style="font-size:11px;color:var(--ink-4)">
+                            {{ c.documentType }} {{ c.documentNumber }}
+                            @if (c.phone) { · {{ c.phone }} }
+                          </div>
+                        </div>
+                        @if (c.totalVisits > 0) {
+                          <div style="font-size:11px;color:var(--ink-4);text-align:right;flex-shrink:0">
+                            {{ c.totalVisits }} visita{{ c.totalVisits !== 1 ? 's' : '' }}
+                          </div>
+                        }
+                      </button>
+                    }
+                  </div>
+                }
+
+                @if (mostrarSugerencias() && busquedaCliente().length >= 2 && clientesSugeridos().length === 0) {
+                  <div style="position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:200;
+                    background:white;border:1px solid var(--hair-2);border-radius:10px;
+                    box-shadow:0 8px 24px rgba(0,0,0,0.10);padding:14px;
+                    font-size:13px;color:var(--ink-4);text-align:center">
+                    Sin resultados — puedes ingresar los datos manualmente
+                  </div>
+                }
+              </div>
+
+              <!-- ── Campos del cliente ────────────────────────── -->
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
                 <label class="field">
                   <span class="label">Nombre completo</span>
