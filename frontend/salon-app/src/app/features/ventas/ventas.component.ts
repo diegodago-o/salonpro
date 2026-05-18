@@ -61,7 +61,8 @@ export class VentasComponent implements OnInit {
   ];
 
   // Signals que reflejan la validez de los reactive forms (computed no detecta cambios en .valid)
-  readonly formClienteValido = signal(false);
+  // El cliente es completamente opcional → inicia en true
+  readonly formClienteValido = signal(true);
   readonly formVentaValido   = signal(false);
 
   // ── Pago mixto ────────────────────────────────────────
@@ -559,7 +560,7 @@ export class VentasComponent implements OnInit {
   private resetFormulario(): void {
     this.formCliente.reset({ documentType: 'CC' });
     this.formVenta.reset({ tipAmount: 0 });
-    this.formClienteValido.set(false);
+    this.formClienteValido.set(true);   // cliente es opcional → siempre válido al resetear
     this.formVentaValido.set(false);
     this.items.set([]);
     this.pagos.set([{ paymentMethodId: null, amount: 0 }]);
@@ -590,7 +591,6 @@ export class VentasComponent implements OnInit {
   razonBotonDeshabilitado(): string {
     const pendientes: string[] = [];
     if (!this.hayServicios())                          pendientes.push('agrega al menos un servicio');
-    if (!this.formClienteValido())                     pendientes.push('completa los datos del cliente');
     if (!this.formVentaValido() || !this.formVenta.get('stylistId')!.value) pendientes.push('selecciona un peluquero');
     if (this.pagos().some(p => !p.paymentMethodId))    pendientes.push('selecciona el método de pago');
     if (this.diferenciaPago() > 0)  pendientes.push(`falta ${this.diferenciaPago().toLocaleString('es-CO')} por asignar`);

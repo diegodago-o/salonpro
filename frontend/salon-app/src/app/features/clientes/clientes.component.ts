@@ -3,12 +3,13 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ClientesService } from '../../core/services/clientes.service';
 import { Cliente, CreateClienteRequest } from '../../core/models/clientes.models';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 
 type Vista = 'lista' | 'nuevo' | 'detalle';
 
 @Component({
   selector: 'app-clientes',
-  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe],
+  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, IconComponent],
   templateUrl: './clientes.component.html',
   styleUrl: './clientes.component.scss'
 })

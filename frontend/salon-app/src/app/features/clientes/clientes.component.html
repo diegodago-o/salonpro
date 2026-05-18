@@ -1,103 +1,166 @@
-<div class="page">
+<div class="page fade-in">
 
-  <div class="page-header">
-    <h1 class="page-title">👥 Clientes</h1>
-    @if (vista() === 'lista') {
-      <button class="btn-primary" (click)="abrirNuevo()">+ Nuevo cliente</button>
-    }
-  </div>
-
-  @if (msg()) {
-    <div class="alert" [class.alert-ok]="msg()!.type==='ok'" [class.alert-err]="msg()!.type==='err'">
-      {{ msg()!.text }}
-    </div>
-  }
-
-  <!-- ── LISTA ── -->
   @if (vista() === 'lista') {
-    <div class="card">
-      <div class="toolbar">
-        <input type="text" class="search-input" placeholder="Buscar por nombre, documento o teléfono..."
-          [value]="filtro()" (input)="filtro.set($any($event.target).value)" />
-        <span class="count-badge">{{ clientesFiltrados().length }} clientes</span>
+    <!-- ── LISTA ──────────────────────────────────────────── -->
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">CRM</div>
+        <h1><span class="serif">Gestión de</span> <span class="serif-italic">clientes</span></h1>
+        <div class="deck">{{ clientesFiltrados().length }} clientes registrados</div>
       </div>
+      <button class="btn btn-primary" (click)="abrirNuevo()">
+        <sp-icon name="plus" [size]="14" /> Nuevo cliente
+      </button>
+    </div>
 
-      @if (clientesFiltrados().length === 0) {
-        <div class="empty">Sin clientes que coincidan.</div>
-      } @else {
+    @if (msg()) {
+      <div style="padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:16px"
+        [style.background]="msg()!.type==='ok' ? 'var(--success-soft)' : 'var(--danger-soft)'"
+        [style.color]="msg()!.type==='ok' ? 'var(--success)' : 'var(--danger)'">
+        {{ msg()!.text }}
+      </div>
+    }
+
+    <!-- Buscador -->
+    <div style="margin-bottom:16px">
+      <input class="input" style="max-width:360px"
+        placeholder="Buscar por nombre, documento o teléfono…"
+        [value]="filtro()" (input)="filtro.set($any($event.target).value)" />
+    </div>
+
+    @if (clientesFiltrados().length === 0) {
+      <div class="card" style="padding:60px;text-align:center;color:var(--ink-4)">
+        <div style="font-size:14px;margin-top:12px">No hay clientes que coincidan</div>
+        <button class="btn btn-primary" style="margin-top:20px" (click)="abrirNuevo()">
+          <sp-icon name="plus" [size]="14" /> Agregar primer cliente
+        </button>
+      </div>
+    } @else {
+      <div class="card" style="overflow:hidden">
         <div class="table-wrap">
-          <table class="data-table">
+          <table class="tbl">
             <thead>
               <tr>
-                <th>Nombre</th><th>Documento</th><th>Teléfono</th>
-                <th class="text-right">Visitas</th><th class="text-right">Total gastado</th>
-                <th>Última visita</th><th></th>
+                <th>Nombre</th>
+                <th>Documento</th>
+                <th>Teléfono</th>
+                <th style="text-align:right">Visitas</th>
+                <th style="text-align:right">Total gastado</th>
+                <th>Última visita</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               @for (c of clientesFiltrados(); track c.id) {
-                <tr class="clickable" (click)="abrirDetalle(c)">
-                  <td class="name-cell">{{ c.fullName }}</td>
-                  <td class="doc-cell">{{ c.documentType }} {{ c.documentNumber }}</td>
+                <tr style="cursor:pointer" (click)="abrirDetalle(c)">
+                  <td><div style="font-weight:500">{{ c.fullName }}</div></td>
+                  <td style="font-size:12px;color:var(--ink-3)">{{ c.documentType }} {{ c.documentNumber }}</td>
                   <td>{{ c.phone }}</td>
-                  <td class="text-right">{{ c.totalVisits }}</td>
-                  <td class="text-right">{{ c.totalSpent | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
-                  <td>{{ c.lastVisit ? (c.lastVisit | date:'dd/MM/yyyy') : '—' }}</td>
-                  <td><button class="btn-sm" (click)="$event.stopPropagation(); abrirDetalle(c)">Editar</button></td>
+                  <td class="tnum" style="text-align:right">{{ c.totalVisits }}</td>
+                  <td class="tnum serif" style="text-align:right;font-size:16px">
+                    {{ c.totalSpent | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                  </td>
+                  <td style="color:var(--ink-3);font-size:13px">
+                    {{ c.lastVisit ? (c.lastVisit | date:'dd/MM/yyyy') : '—' }}
+                  </td>
+                  <td>
+                    <button class="btn btn-icon btn-ghost" title="Editar"
+                      (click)="$event.stopPropagation(); abrirDetalle(c)">
+                      <sp-icon name="edit" [size]="14" />
+                    </button>
+                  </td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
-      }
-    </div>
+      </div>
+    }
   }
 
-  <!-- ── FORM (Nuevo / Editar) ── -->
   @if (vista() === 'nuevo' || vista() === 'detalle') {
-    <div class="form-container">
-      <button class="btn-back" (click)="volver()">← Volver</button>
-      <div class="card form-card">
-        <h2 class="form-title">{{ vista() === 'nuevo' ? 'Nuevo cliente' : 'Editar cliente' }}</h2>
+    <!-- ── FORMULARIO (Nuevo / Editar) ────────────────────── -->
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">{{ vista() === 'nuevo' ? 'Nuevo' : 'Editar' }} cliente</div>
+        <h1 style="font-size:28px">
+          <span class="serif">{{ vista() === 'nuevo' ? 'Agregar' : 'Modificar' }}</span>
+          <span class="serif-italic"> cliente</span>
+        </h1>
+      </div>
+      <button class="btn btn-ghost" (click)="volver()">
+        <sp-icon name="arrow-left" [size]="14" /> Volver
+      </button>
+    </div>
+
+    @if (msg()) {
+      <div style="padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:16px"
+        [style.background]="msg()!.type==='ok' ? 'var(--success-soft)' : 'var(--danger-soft)'"
+        [style.color]="msg()!.type==='ok' ? 'var(--success)' : 'var(--danger)'">
+        {{ msg()!.text }}
+      </div>
+    }
+
+    <div class="card" style="max-width:560px">
+      <div style="padding:32px">
 
         @if (vista() === 'detalle' && clienteSeleccionado()) {
-          <div class="cliente-stats">
-            <div class="stat"><span class="stat-label">Visitas</span><strong>{{ clienteSeleccionado()!.totalVisits }}</strong></div>
-            <div class="stat"><span class="stat-label">Total gastado</span><strong>{{ clienteSeleccionado()!.totalSpent | currency:'COP':'symbol-narrow':'1.0-0' }}</strong></div>
-            <div class="stat"><span class="stat-label">Última visita</span><strong>{{ clienteSeleccionado()!.lastVisit ? (clienteSeleccionado()!.lastVisit! | date:'dd/MM/yyyy') : '—' }}</strong></div>
+          <!-- Stats card para edición -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px">
+            <div style="text-align:center;padding:14px;background:var(--bone);border-radius:8px">
+              <div class="eyebrow" style="margin-bottom:4px">Visitas</div>
+              <div class="serif tnum" style="font-size:26px">{{ clienteSeleccionado()!.totalVisits }}</div>
+            </div>
+            <div style="text-align:center;padding:14px;background:var(--bone);border-radius:8px">
+              <div class="eyebrow" style="margin-bottom:4px">Gastado</div>
+              <div class="serif tnum" style="font-size:18px">
+                {{ clienteSeleccionado()!.totalSpent | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+              </div>
+            </div>
+            <div style="text-align:center;padding:14px;background:var(--bone);border-radius:8px">
+              <div class="eyebrow" style="margin-bottom:4px">Última visita</div>
+              <div style="font-size:13px;font-weight:500;margin-top:4px">
+                {{ clienteSeleccionado()!.lastVisit ? (clienteSeleccionado()!.lastVisit! | date:'dd/MM/yyyy') : '—' }}
+              </div>
+            </div>
           </div>
         }
 
-        <div [formGroup]="form" class="form-grid">
-          <div class="field-group">
-            <label class="field-label">Tipo de documento *</label>
-            <select formControlName="documentType" class="field-input">
-              <option value="CC">CC</option><option value="CE">CE</option>
-              <option value="NIT">NIT</option><option value="PP">PP</option>
+        <div [formGroup]="form" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <label class="field">
+            <span class="label">Tipo de documento *</span>
+            <select class="input select-cat" formControlName="documentType">
+              <option value="CC">CC — Cédula ciudadanía</option>
+              <option value="CE">CE — Cédula extranjería</option>
+              <option value="NIT">NIT</option>
+              <option value="PP">PP — Pasaporte</option>
             </select>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Número de documento *</label>
-            <input type="text" formControlName="documentNumber" class="field-input" placeholder="Ej: 1234567890" />
-          </div>
-          <div class="field-group full-width">
-            <label class="field-label">Nombre completo *</label>
-            <input type="text" formControlName="fullName" class="field-input" placeholder="Nombre y apellidos" />
-          </div>
-          <div class="field-group">
-            <label class="field-label">Teléfono *</label>
-            <input type="tel" formControlName="phone" class="field-input" placeholder="3001234567" />
-          </div>
-          <div class="field-group">
-            <label class="field-label">Correo <span class="opt">(opcional)</span></label>
-            <input type="email" formControlName="email" class="field-input" placeholder="correo@email.com" />
-          </div>
+          </label>
+          <label class="field">
+            <span class="label">Número de documento *</span>
+            <input class="input mono" formControlName="documentNumber" placeholder="Ej: 1234567890" />
+          </label>
+          <label class="field" style="grid-column:span 2">
+            <span class="label">Nombre completo *</span>
+            <input class="input" formControlName="fullName" placeholder="Nombre y apellidos" />
+          </label>
+          <label class="field">
+            <span class="label">Teléfono *</span>
+            <input class="input mono" type="tel" formControlName="phone" placeholder="3001234567" />
+          </label>
+          <label class="field">
+            <span class="label">Correo <span style="color:var(--ink-4)">(opcional)</span></span>
+            <input class="input" type="email" formControlName="email" placeholder="correo@email.com" />
+          </label>
         </div>
 
-        <div class="form-actions">
-          <button class="btn-secondary" (click)="volver()">Cancelar</button>
-          <button class="btn-primary" (click)="guardar()" [disabled]="form.invalid || guardando()">
-            {{ guardando() ? 'Guardando...' : (vista() === 'nuevo' ? 'Crear cliente' : 'Guardar cambios') }}
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:24px">
+          <button class="btn btn-ghost" (click)="volver()" [disabled]="guardando()">Cancelar</button>
+          <button class="btn btn-primary" (click)="guardar()" [disabled]="form.invalid || guardando()">
+            @if (guardando()) { Guardando… } @else {
+              <sp-icon name="check" [size]="14" />
+              {{ vista() === 'nuevo' ? 'Crear cliente' : 'Guardar cambios' }}
+            }
           </button>
         </div>
       </div>

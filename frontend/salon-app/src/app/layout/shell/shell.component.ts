@@ -10,8 +10,9 @@ interface NavItem { id: string; label: string; icon: string; route: string; role
 
 const NAV_OWNER: NavItem[] = [
   { id:'dashboard',      label:'Dashboard',         icon:'home',     route:'/dashboard' },
-  { id:'ventas',         label:'Punto de venta',    icon:'pos',      route:'/ventas' },
+  { id:'ventas',         label:'Registrar ventas',  icon:'pos',      route:'/ventas' },
   { id:'historial',      label:'Historial',          icon:'history',  route:'/historial' },
+  { id:'clientes',       label:'Clientes',           icon:'users',    route:'/clientes' },
   { id:'historico',      label:'Carga histórica',    icon:'calendar', route:'/historico' },
   { id:'servicios',      label:'Servicios',          icon:'scissors', route:'/servicios' },
   { id:'inventario',     label:'Inventario',         icon:'box',      route:'/inventario', badge:'Stock bajo' },
@@ -22,10 +23,11 @@ const NAV_OWNER: NavItem[] = [
 ];
 
 const NAV_CASHIER: NavItem[] = [
-  { id:'ventas',         label:'Punto de venta',  icon:'pos',      route:'/ventas' },
-  { id:'historial',      label:'Historial',        icon:'history',  route:'/historial' },
-  { id:'inventario',     label:'Inventario',       icon:'box',      route:'/inventario' },
-  { id:'caja',           label:'Caja',             icon:'cash',     route:'/caja' },
+  { id:'ventas',         label:'Registrar ventas', icon:'pos',      route:'/ventas' },
+  { id:'historial',      label:'Historial',         icon:'history',  route:'/historial' },
+  { id:'clientes',       label:'Clientes',          icon:'users',    route:'/clientes' },
+  { id:'inventario',     label:'Inventario',        icon:'box',      route:'/inventario' },
+  { id:'caja',           label:'Caja',              icon:'cash',     route:'/caja' },
 ];
 
 const NAV_STYLIST: NavItem[] = [
