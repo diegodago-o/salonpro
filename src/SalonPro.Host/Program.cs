@@ -149,7 +149,7 @@ try
     // WebRootPath sea null en el publicado de producción.
     var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
     Directory.CreateDirectory(wwwrootPath);   // crea si no existe
-    app.UseStaticFiles(new Microsoft.AspNetCore.StaticFiles.StaticFileOptions
+    app.UseStaticFiles(new StaticFileOptions
     {
         FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(wwwrootPath),
         RequestPath  = ""
