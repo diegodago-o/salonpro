@@ -54,10 +54,17 @@ export class ConfiguracionComponent implements OnInit {
 
   get branches() { return this.branchSvc.branches(); }
 
-  // ── Salon form (static for now) ─────────────────────────
-  readonly salonForm = {
-    nombre: '', razonSocial: '', direccion: '', ciudad: '', telefono: '', nit: ''
-  };
+  // ── Salon form ─────────────────────────────────────────
+  private readonly profileBase = `${environment.apiUrl}/tenants/profile`;
+
+  readonly salonForm = signal({
+    businessName: '', tradeName: '', phone: '',
+    address: '', city: '', logoUrl: '',
+    nit: '', email: '',   // read-only, solo para mostrar
+  });
+  readonly cargandoSalon = signal(false);
+  readonly guardandoSalon = signal(false);
+  readonly salonMsg = signal<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   readonly policies = signal({
     descontarConsumoInterno: true,
@@ -85,12 +92,75 @@ export class ConfiguracionComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadUsers();
+    this.cargarSalon();
   }
 
   onTabChange(t: Tab) {
     this.tab.set(t);
-    if (t === 'users') this.loadUsers();
+    if (t === 'users')   this.loadUsers();
     if (t === 'payments') this.loadPaymentMethods();
+    if (t === 'salon' && !this.salonForm().businessName) this.cargarSalon();
+  }
+
+  // ── Datos del salón ─────────────────────────────────────
+  cargarSalon(): void {
+    this.cargandoSalon.set(true);
+    this.http.get<ApiResp<any>>(this.profileBase).subscribe({
+      next: r => {
+        const d = r.data;
+        this.salonForm.set({
+          businessName: d.businessName ?? '',
+          tradeName:    d.tradeName   ?? '',
+          phone:        d.phone       ?? '',
+          address:      d.address     ?? '',
+          city:         d.city        ?? '',
+          logoUrl:      d.logoUrl     ?? '',
+          nit:          d.nit         ?? '',
+          email:        d.email       ?? '',
+        });
+        this.cargandoSalon.set(false);
+      },
+      error: () => this.cargandoSalon.set(false)
+    });
+  }
+
+  updateSalonForm(field: string, value: string): void {
+    this.salonForm.update(f => ({ ...f, [field]: value }));
+  }
+
+  onLogoFileChange(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.salonForm.update(f => ({ ...f, logoUrl: e.target?.result as string ?? '' }));
+    };
+    reader.readAsDataURL(file);
+  }
+
+  guardarSalon(): void {
+    if (this.guardandoSalon()) return;
+    this.guardandoSalon.set(true);
+    const f = this.salonForm();
+    const body = {
+      businessName: f.businessName,
+      tradeName:    f.tradeName  || null,
+      phone:        f.phone      || null,
+      address:      f.address    || null,
+      city:         f.city       || null,
+      logoUrl:      f.logoUrl    || null,
+    };
+    this.http.put<ApiResp<any>>(this.profileBase, body).subscribe({
+      next: () => {
+        this.salonMsg.set({ type: 'ok', text: 'Cambios guardados correctamente.' });
+        this.guardandoSalon.set(false);
+        setTimeout(() => this.salonMsg.set(null), 4000);
+      },
+      error: () => {
+        this.salonMsg.set({ type: 'err', text: 'Error al guardar. Intenta de nuevo.' });
+        this.guardandoSalon.set(false);
+      }
+    });
   }
 
   // ── Payment methods ─────────────────────────────────────

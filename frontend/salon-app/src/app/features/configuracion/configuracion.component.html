@@ -22,45 +22,87 @@
 
       <!-- DATOS DEL SALÓN -->
       @if (tab() === 'salon') {
-        <div class="eyebrow">Datos del salón</div>
-        <h3 class="serif" style="margin:4px 0 24px;font-size:26px;font-weight:400">Información general</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-          <label class="field">
-            <span class="label">Nombre comercial</span>
-            <input class="input" [(ngModel)]="salonForm.nombre" />
-          </label>
-          <label class="field">
-            <span class="label">Razón social</span>
-            <input class="input" [(ngModel)]="salonForm.razonSocial" />
-          </label>
-          <label class="field">
-            <span class="label">Dirección</span>
-            <input class="input" [(ngModel)]="salonForm.direccion" />
-          </label>
-          <label class="field">
-            <span class="label">Ciudad</span>
-            <input class="input" [(ngModel)]="salonForm.ciudad" />
-          </label>
-          <label class="field">
-            <span class="label">Teléfono</span>
-            <input class="input" [(ngModel)]="salonForm.telefono" />
-          </label>
-          <label class="field">
-            <span class="label">NIT</span>
-            <input class="input mono" [(ngModel)]="salonForm.nit" />
-          </label>
-        </div>
-        <hr class="hr" style="margin:24px 0" />
-        <div class="eyebrow" style="margin-bottom:12px">Logo</div>
-        <div style="display:flex;align-items:center;gap:16px">
-          <div style="width:80px;height:80px;background:var(--ink);color:var(--bone);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:Fraunces,serif;font-size:24px;font-weight:300">
-            S<span style="color:var(--accent)">54</span>
+        @if (cargandoSalon()) {
+          <div style="text-align:center;padding:48px;color:var(--ink-4)">Cargando datos del salón…</div>
+        } @else {
+          <div class="eyebrow">Datos del salón</div>
+          <h3 class="serif" style="margin:4px 0 24px;font-size:26px;font-weight:400">Información general</h3>
+
+          @if (salonMsg()) {
+            <div style="padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:20px"
+              [style.background]="salonMsg()!.type==='ok' ? 'var(--success-soft)' : 'var(--danger-soft)'"
+              [style.color]="salonMsg()!.type==='ok' ? 'var(--success)' : 'var(--danger)'">
+              {{ salonMsg()!.text }}
+            </div>
+          }
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <label class="field">
+              <span class="label">Nombre comercial *</span>
+              <input class="input" [value]="salonForm().businessName"
+                (input)="updateSalonForm('businessName', $any($event.target).value)" />
+            </label>
+            <label class="field">
+              <span class="label">Razón social</span>
+              <input class="input" [value]="salonForm().tradeName"
+                (input)="updateSalonForm('tradeName', $any($event.target).value)" />
+            </label>
+            <label class="field">
+              <span class="label">Dirección</span>
+              <input class="input" [value]="salonForm().address"
+                (input)="updateSalonForm('address', $any($event.target).value)" />
+            </label>
+            <label class="field">
+              <span class="label">Ciudad</span>
+              <input class="input" [value]="salonForm().city"
+                (input)="updateSalonForm('city', $any($event.target).value)" />
+            </label>
+            <label class="field">
+              <span class="label">Teléfono</span>
+              <input class="input" [value]="salonForm().phone"
+                (input)="updateSalonForm('phone', $any($event.target).value)" />
+            </label>
+            <label class="field">
+              <span class="label">NIT <span style="color:var(--ink-4);font-size:10px">(no editable)</span></span>
+              <input class="input mono" [value]="salonForm().nit" readonly
+                style="opacity:0.55;cursor:not-allowed;background:var(--bone)" />
+            </label>
           </div>
-          <button class="btn btn-ghost"><sp-icon name="download" [size]="14" /> Cambiar logo</button>
-        </div>
-        <div style="margin-top:24px;display:flex;justify-content:flex-end">
-          <button class="btn btn-primary"><sp-icon name="check" [size]="14" /> Guardar cambios</button>
-        </div>
+
+          <hr class="hr" style="margin:24px 0" />
+
+          <div class="eyebrow" style="margin-bottom:12px">Logo</div>
+          <div style="display:flex;align-items:center;gap:16px">
+            <!-- Vista previa del logo -->
+            @if (salonForm().logoUrl) {
+              <img [src]="salonForm().logoUrl" alt="Logo"
+                style="width:80px;height:80px;border-radius:8px;object-fit:contain;border:1px solid var(--hair-2)" />
+            } @else {
+              <div style="width:80px;height:80px;background:var(--ink);color:var(--bone);border-radius:8px;
+                display:flex;align-items:center;justify-content:center;font-family:Fraunces,serif;font-size:22px;font-weight:300;flex-shrink:0">
+                {{ salonForm().businessName.slice(0,2).toUpperCase() || '??' }}
+              </div>
+            }
+            <!-- Input de archivo oculto -->
+            <label class="btn btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+              <input type="file" accept="image/*" style="display:none" (change)="onLogoFileChange($event)" />
+              <sp-icon name="download" [size]="14" /> Cambiar logo
+            </label>
+            @if (salonForm().logoUrl) {
+              <button class="btn btn-ghost" style="color:var(--danger)"
+                (click)="updateSalonForm('logoUrl', '')">Quitar logo</button>
+            }
+          </div>
+          <div style="font-size:11px;color:var(--ink-4);margin-top:8px">
+            Se mostrará en los recibos del cliente. PNG o JPG, máx. 2 MB.
+          </div>
+
+          <div style="margin-top:28px;display:flex;justify-content:flex-end">
+            <button class="btn btn-primary" (click)="guardarSalon()" [disabled]="guardandoSalon() || !salonForm().businessName.trim()">
+              @if (guardandoSalon()) { Guardando… } @else { <sp-icon name="check" [size]="14" /> Guardar cambios }
+            </button>
+          </div>
+        }
       }
 
       <!-- USUARIOS -->
