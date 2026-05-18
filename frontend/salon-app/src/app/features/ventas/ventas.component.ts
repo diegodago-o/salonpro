@@ -2,10 +2,12 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CurrencyPipe, DatePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { VentasService } from '../../core/services/ventas.service';
 import { CajaService } from '../../core/services/caja.service';
 import { BranchService } from '../../core/services/branch.service';
 import { ClientesService } from '../../core/services/clientes.service';
+import { environment } from '../../../environments/environment';
 import { Cliente } from '../../core/models/clientes.models';
 import {
   ClientOption, PaymentEntry, PaymentMethodOption, ProductOption,
@@ -26,6 +28,7 @@ interface VentaExitosaData {
   clientDocumentType: string;
   clientDocumentNumber: string;
   branchName: string;
+  logoUrl: string;
   fecha: Date;
   itemsRecibo: { name: string; price: number; quantity: number }[];
   pagosRecibo: { method: string; amount: number }[];
@@ -43,6 +46,9 @@ export class VentasComponent implements OnInit {
   private readonly cajaService = inject(CajaService);
   private readonly branchService = inject(BranchService);
   private readonly clientesService = inject(ClientesService);
+  private readonly http = inject(HttpClient);
+
+  readonly logoSalon = signal('');
 
   readonly vista = signal<Vista>('lista');
   readonly guardando = signal(false);
@@ -305,6 +311,11 @@ export class VentasComponent implements OnInit {
 
   ngOnInit(): void {
     this.verificarCaja();
+    // Cargar logo del salón para el recibo
+    this.http.get<any>(`${environment.apiUrl}/tenants/profile`).subscribe({
+      next: r => { if (r?.data?.logoUrl) this.logoSalon.set(r.data.logoUrl); },
+      error: () => {}
+    });
 
     // Sincronizar validez de forms como signals para que puedeRegistrar() reaccione
     this.formCliente.statusChanges.subscribe(s => this.formClienteValido.set(s === 'VALID'));
@@ -560,6 +571,7 @@ export class VentasComponent implements OnInit {
           clientDocumentType: cv.documentType || 'CC',
           clientDocumentNumber: cv.documentNumber?.trim() || '',
           branchName: this.branchService.selectedBranch()?.name ?? 'Sede Principal',
+          logoUrl: this.logoSalon(),
           fecha: new Date(),
           itemsRecibo,
           pagosRecibo,
@@ -649,6 +661,11 @@ export class VentasComponent implements OnInit {
         <td style="text-align:right;color:#555">${fmt(p.amount)}</td>
       </tr>`).join('');
 
+    const logoHtml = d.logoUrl
+      ? `<img src="${d.logoUrl}" alt="logo"
+           style="width:70px;height:70px;object-fit:contain;margin:0 auto 6px;display:block" />`
+      : '';
+
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recibo</title>
     <style>
       * { margin:0; padding:0; box-sizing:border-box; }
@@ -663,6 +680,7 @@ export class VentasComponent implements OnInit {
       .footer { text-align:center; font-size:10px; color:#777; margin-top:10px; }
     </style></head><body>
     <div class="center">
+      ${logoHtml}
       <div class="salon">${d.branchName}</div>
       <div style="font-size:10px;margin-top:3px">${fecha} · ${hora}</div>
     </div>
