@@ -48,6 +48,7 @@ export class InventarioComponent {
     stylistCommissionPercent:[10, [Validators.required, Validators.min(0), Validators.max(100)]],
     stock:                   [0, [Validators.required, Validators.min(0)]],
     isForSale:               [false],
+    barcode:                 [null as string | null],
   });
 
   // Form entrada de stock
@@ -108,7 +109,7 @@ export class InventarioComponent {
   // ── Modal Producto ──────────────────────────────────────
   abrirNuevo(): void {
     this.editandoId.set(null);
-    this.formProducto.reset({ name: '', brand: '', category: '', purchasePrice: 0, salePrice: 0, stylistCommissionPercent: 10, stock: 0, isForSale: false });
+    this.formProducto.reset({ name: '', brand: '', category: '', purchasePrice: 0, salePrice: 0, stylistCommissionPercent: 10, stock: 0, isForSale: false, barcode: null });
     this.catSeleccionada.set('');
     this.errorMsg.set(null);
     this.modalProducto.set(true);
@@ -120,7 +121,7 @@ export class InventarioComponent {
       name: p.name, brand: p.brand, category: p.category,
       purchasePrice: p.purchasePrice, salePrice: p.salePrice,
       stylistCommissionPercent: p.stylistCommissionPercent,
-      stock: p.stock, isForSale: p.isForSale
+      stock: p.stock, isForSale: p.isForSale, barcode: p.barcode ?? null
     });
     const existe = this.categorias().includes(p.category);
     this.catSeleccionada.set(existe ? p.category : this.NUEVA_CAT);
@@ -139,7 +140,8 @@ export class InventarioComponent {
       name: v.name!, brand: v.brand || '', category: v.category!,
       purchasePrice: v.purchasePrice!, salePrice: v.isForSale ? (v.salePrice ?? 0) : 0,
       stylistCommissionPercent: v.stylistCommissionPercent ?? 10,
-      stock: v.stock!, isForSale: v.isForSale ?? false
+      stock: v.stock!, isForSale: v.isForSale ?? false,
+      barcode: v.barcode || null
     };
     const branchId = this.branchService.currentBranchId;
     const op$ = this.modoEdicion()
