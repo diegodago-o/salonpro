@@ -41,23 +41,18 @@ export class ServiciosComponent {
     [...new Set(this.servicios().map(s => s.category))]
   );
 
-  // ── Combo-box de categoría ────────────────────────────
-  readonly showCatDropdown = signal(false);
+  // ── Selector de categoría ────────────────────────────
+  readonly NUEVA_CAT = '__nueva__';
+  readonly catSeleccionada = signal<string>('');   // valor del <select>
 
-  readonly categoriasFiltradas = computed(() => {
-    const typed = (this.form.get('category')?.value ?? '').toLowerCase().trim();
-    const all   = this.categorias();
-    return typed ? all.filter(c => c.toLowerCase().includes(typed)) : all;
-  });
-
-  selectCategory(cat: string) {
-    this.form.get('category')!.setValue(cat);
-    this.showCatDropdown.set(false);
-  }
-
-  onCatBlur() {
-    // Pequeño delay para que el click en la opción se registre antes del blur
-    setTimeout(() => this.showCatDropdown.set(false), 160);
+  onCatSelectChange(value: string): void {
+    this.catSeleccionada.set(value);
+    if (value !== this.NUEVA_CAT) {
+      this.form.get('category')!.setValue(value);
+    } else {
+      // Limpiar para que el usuario escriba
+      this.form.get('category')!.setValue('');
+    }
   }
 
   serviciosPorCategoria(cat: string): Servicio[] {
@@ -83,6 +78,7 @@ export class ServiciosComponent {
   abrirNuevo(): void {
     this.editandoId.set(null);
     this.form.reset({ name: '', category: '', price: 0, hasSalonFee: false, salonFeePercent: 0 });
+    this.catSeleccionada.set('');
     this.errorMsg.set(null);
     this.modalAbierto.set(true);
   }
@@ -93,6 +89,9 @@ export class ServiciosComponent {
       name: s.name, category: s.category, price: s.price,
       hasSalonFee: s.hasSalonFee, salonFeePercent: s.salonFeePercent
     });
+    // Si la categoría ya existe en la lista, la preseleccionamos en el select
+    const existe = this.categorias().includes(s.category);
+    this.catSeleccionada.set(existe ? s.category : this.NUEVA_CAT);
     this.errorMsg.set(null);
     this.modalAbierto.set(true);
   }

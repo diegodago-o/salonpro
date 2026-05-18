@@ -1,1 +1,10 @@
 :host { display: block; }
+
+/* Select de categoría — hereda los estilos .input del global */
+.select-cat {
+  cursor: pointer;
+  appearance: auto;     /* muestra la flecha nativa del SO */
+  padding-right: 32px;  /* espacio para la flecha */
+
+  option[value=""] { color: var(--ink-4); }
+}
