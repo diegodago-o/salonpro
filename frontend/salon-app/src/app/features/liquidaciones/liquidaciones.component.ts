@@ -31,6 +31,8 @@ export class LiquidacionesComponent implements OnInit {
   readonly detalle       = signal<LiquidacionDetalle | null>(null);
   readonly peluqueros    = signal<StylistOption[]>([]);
   readonly guardando     = signal(false);
+  readonly cargando      = signal(true);
+  readonly cargandoPeluqueros = signal(true);
   readonly msg           = signal<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   // ── Período ───────────────────────────────────────────
@@ -93,17 +95,21 @@ export class LiquidacionesComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.cargandoPeluqueros.set(true);
     this.ventasService.getPeluqueros(this.branchService.currentBranchId).subscribe({
-      next: r => this.peluqueros.set(r.data),
-      error: () => {}
+      next: r => this.peluqueros.set(r.data ?? []),
+      error: () => this.mostrarMsg('err', 'No se pudieron cargar los estilistas.'),
+      complete: () => this.cargandoPeluqueros.set(false)
     });
   }
 
   private cargar(): void {
+    this.cargando.set(true);
     const branchId = this.branchService.currentBranchId;
     this.liqService.getLiquidaciones(branchId).subscribe({
-      next: r => this.liquidaciones.set(r.data),
-      error: () => {}
+      next: r => this.liquidaciones.set(r.data ?? []),
+      error: () => this.mostrarMsg('err', 'Error al cargar liquidaciones.'),
+      complete: () => this.cargando.set(false)
     });
   }
 

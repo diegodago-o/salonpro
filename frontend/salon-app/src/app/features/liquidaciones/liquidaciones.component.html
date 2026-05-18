@@ -21,7 +21,9 @@
 
   <!-- ══════════════ LISTA ══════════════ -->
   @if (vista() === 'lista') {
-    @if (abiertas().length === 0 && cerradas().length === 0) {
+    @if (cargando()) {
+      <div class="card" style="padding:60px;text-align:center;color:var(--ink-4)">Cargando liquidaciones…</div>
+    } @else if (abiertas().length === 0 && cerradas().length === 0) {
       <div class="card" style="padding:60px;text-align:center">
         <div class="eyebrow" style="margin-bottom:8px">Sin liquidaciones</div>
         <div style="color:var(--ink-4);font-size:14px">Crea la primera liquidación del período.</div>
@@ -144,13 +146,21 @@
 
         <!-- Peluquero -->
         <label class="field" style="margin-bottom:16px">
-          <span class="label">Peluquero *</span>
-          <select class="select" formControlName="stylistId">
-            <option [ngValue]="null">— Selecciona peluquero —</option>
-            @for (p of peluqueros(); track p.id) {
-              <option [ngValue]="p.id">{{ p.fullName }}</option>
-            }
-          </select>
+          <span class="label">Estilista *</span>
+          @if (cargandoPeluqueros()) {
+            <div class="input" style="color:var(--ink-4);font-size:13px">Cargando estilistas…</div>
+          } @else if (peluqueros().length === 0) {
+            <div class="input" style="color:var(--danger);font-size:13px">
+              No hay estilistas registrados. Agrégalos en Configuración → Usuarios.
+            </div>
+          } @else {
+            <select class="input" formControlName="stylistId">
+              <option [ngValue]="null">— Selecciona estilista —</option>
+              @for (p of peluqueros(); track p.id) {
+                <option [ngValue]="p.id">{{ p.fullName }} ({{ p.commissionPercent }}%)</option>
+              }
+            </select>
+          }
         </label>
 
         <!-- Fechas — siempre visibles; solo editables en "personalizado" -->

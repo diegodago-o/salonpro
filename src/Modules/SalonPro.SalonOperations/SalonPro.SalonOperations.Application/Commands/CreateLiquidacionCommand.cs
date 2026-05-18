@@ -22,29 +22,34 @@ public class CreateLiquidacionHandler(
         var startDate = DateTime.Parse(req.StartDate);
         var endDate = DateTime.Parse(req.EndDate).AddDays(1).AddSeconds(-1); // end of day
 
-        // Get sales for stylist in date range
+        // Get sales for stylist in date range (filtered by branch if provided)
         var sales = (await saleRepo.GetByStylistAndDateRangeAsync(
-            cmd.TenantId, req.StylistId, startDate, endDate, ct: ct))
+            cmd.TenantId, req.StylistId, startDate, endDate, branchId: cmd.BranchId, ct: ct))
             .Where(s => s.Status == SaleStatus.Active)
             .ToList();
 
-        // Get active/applied anticipos for this stylist (by client) — simplified: get all tenant anticipos Applied
-        // For MVP, anticipos applied = 0 (requires linking anticipo to stylist)
+        // Anticipos applied = 0 for MVP (requires linking anticipo to stylist)
         decimal anticiposAplicados = 0;
 
         // Calculate totals from sales
-        var grossServices = sales.Sum(s => s.GrossServices);
-        var grossProducts = sales.Sum(s => s.GrossProducts);
-        var totalDeductions = sales.Sum(s => s.TotalDeductions);
-        var totalTips = sales.Sum(s => s.TipAmount);
+        var grossServices      = sales.Sum(s => s.GrossServices);
+        var grossProducts      = sales.Sum(s => s.GrossProducts);
+        var totalDeductions    = sales.Sum(s => s.TotalDeductions);
+        var totalTips          = sales.Sum(s => s.TipAmount);
         var internalConsumption = sales.Sum(s => s.InternalConsumption);
 
-        // Commission on services (MVP: 50% of (grossServices - deductionOnServices - salonFeeOnServices))
-        // Simplified: use stored StylistTotal if available, else 50%
-        var commServices = Math.Round(grossServices * 0.5m, 2);
-        var commProducts = Math.Round(grossProducts * 0.3m, 2);
+        // Use StylistTotal stored per sale — already correctly calculated during sale registration
+        // (accounts for commission %, deductions, salon fees, product commissions)
+        var totalStylistComm = sales.Sum(s => s.StylistTotal);
 
-        var netoPeluquero = commServices + commProducts + totalTips - anticiposAplicados;
+        // Split proportionally between services and products for display
+        var grossTotal = grossServices + grossProducts;
+        var commServices = grossTotal > 0
+            ? Math.Round(totalStylistComm * grossServices / grossTotal, 2)
+            : totalStylistComm;
+        var commProducts = Math.Round(totalStylistComm - commServices, 2);
+
+        var netoPeluquero = Math.Round(totalStylistComm + totalTips - anticiposAplicados, 2);
 
         var liquidacion = Liquidacion.Create(
             cmd.TenantId, cmd.BranchId, req.StylistId, req.StylistName,
@@ -56,12 +61,16 @@ public class CreateLiquidacionHandler(
         // Add venta records
         foreach (var sale in sales)
         {
-            var deduction = sale.TotalDeductions;
-            var saleCommServices = Math.Round(sale.GrossServices * 0.5m, 2);
-            var saleCommProducts = Math.Round(sale.GrossProducts * 0.3m, 2);
+            // Use StylistTotal from the sale, split proportionally between services and products
+            var saleGross = sale.GrossServices + sale.GrossProducts;
+            var saleComm = sale.StylistTotal;
+            var saleCommServices = saleGross > 0
+                ? Math.Round(saleComm * sale.GrossServices / saleGross, 2)
+                : saleComm;
+            var saleCommProducts = Math.Round(saleComm - saleCommServices, 2);
             liquidacion.Ventas.Add(LiquidacionVenta.Create(
                 0, sale.Id, sale.SaleDateTime, sale.ClientName,
-                sale.GrossServices, sale.GrossProducts, deduction,
+                sale.GrossServices, sale.GrossProducts, sale.TotalDeductions,
                 saleCommServices, saleCommProducts, sale.TipAmount, sale.InternalConsumption));
         }
 
