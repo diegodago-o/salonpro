@@ -82,6 +82,19 @@ public class User
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>Actualización administrativa: nombre, rol, sede, comisión y código.</summary>
+    public void UpdateAdminFields(string fullName, UserRole role, int? branchId,
+        string? branchName, decimal commissionPercent, string? employeeCode)
+    {
+        FullName         = fullName.Trim();
+        Role             = role;
+        BranchId         = branchId;
+        BranchName       = branchName;
+        CommissionPercent = commissionPercent;
+        EmployeeCode     = employeeCode;
+        UpdatedAt        = DateTime.UtcNow;
+    }
+
     public void SetActive(bool isActive)
     {
         IsActive = isActive;

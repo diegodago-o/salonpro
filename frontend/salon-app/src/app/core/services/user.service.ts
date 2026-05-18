@@ -17,6 +17,15 @@ export interface SalonUser {
   employeeCode: string | null;
 }
 
+export interface UpdateUserAdminRequest {
+  fullName: string;
+  role: string;
+  branchId: number | null;
+  branchName: string | null;
+  commissionPercent: number;
+  employeeCode: string | null;
+}
+
 export interface CreateUserRequest {
   fullName: string;
   email: string;
@@ -50,6 +59,10 @@ export class UserService {
 
   create(req: CreateUserRequest) {
     return this.http.post<ApiResponse<SalonUser>>(this.base, req).pipe(map(r => r.data));
+  }
+
+  update(id: number, req: UpdateUserAdminRequest) {
+    return this.http.put<ApiResponse<SalonUser>>(`${this.base}/${id}`, req).pipe(map(r => r.data));
   }
 
   toggle(id: number) {

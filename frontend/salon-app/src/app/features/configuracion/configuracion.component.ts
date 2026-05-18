@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { map } from 'rxjs/operators';
 import { IconComponent } from '../../shared/components/icon/icon.component';
-import { UserService, SalonUser, CreateUserRequest } from '../../core/services/user.service';
+import { UserService, SalonUser, CreateUserRequest, UpdateUserAdminRequest } from '../../core/services/user.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BranchService } from '../../core/services/branch.service';
 import { environment } from '../../../environments/environment';
@@ -44,6 +44,15 @@ export class ConfiguracionComponent implements OnInit {
   readonly showUserModal = signal(false);
   readonly saving = signal(false);
   readonly modalError = signal('');
+
+  // ── Edit user ──────────────────────────────────────────
+  readonly editingUser   = signal<SalonUser | null>(null);
+  readonly editUserForm  = signal<UpdateUserAdminRequest>({
+    fullName: '', role: 'Cashier', branchId: null, branchName: null,
+    commissionPercent: 0, employeeCode: null
+  });
+  readonly savingEdit  = signal(false);
+  readonly editError   = signal('');
 
   readonly userForm = signal<CreateUserRequest>({
     fullName: '', email: '', password: '', role: 'Cashier',
@@ -321,6 +330,49 @@ export class ConfiguracionComponent implements OnInit {
       error: (err) => {
         this.saving.set(false);
         this.modalError.set(err.error?.message || 'Error al crear el usuario.');
+      }
+    });
+  }
+
+  openEdit(u: SalonUser): void {
+    this.editUserForm.set({
+      fullName:         u.fullName,
+      role:             u.role,
+      branchId:         u.branchId,
+      branchName:       u.branchName,
+      commissionPercent: u.commissionPercent,
+      employeeCode:     u.employeeCode
+    });
+    this.editError.set('');
+    this.editingUser.set(u);
+  }
+
+  closeEditModal(): void { this.editingUser.set(null); }
+
+  updateEditForm(field: keyof UpdateUserAdminRequest, value: any): void {
+    this.editUserForm.update(f => ({ ...f, [field]: value }));
+  }
+
+  onEditBranchSelect(id: string): void {
+    const b = this.branches.find(b => b.id === Number(id));
+    this.editUserForm.update(f => ({ ...f, branchId: b?.id ?? null, branchName: b?.name ?? null }));
+  }
+
+  saveEdit(): void {
+    const u = this.editingUser();
+    const f = this.editUserForm();
+    if (!u || !f.fullName.trim()) { this.editError.set('El nombre es obligatorio.'); return; }
+    this.savingEdit.set(true);
+    this.editError.set('');
+    this.userSvc.update(u.id, f).subscribe({
+      next: (updated) => {
+        this.users.update(list => list.map(x => x.id === u.id ? updated : x));
+        this.savingEdit.set(false);
+        this.closeEditModal();
+      },
+      error: (err) => {
+        this.savingEdit.set(false);
+        this.editError.set(err.error?.message || 'Error al guardar los cambios.');
       }
     });
   }

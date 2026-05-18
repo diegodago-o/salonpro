@@ -56,6 +56,19 @@ public class UsersController(IMediator mediator) : ControllerBase
     }
 
     /// <summary>
+    /// Updates name, role, branch and commission for a user in the current tenant.
+    /// PUT /api/v1/users/{id}
+    /// </summary>
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = "TenantOwner")]
+    public async Task<ActionResult<ApiResponse<UserDto>>> Update(
+        int id, [FromBody] UpdateUserAdminRequest request, CancellationToken ct)
+    {
+        var result = await mediator.Send(new UpdateUserAdminCommand(id, GetTenantId(), request), ct);
+        return Ok(ApiResponse<UserDto>.Ok(result, "Usuario actualizado correctamente."));
+    }
+
+    /// <summary>
     /// Toggles active/inactive for a user in the current tenant.
     /// PATCH /api/v1/users/{id}/toggle
     /// </summary>

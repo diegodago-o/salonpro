@@ -47,3 +47,12 @@ public record UpdateUserRequest(
     string? DocumentType,
     string? DocumentNumber
 );
+
+public record UpdateUserAdminRequest(
+    string FullName,
+    string Role,
+    int?    BranchId,
+    string? BranchName,
+    decimal CommissionPercent,
+    string? EmployeeCode
+);
