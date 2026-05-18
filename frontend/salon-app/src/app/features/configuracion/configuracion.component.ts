@@ -64,6 +64,7 @@ export class ConfiguracionComponent implements OnInit {
   });
   readonly cargandoSalon = signal(false);
   readonly guardandoSalon = signal(false);
+  readonly subiendoLogo  = signal(false);
   readonly salonMsg = signal<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   readonly policies = signal({
@@ -131,11 +132,29 @@ export class ConfiguracionComponent implements OnInit {
   onLogoFileChange(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file || !file.type.startsWith('image/')) return;
+
+    // Preview local inmediato
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = (e) =>
       this.salonForm.update(f => ({ ...f, logoUrl: e.target?.result as string ?? '' }));
-    };
     reader.readAsDataURL(file);
+
+    // Subir al servidor
+    this.subiendoLogo.set(true);
+    this.salonMsg.set(null);
+    const fd = new FormData();
+    fd.append('file', file);
+    this.http.post<ApiResp<any>>(`${this.profileBase}/logo`, fd).subscribe({
+      next: r => {
+        // Reemplazar el base64 por la URL real del servidor
+        this.salonForm.update(f => ({ ...f, logoUrl: r.data.logoUrl }));
+        this.subiendoLogo.set(false);
+      },
+      error: () => {
+        this.salonMsg.set({ type: 'err', text: 'Error al subir el logo. Verifica el archivo.' });
+        this.subiendoLogo.set(false);
+      }
+    });
   }
 
   guardarSalon(): void {

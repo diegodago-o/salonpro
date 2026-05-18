@@ -143,6 +143,7 @@ try
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseHttpsRedirection();
     app.UseCors();
+    app.UseStaticFiles();          // sirve wwwroot (logos, uploads, etc.)
     app.UseAuthentication();
     app.UseAuthorization();
     app.UseMiddleware<TenantResolutionMiddleware>();

@@ -84,11 +84,19 @@
               </div>
             }
             <!-- Input de archivo oculto -->
-            <label class="btn btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-              <input type="file" accept="image/*" style="display:none" (change)="onLogoFileChange($event)" />
-              <sp-icon name="download" [size]="14" /> Cambiar logo
+            <label class="btn btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px"
+              [style.opacity]="subiendoLogo() ? '0.6' : '1'"
+              [style.pointer-events]="subiendoLogo() ? 'none' : 'auto'">
+              <input type="file" accept="image/png,image/jpeg,image/webp" style="display:none"
+                (change)="onLogoFileChange($event)" [disabled]="subiendoLogo()" />
+              @if (subiendoLogo()) {
+                <span style="display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite"></span>
+                Subiendo…
+              } @else {
+                <sp-icon name="download" [size]="14" /> Cambiar logo
+              }
             </label>
-            @if (salonForm().logoUrl) {
+            @if (salonForm().logoUrl && !salonForm().logoUrl.startsWith('data:') && !subiendoLogo()) {
               <button class="btn btn-ghost" style="color:var(--danger)"
                 (click)="updateSalonForm('logoUrl', '')">Quitar logo</button>
             }
