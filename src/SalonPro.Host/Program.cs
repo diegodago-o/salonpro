@@ -143,7 +143,17 @@ try
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseHttpsRedirection();
     app.UseCors();
-    app.UseStaticFiles();          // sirve wwwroot (logos, uploads, etc.)
+
+    // Sirve archivos estáticos (logos subidos, etc.) desde wwwroot.
+    // Usamos PhysicalFileProvider explícito para que funcione aunque
+    // WebRootPath sea null en el publicado de producción.
+    var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+    Directory.CreateDirectory(wwwrootPath);   // crea si no existe
+    app.UseStaticFiles(new Microsoft.AspNetCore.StaticFiles.StaticFileOptions
+    {
+        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(wwwrootPath),
+        RequestPath  = ""
+    });
     app.UseAuthentication();
     app.UseAuthorization();
     app.UseMiddleware<TenantResolutionMiddleware>();

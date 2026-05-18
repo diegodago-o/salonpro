@@ -53,7 +53,12 @@ jobs:
             ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'ENDSSH'
               set -e
               sudo systemctl stop salonpro-api || true
-              sudo rsync -a --delete /tmp/salonpro-deploy/ /var/www/salonpro-api/
+              # --exclude wwwroot/uploads → los logos subidos persisten entre deploys
+              sudo rsync -a --delete \
+                --exclude 'wwwroot/uploads' \
+                /tmp/salonpro-deploy/ /var/www/salonpro-api/
+              # Garantizar que el directorio de uploads exista con permisos correctos
+              sudo mkdir -p /var/www/salonpro-api/wwwroot/uploads/logos
               sudo chown -R salonpro:salonpro /var/www/salonpro-api
               sudo systemctl start salonpro-api
               sleep 3
