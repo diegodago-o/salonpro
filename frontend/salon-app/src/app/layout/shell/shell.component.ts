@@ -11,7 +11,7 @@ interface NavItem { id: string; label: string; icon: string; route: string; role
 const NAV_OWNER: NavItem[] = [
   { id:'dashboard',      label:'Dashboard',         icon:'home',     route:'/dashboard' },
   { id:'ventas',         label:'Registrar ventas',  icon:'pos',      route:'/ventas' },
-  { id:'historial',      label:'Historial',          icon:'history',  route:'/historial' },
+  { id:'historial',      label:'Consultar ventas',   icon:'history',  route:'/historial' },
   { id:'clientes',       label:'Clientes',           icon:'users',    route:'/clientes' },
   { id:'historico',      label:'Carga histórica',    icon:'calendar', route:'/historico' },
   { id:'servicios',      label:'Servicios',          icon:'scissors', route:'/servicios' },

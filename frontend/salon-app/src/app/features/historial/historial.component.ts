@@ -1,11 +1,13 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { VentasService } from '../../core/services/ventas.service';
 import { BranchService } from '../../core/services/branch.service';
 import { Sale } from '../../core/models/ventas.models';
 import { IconComponent } from '../../shared/components/icon/icon.component';
+import { environment } from '../../../environments/environment';
 import * as XLSX from 'xlsx';
 
 @Component({
@@ -18,12 +20,26 @@ import * as XLSX from 'xlsx';
 export class HistorialComponent {
   private readonly ventasService = inject(VentasService);
   private readonly branchService = inject(BranchService);
+  private readonly http          = inject(HttpClient);
 
-  readonly ventas       = signal<Sale[]>([]);
-  readonly loading      = signal(true);
+  readonly ventas        = signal<Sale[]>([]);
+  readonly loading       = signal(true);
   readonly loadingDetail = signal(false);
-  readonly ventaDetalle = signal<Sale | null>(null);
-  readonly mostrarModal = signal(false);
+  readonly ventaDetalle  = signal<Sale | null>(null);
+  readonly mostrarModal  = signal(false);
+
+  // ── Logo del salón (para el recibo) ───────────────────
+  readonly logoSalon = signal('');
+
+  // ── Anular venta ──────────────────────────────────────
+  readonly anulando          = signal(false);
+  readonly ventaAAnular      = signal<Sale | null>(null);
+  readonly razonAnulacion    = signal('');
+  readonly guardandoAnulacion = signal(false);
+  readonly errorAnulacion    = signal('');
+
+  // ── Recibo ────────────────────────────────────────────
+  readonly cargandoRecibo = signal<number | null>(null); // ID de la venta en carga
 
   // Filtros
   readonly filtroEstado     = signal('all');
@@ -63,6 +79,121 @@ export class HistorialComponent {
     toObservable(this.branchService.selectedBranch)
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.cargar());
+
+    // Cargar logo del salón para los recibos
+    this.http.get<any>(`${environment.apiUrl}/tenants/profile`).subscribe({
+      next: r => { if (r?.data?.logoUrl) this.logoSalon.set(this.resolveLogo(r.data.logoUrl)); },
+      error: () => {}
+    });
+  }
+
+  // ── Helpers ──────────────────────────────────────────
+  private resolveLogo(url: string | null | undefined): string {
+    if (!url) return '';
+    if (url.startsWith('/')) return `${environment.apiUrl.replace(/\/api\/v\d+$/, '')}${url}`;
+    if (url.startsWith('http://')) return url.replace('http://', 'https://');
+    return url;
+  }
+
+  // ── Anular venta ─────────────────────────────────────
+  iniciarAnulacion(v: Sale): void {
+    this.ventaAAnular.set(v);
+    this.razonAnulacion.set('');
+    this.errorAnulacion.set('');
+    this.anulando.set(true);
+  }
+
+  cancelarAnulacion(): void {
+    this.anulando.set(false);
+    this.ventaAAnular.set(null);
+  }
+
+  confirmarAnulacion(): void {
+    const v     = this.ventaAAnular();
+    const razon = this.razonAnulacion().trim();
+    if (!v || !razon) { this.errorAnulacion.set('Debes indicar el motivo de anulación.'); return; }
+    this.guardandoAnulacion.set(true);
+    this.ventasService.anularVenta(v.id, razon).subscribe({
+      next: () => {
+        this.ventas.update(list =>
+          list.map(x => x.id === v.id ? { ...x, status: 'Voided' as const, voidedReason: razon } : x)
+        );
+        this.guardandoAnulacion.set(false);
+        this.cancelarAnulacion();
+      },
+      error: () => {
+        this.errorAnulacion.set('Error al anular la venta. Intenta de nuevo.');
+        this.guardandoAnulacion.set(false);
+      }
+    });
+  }
+
+  // ── Recibo ────────────────────────────────────────────
+  verRecibo(v: Sale): void {
+    // Si el detalle ya está cargado, imprimimos directo
+    if (v.items && v.payments) { this.imprimirRecibo(v); return; }
+    this.cargandoRecibo.set(v.id);
+    this.ventasService.getSaleDetail(v.id).subscribe({
+      next: r => {
+        const detalle = r.data;
+        // Cachear el detalle en la lista para futuros usos
+        this.ventas.update(list => list.map(x => x.id === v.id ? detalle : x));
+        this.cargandoRecibo.set(null);
+        this.imprimirRecibo(detalle);
+      },
+      error: () => this.cargandoRecibo.set(null)
+    });
+  }
+
+  imprimirRecibo(v: Sale): void {
+    const fmt = (n: number) =>
+      new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
+    const fecha = new Date(v.saleDateTime).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+
+    const logoHtml = this.logoSalon()
+      ? `<img src="${this.logoSalon()}" style="width:70px;height:70px;object-fit:contain;margin:0 auto 8px;display:block">`
+      : '';
+
+    const items = (v.items ?? [])
+      .filter(i => i.type !== 'ProductInternal')
+      .map(i => `<tr><td style="padding:2px 0">${i.name}</td><td style="text-align:right">${fmt(i.subtotal)}</td></tr>`)
+      .join('');
+
+    const pagos = (v.payments ?? [])
+      .map(p => `<tr><td style="padding:2px 0;color:#666">${p.paymentMethodName}</td><td style="text-align:right">${fmt(p.amount)}</td></tr>`)
+      .join('');
+
+    const docLine = v.clientDocument ? `<br><span style="color:#666">${v.clientDocumentType ?? 'Doc'}: ${v.clientDocument}</span>` : '';
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Courier New',monospace;font-size:12px;width:302px;padding:12px}
+h2{font-size:14px;font-weight:bold;text-align:center;margin-bottom:4px}
+.c{text-align:center}.d{border-top:1px dashed #000;margin:8px 0}
+table{width:100%;border-collapse:collapse}td{vertical-align:top}
+.tot td{font-weight:bold;font-size:13px;border-top:1px solid #000;padding-top:4px}
+@media print{@page{margin:0}body{width:100%}}</style>
+</head><body>
+${logoHtml}
+<h2>${v.branchName ?? 'Salón'}</h2>
+<div class="c" style="font-size:11px;color:#555;margin-bottom:8px">${fecha}</div>
+<div class="d"></div>
+<div style="font-size:12px;margin-bottom:6px"><strong>${v.clientName}</strong>${docLine}</div>
+<div class="d"></div>
+<table>${items}</table>
+${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td><td style="text-align:right">${fmt(v.tipAmount)}</td></tr></table>` : ''}
+<div class="d"></div>
+<table><tr class="tot"><td>TOTAL</td><td style="text-align:right">${fmt(v.grossTotal)}</td></tr></table>
+<div class="d"></div>
+<table>${pagos}</table>
+<div class="d"></div>
+<div class="c" style="font-size:10px;color:#888;margin-top:8px">¡Gracias por tu visita!</div>
+<script>window.onload=()=>{window.print();window.close()}<\/script>
+</body></html>`;
+
+    const w = window.open('', '_blank', 'width=420,height=620');
+    w?.document.write(html);
+    w?.document.close();
   }
 
   cargar(): void {

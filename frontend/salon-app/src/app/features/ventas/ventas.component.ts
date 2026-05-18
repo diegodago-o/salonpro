@@ -50,7 +50,7 @@ export class VentasComponent implements OnInit {
 
   readonly logoSalon = signal('');
 
-  readonly vista = signal<Vista>('lista');
+  readonly vista = signal<Vista>('nueva-venta');  // arranca directo en el wizard
   readonly guardando = signal(false);
   readonly errorMsg = signal<string | null>(null);
   readonly successMsg = signal<string | null>(null);

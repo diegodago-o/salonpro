@@ -1,8 +1,8 @@
 <div class="page fade-in">
   <div class="page-head">
     <div>
-      <div class="eyebrow">Operación</div>
-      <h1><span class="serif">Historial de</span> <span class="serif-italic">ventas</span></h1>
+      <div class="eyebrow">Ventas</div>
+      <h1><span class="serif">Consultar</span> <span class="serif-italic">ventas</span></h1>
       <div class="deck">{{ ventas().length }} transacciones cargadas</div>
     </div>
     <button class="btn btn-ghost" (click)="descargarExcel()" [disabled]="ventasFiltradas().length === 0">
@@ -168,10 +168,28 @@
                   }
                 </td>
 
-                <td>
-                  <button class="btn btn-icon btn-ghost" title="Ver detalle" (click)="abrirDetalle(v)">
-                    <sp-icon name="eye" [size]="14" />
+                <td style="white-space:nowrap;text-align:right">
+                  <!-- Ver detalle -->
+                  <button class="btn btn-ghost btn-sm"
+                    style="font-size:11px;padding:3px 8px;display:inline-flex;align-items:center;gap:3px;color:var(--ink-3)"
+                    (click)="abrirDetalle(v)">
+                    <sp-icon name="eye" [size]="13" /> Detalle
                   </button>
+                  <!-- Ver recibo -->
+                  <button class="btn btn-ghost btn-sm"
+                    style="font-size:11px;padding:3px 8px;display:inline-flex;align-items:center;gap:3px;color:var(--ink-3)"
+                    (click)="verRecibo(v)" [disabled]="cargandoRecibo() === v.id">
+                    <sp-icon name="bag" [size]="13" />
+                    {{ cargandoRecibo() === v.id ? '…' : 'Recibo' }}
+                  </button>
+                  <!-- Anular (solo ventas activas) -->
+                  @if (v.status === 'Active') {
+                    <button class="btn btn-ghost btn-sm"
+                      style="font-size:11px;padding:3px 8px;display:inline-flex;align-items:center;gap:3px;color:var(--danger)"
+                      (click)="iniciarAnulacion(v)">
+                      <sp-icon name="x" [size]="13" /> Anular
+                    </button>
+                  }
                 </td>
               </tr>
             }
@@ -191,6 +209,41 @@
 <!-- ═══════════════════════════════════════════════════════════════════
      MODAL DETALLE COMPLETO
 ════════════════════════════════════════════════════════════════════ -->
+<!-- ═══════ MODAL ANULAR ═══════════════════════════════════════════════ -->
+@if (anulando()) {
+  <div class="modal-back" (click)="cancelarAnulacion()">
+    <div class="modal" style="max-width:420px;width:100%" (click)="$event.stopPropagation()">
+      <div style="padding:28px 32px">
+        <div class="eyebrow" style="margin-bottom:4px">Anular venta</div>
+        <h3 class="serif" style="font-size:22px;font-weight:400;margin-bottom:16px">
+          Folio #{{ ventaAAnular()?.id }} — {{ ventaAAnular()?.clientName }}
+        </h3>
+
+        @if (errorAnulacion()) {
+          <div style="background:#fff5f5;border:1px solid #fed7d7;color:#c53030;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px">
+            {{ errorAnulacion() }}
+          </div>
+        }
+
+        <label class="field">
+          <span class="label">Motivo de anulación *</span>
+          <input class="input" [value]="razonAnulacion()"
+            (input)="razonAnulacion.set($any($event.target).value)"
+            placeholder="Ej. Error en el monto, solicitud del cliente…" />
+        </label>
+
+        <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+          <button class="btn btn-ghost" (click)="cancelarAnulacion()" [disabled]="guardandoAnulacion()">Cancelar</button>
+          <button class="btn btn-primary" style="background:var(--danger);border-color:var(--danger)"
+            (click)="confirmarAnulacion()" [disabled]="guardandoAnulacion() || !razonAnulacion().trim()">
+            {{ guardandoAnulacion() ? 'Anulando…' : 'Confirmar anulación' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
 @if (mostrarModal()) {
   <div class="modal-back" (click)="cerrarDetalle()">
     <div class="modal" style="max-width:680px;width:100%" (click)="$event.stopPropagation()">
@@ -399,7 +452,18 @@
           }
         }
 
-        <div style="display:flex;gap:8px;margin-top:24px;justify-content:flex-end">
+        <div style="display:flex;gap:8px;margin-top:24px;justify-content:flex-end;flex-wrap:wrap">
+          @if (ventaDetalle()!.status === 'Active') {
+            <button class="btn btn-ghost" style="color:var(--danger)"
+              (click)="iniciarAnulacion(ventaDetalle()!); cerrarDetalle()">
+              <sp-icon name="x" [size]="14" /> Anular venta
+            </button>
+          }
+          <button class="btn btn-ghost"
+            (click)="verRecibo(ventaDetalle()!)" [disabled]="cargandoRecibo() === ventaDetalle()!.id">
+            <sp-icon name="bag" [size]="14" />
+            {{ cargandoRecibo() === ventaDetalle()!.id ? 'Cargando…' : 'Ver recibo' }}
+          </button>
           <button class="btn btn-primary" (click)="cerrarDetalle()">Cerrar</button>
         </div>
       </div>
