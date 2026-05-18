@@ -55,6 +55,23 @@ export class InventarioComponent {
     cantidad: [0, [Validators.required, Validators.min(1)]],
   });
 
+  readonly categorias = computed(() =>
+    [...new Set(this.productos().map(p => p.category).filter(Boolean))]
+  );
+
+  // ── Selector de categoría ────────────────────────────
+  readonly NUEVA_CAT = '__nueva__';
+  readonly catSeleccionada = signal<string>('');
+
+  onCatSelectChange(value: string): void {
+    this.catSeleccionada.set(value);
+    if (value !== this.NUEVA_CAT) {
+      this.formProducto.get('category')!.setValue(value);
+    } else {
+      this.formProducto.get('category')!.setValue('');
+    }
+  }
+
   readonly lista = computed(() => {
     const t = this.tab();
     const all = this.productos();
@@ -92,6 +109,7 @@ export class InventarioComponent {
   abrirNuevo(): void {
     this.editandoId.set(null);
     this.formProducto.reset({ name: '', brand: '', category: '', purchasePrice: 0, salePrice: 0, stylistCommissionPercent: 10, stock: 0, isForSale: false });
+    this.catSeleccionada.set('');
     this.errorMsg.set(null);
     this.modalProducto.set(true);
   }
@@ -104,6 +122,8 @@ export class InventarioComponent {
       stylistCommissionPercent: p.stylistCommissionPercent,
       stock: p.stock, isForSale: p.isForSale
     });
+    const existe = this.categorias().includes(p.category);
+    this.catSeleccionada.set(existe ? p.category : this.NUEVA_CAT);
     this.errorMsg.set(null);
     this.modalProducto.set(true);
   }

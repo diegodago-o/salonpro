@@ -1,1 +1,8 @@
 :host { display: block; }
+
+.select-cat {
+  cursor: pointer;
+  appearance: auto;
+  padding-right: 32px;
+  option[value=""] { color: var(--ink-4); }
+}

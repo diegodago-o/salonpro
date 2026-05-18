@@ -124,10 +124,26 @@
             <span class="label">Marca</span>
             <input class="input" formControlName="brand" placeholder="Ej: Loreal" />
           </label>
-          <label class="field">
+          <div class="field">
             <span class="label">Categoría *</span>
-            <input class="input" formControlName="category" placeholder="Ej: Cabello, Tintura…" />
-          </label>
+            <select class="input select-cat"
+              [value]="catSeleccionada()"
+              (change)="onCatSelectChange($any($event.target).value)">
+              <option value="" disabled>Selecciona una categoría…</option>
+              @for (c of categorias(); track c) {
+                <option [value]="c">{{ c }}</option>
+              }
+              <option [value]="NUEVA_CAT">＋ Nueva categoría…</option>
+            </select>
+          </div>
+
+          @if (catSeleccionada() === NUEVA_CAT) {
+            <label class="field" style="grid-column:span 2">
+              <span class="label">Nombre de la nueva categoría *</span>
+              <input class="input" formControlName="category"
+                placeholder="Ej: Cabello, Tintura, Manos…" autocomplete="off" />
+            </label>
+          }
           <label class="field">
             <span class="label">Stock inicial</span>
             <input class="input mono" type="number" formControlName="stock" min="0" />
