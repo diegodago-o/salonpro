@@ -15,6 +15,20 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
 
 type Vista = 'lista' | 'nueva-venta' | 'anular';
 
+interface VentaExitosaData {
+  total: number;
+  stylistTotal: number;
+  salonTotal: number;
+  stylistName: string;
+  clientName: string;
+  clientDocumentType: string;
+  clientDocumentNumber: string;
+  branchName: string;
+  fecha: Date;
+  itemsRecibo: { name: string; price: number; quantity: number }[];
+  pagosRecibo: { method: string; amount: number }[];
+}
+
 @Component({
   selector: 'app-ventas',
   imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, IconComponent],
@@ -203,7 +217,8 @@ export class VentasComponent implements OnInit {
   readonly step = signal(0);
   readonly ventaExitosa = signal(false);
   readonly folioVenta = signal('');
-  readonly ventaExitosaData = signal<{ total: number; stylistTotal: number; salonTotal: number; stylistName: string } | null>(null);
+  readonly ventaExitosaData = signal<VentaExitosaData | null>(null);
+  readonly mostrarRecibo = signal(false);
 
   readonly puedeRegistrar = computed(() =>
     this.formVentaValido()
@@ -488,13 +503,28 @@ export class VentasComponent implements OnInit {
 
     this.ventasService.crearVenta(request).subscribe({
       next: (r: any) => {
-        this.cargarVentas();
+        // Capturar datos del recibo antes de resetear el formulario
+        const itemsRecibo = this.items()
+          .filter(i => i.type !== 'ProductInternal')
+          .map(i => ({ name: i.name, price: i.price, quantity: i.quantity }));
+        const pagosRecibo = this.pagos()
+          .filter(p => p.paymentMethodId && p.amount > 0)
+          .map(p => ({ method: this.nombreMetodoPago(p.paymentMethodId), amount: p.amount }));
+
         this.ventaExitosaData.set({
           total: this.totalACobrar(),
           stylistTotal: this.calculo().stylistTotal,
           salonTotal: this.calculo().salonTotal,
-          stylistName: this.peluqueroSeleccionado()?.fullName ?? ''
+          stylistName: this.peluqueroSeleccionado()?.fullName ?? '',
+          clientName: cv.fullName?.trim() || 'Consumidor final',
+          clientDocumentType: cv.documentType || 'CC',
+          clientDocumentNumber: cv.documentNumber?.trim() || '',
+          branchName: this.branchService.selectedBranch()?.name ?? 'Sede Principal',
+          fecha: new Date(),
+          itemsRecibo,
+          pagosRecibo,
         });
+        this.cargarVentas();
         this.folioVenta.set('V-' + Date.now());
         this.ventaExitosa.set(true);
         this.guardando.set(false);
@@ -554,6 +584,66 @@ export class VentasComponent implements OnInit {
     this.step.set(0);
     this.ventaExitosa.set(false);
     this.ventaExitosaData.set(null);
+    this.mostrarRecibo.set(false);
+  }
+
+  imprimirRecibo(): void {
+    const d = this.ventaExitosaData();
+    if (!d) return;
+
+    const fmt = (n: number) =>
+      new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+    const fecha = d.fecha.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const hora  = d.fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    const esAnonimo = !d.clientDocumentNumber || d.clientDocumentNumber.startsWith('WALK-');
+
+    const rows = d.itemsRecibo.map(i => `
+      <tr>
+        <td>${i.name}${i.quantity > 1 ? ' x' + i.quantity : ''}</td>
+        <td style="text-align:right">${fmt(i.price * i.quantity)}</td>
+      </tr>`).join('');
+
+    const pagos = d.pagosRecibo.map(p => `
+      <tr>
+        <td style="color:#555">${p.method}</td>
+        <td style="text-align:right;color:#555">${fmt(p.amount)}</td>
+      </tr>`).join('');
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recibo</title>
+    <style>
+      * { margin:0; padding:0; box-sizing:border-box; }
+      body { font-family:'Courier New',monospace; font-size:12px; padding:16px; max-width:300px; margin:0 auto; color:#111; }
+      .center { text-align:center; }
+      .salon { font-size:15px; font-weight:bold; letter-spacing:0.05em; text-transform:uppercase; }
+      .divider { border:none; border-top:1px dashed #aaa; margin:8px 0; }
+      table { width:100%; border-collapse:collapse; }
+      td { padding:2px 0; }
+      .total td { font-weight:bold; font-size:14px; border-top:1px dashed #aaa; padding-top:6px; }
+      .label { font-size:9px; text-transform:uppercase; letter-spacing:0.06em; color:#777; margin-bottom:1px; }
+      .footer { text-align:center; font-size:10px; color:#777; margin-top:10px; }
+    </style></head><body>
+    <div class="center">
+      <div class="salon">${d.branchName}</div>
+      <div style="font-size:10px;margin-top:3px">${fecha} · ${hora}</div>
+    </div>
+    <hr class="divider">
+    <div class="label">Cliente</div>
+    <div>${d.clientName}</div>
+    ${!esAnonimo ? `<div style="font-size:10px;color:#555">${d.clientDocumentType} ${d.clientDocumentNumber}</div>` : ''}
+    <hr class="divider">
+    <div class="label">Detalle</div>
+    <table>${rows}</table>
+    <table class="total">
+      <tr><td>TOTAL</td><td style="text-align:right">${fmt(d.total)}</td></tr>
+    </table>
+    <hr class="divider">
+    <div class="label">Pago</div>
+    <table>${pagos}</table>
+    <div class="footer">¡Gracias por tu visita!</div>
+    </body></html>`;
+
+    const w = window.open('', '_blank', 'width=380,height=620,toolbar=0,menubar=0');
+    if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); }
   }
 
   // ── Helpers ───────────────────────────────────────────

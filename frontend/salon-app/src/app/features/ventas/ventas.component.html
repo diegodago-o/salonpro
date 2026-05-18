@@ -125,10 +125,84 @@
         </div>
         <div style="display:flex;gap:10px;justify-content:center;margin-top:28px">
           <button class="btn btn-ghost" (click)="volverALista()"><sp-icon name="arrow-left" [size]="14" /> Volver</button>
+          <button class="btn btn-ghost" (click)="mostrarRecibo.set(true)"><sp-icon name="bag" [size]="14" /> Ver recibo</button>
           <button class="btn btn-primary btn-lg" (click)="nuevaVentaDesdeExito()"><sp-icon name="plus" [size]="14" /> Nueva venta</button>
         </div>
       </div>
     </div>
+
+    <!-- Modal Recibo cliente -->
+    @if (mostrarRecibo() && ventaExitosaData()) {
+      <div class="modal-back" (click)="mostrarRecibo.set(false)">
+        <div class="modal" style="max-width:360px;font-family:'Courier New',monospace"
+          (click)="$event.stopPropagation()">
+          <div style="padding:28px">
+
+            <!-- Cabecera -->
+            <div style="text-align:center;margin-bottom:16px">
+              <div style="font-size:15px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase">
+                {{ ventaExitosaData()!.branchName }}
+              </div>
+              <div style="font-size:11px;color:var(--ink-4);margin-top:3px">
+                {{ ventaExitosaData()!.fecha | date:'dd/MM/yyyy · HH:mm' }}
+              </div>
+            </div>
+
+            <div style="border-top:1px dashed var(--hair-2);margin-bottom:12px"></div>
+
+            <!-- Cliente -->
+            <div style="margin-bottom:12px">
+              <div class="eyebrow" style="font-size:9px;margin-bottom:2px">Cliente</div>
+              <div style="font-size:13px;font-weight:600">{{ ventaExitosaData()!.clientName }}</div>
+              @if (ventaExitosaData()!.clientDocumentNumber && !ventaExitosaData()!.clientDocumentNumber.startsWith('WALK-')) {
+                <div style="font-size:11px;color:var(--ink-4)">
+                  {{ ventaExitosaData()!.clientDocumentType }} {{ ventaExitosaData()!.clientDocumentNumber }}
+                </div>
+              }
+            </div>
+
+            <div style="border-top:1px dashed var(--hair-2);margin-bottom:12px"></div>
+
+            <!-- Ítems -->
+            <div class="eyebrow" style="font-size:9px;margin-bottom:6px">Detalle</div>
+            @for (item of ventaExitosaData()!.itemsRecibo; track item.name) {
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+                <span>{{ item.name }}{{ item.quantity > 1 ? ' ×' + item.quantity : '' }}</span>
+                <span class="tnum">{{ item.price * item.quantity | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+              </div>
+            }
+
+            <!-- Total -->
+            <div style="border-top:1px dashed var(--hair-2);margin:10px 0 8px"></div>
+            <div style="display:flex;justify-content:space-between;font-weight:700;font-size:15px">
+              <span>TOTAL</span>
+              <span class="tnum serif">{{ ventaExitosaData()!.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+            </div>
+
+            <!-- Pagos -->
+            <div style="border-top:1px dashed var(--hair-2);margin:10px 0 8px"></div>
+            <div class="eyebrow" style="font-size:9px;margin-bottom:6px">Forma de pago</div>
+            @for (pago of ventaExitosaData()!.pagosRecibo; track pago.method) {
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3);margin-bottom:3px">
+                <span>{{ pago.method }}</span>
+                <span class="tnum">{{ pago.amount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+              </div>
+            }
+
+            <div style="border-top:1px dashed var(--hair-2);margin:14px 0 10px"></div>
+            <div style="text-align:center;font-size:10px;color:var(--ink-4)">¡Gracias por tu visita!</div>
+
+            <!-- Acciones -->
+            <div style="display:flex;gap:8px;margin-top:20px;font-family:var(--font-sans,sans-serif)">
+              <button class="btn btn-ghost" style="flex:1" (click)="mostrarRecibo.set(false)">Cerrar</button>
+              <button class="btn btn-primary" style="flex:1" (click)="imprimirRecibo()">
+                <sp-icon name="download" [size]="14" /> Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
   }
 
   <!-- POS WIZARD -->
