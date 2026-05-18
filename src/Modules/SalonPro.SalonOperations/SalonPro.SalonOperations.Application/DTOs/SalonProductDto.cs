@@ -10,4 +10,5 @@ public record SalonProductDto(
     decimal StylistCommissionPercent,
     int Stock,
     bool IsForSale,
-    bool IsActive);
+    bool IsActive,
+    string? Barcode = null);

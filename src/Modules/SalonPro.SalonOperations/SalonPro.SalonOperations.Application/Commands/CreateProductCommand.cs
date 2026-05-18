@@ -13,7 +13,8 @@ public record CreateProductRequest(
     decimal SalePrice,
     decimal StylistCommissionPercent,
     int Stock,
-    bool IsForSale);
+    bool IsForSale,
+    string? Barcode = null);
 
 public record CreateProductCommand(int TenantId, int BranchId, CreateProductRequest Request) : IRequest<SalonProductDto>;
 
@@ -24,11 +25,11 @@ public class CreateProductHandler(ISalonProductRepository repo)
     {
         var req = cmd.Request;
         var product = SalonProduct.Create(cmd.TenantId, cmd.BranchId, req.Name, req.Brand, req.Category,
-            req.PurchasePrice, req.SalePrice, req.Stock, req.IsForSale, req.StylistCommissionPercent);
+            req.PurchasePrice, req.SalePrice, req.Stock, req.IsForSale, req.StylistCommissionPercent, req.Barcode);
         await repo.AddAsync(product, ct);
         await repo.SaveChangesAsync(ct);
         return new SalonProductDto(product.Id, product.Name, product.Brand, product.Category,
             product.PurchasePrice, product.SalePrice, product.StylistCommissionPercent,
-            product.Stock, product.IsForSale, product.IsActive);
+            product.Stock, product.IsForSale, product.IsActive, product.Barcode);
     }
 }

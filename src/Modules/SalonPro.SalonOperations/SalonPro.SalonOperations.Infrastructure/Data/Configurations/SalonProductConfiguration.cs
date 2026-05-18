@@ -17,6 +17,7 @@ public class SalonProductConfiguration : IEntityTypeConfiguration<SalonProduct>
         builder.Property(p => p.Category).IsRequired().HasMaxLength(100);
         builder.Property(p => p.PurchasePrice).HasColumnType("decimal(18,2)");
         builder.Property(p => p.SalePrice).HasColumnType("decimal(18,2)");
+        builder.Property(p => p.Barcode).HasMaxLength(100);
         builder.Property(p => p.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
         builder.HasIndex(p => new { p.TenantId, p.BranchId });
     }

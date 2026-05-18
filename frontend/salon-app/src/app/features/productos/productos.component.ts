@@ -48,6 +48,7 @@ export class ProductosComponent implements OnInit {
     stylistCommissionPercent:[10, [Validators.required, Validators.min(0), Validators.max(100)]],
     stock:                   [0, [Validators.required, Validators.min(0)]],
     isForSale:               [false],
+    barcode:                 [null as string | null],
   });
 
   margen(p: Producto): number {
@@ -80,7 +81,7 @@ export class ProductosComponent implements OnInit {
       name: '', brand: '', category: '',
       purchasePrice: 0, salePrice: 0,
       stylistCommissionPercent: 10,
-      stock: 0, isForSale: false
+      stock: 0, isForSale: false, barcode: null
     });
     this.errorMsg.set(null);
     this.modalAbierto.set(true);
@@ -97,6 +98,7 @@ export class ProductosComponent implements OnInit {
       stylistCommissionPercent: p.stylistCommissionPercent,
       stock: p.stock,
       isForSale: p.isForSale,
+      barcode: p.barcode ?? null,
     });
     this.errorMsg.set(null);
     this.modalAbierto.set(true);
@@ -118,6 +120,7 @@ export class ProductosComponent implements OnInit {
       stylistCommissionPercent:v.stylistCommissionPercent!,
       stock:                   v.stock!,
       isForSale:               v.isForSale ?? false,
+      barcode:                 v.barcode || null,
     };
 
     const id = this.editandoId();

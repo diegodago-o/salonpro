@@ -17,10 +17,10 @@ public class UpdateProductHandler(ISalonProductRepository repo)
         if (product.TenantId != cmd.TenantId) throw new ForbiddenException();
         if (product.BranchId != cmd.BranchId) throw new ForbiddenException();
         var req = cmd.Request;
-        product.Update(req.Name, req.Brand, req.Category, req.PurchasePrice, req.SalePrice, req.IsForSale, req.StylistCommissionPercent);
+        product.Update(req.Name, req.Brand, req.Category, req.PurchasePrice, req.SalePrice, req.IsForSale, req.StylistCommissionPercent, req.Barcode);
         await repo.SaveChangesAsync(ct);
         return new SalonProductDto(product.Id, product.Name, product.Brand, product.Category,
             product.PurchasePrice, product.SalePrice, product.StylistCommissionPercent,
-            product.Stock, product.IsForSale, product.IsActive);
+            product.Stock, product.IsForSale, product.IsActive, product.Barcode);
     }
 }

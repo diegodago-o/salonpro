@@ -37,6 +37,9 @@
                 <td>
                   <div style="font-weight:500">{{ p.name }}</div>
                   <div style="font-size:11px;color:var(--ink-4)">{{ p.category }}</div>
+                  @if (p.barcode) {
+                    <div style="font-size:10px;color:var(--ink-4);font-family:monospace">{{ p.barcode }}</div>
+                  }
                 </td>
                 <td>{{ p.brand }}</td>
                 <td>
@@ -109,6 +112,12 @@
           <label class="field">
             <span class="label">Categoría *</span>
             <input class="input" formControlName="category" placeholder="Ej: Cabello" />
+          </label>
+
+          <label class="field" style="grid-column:1/-1">
+            <span class="label">Código de barras</span>
+            <input class="input mono" formControlName="barcode" placeholder="Ej: 7790123456789" />
+            <span style="font-size:11px;color:var(--ink-4)">Opcional — para escaneo con lector</span>
           </label>
 
           <label class="field">

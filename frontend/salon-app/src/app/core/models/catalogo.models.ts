@@ -28,6 +28,7 @@ export interface Producto {
   stock: number;
   isForSale: boolean;
   isActive: boolean;
+  barcode?: string | null;
 }
 
 export interface CreateProductoRequest {
@@ -39,4 +40,5 @@ export interface CreateProductoRequest {
   stylistCommissionPercent: number;
   stock: number;
   isForSale: boolean;
+  barcode?: string | null;
 }

@@ -14,13 +14,15 @@ public class SalonProduct
     public decimal StylistCommissionPercent { get; private set; }
     public int Stock { get; private set; }
     public bool IsForSale { get; private set; }
+    public string? Barcode { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
     private SalonProduct() { }
 
     public static SalonProduct Create(int tenantId, int branchId, string name, string brand, string category,
-        decimal purchasePrice, decimal salePrice, int stock, bool isForSale, decimal stylistCommissionPercent = 10m)
+        decimal purchasePrice, decimal salePrice, int stock, bool isForSale,
+        decimal stylistCommissionPercent = 10m, string? barcode = null)
     {
         return new SalonProduct
         {
@@ -34,13 +36,14 @@ public class SalonProduct
             StylistCommissionPercent = Math.Clamp(stylistCommissionPercent, 0m, 100m),
             Stock = stock,
             IsForSale = isForSale,
+            Barcode = barcode?.Trim(),
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
     }
 
     public void Update(string name, string brand, string category, decimal purchasePrice,
-        decimal salePrice, bool isForSale, decimal stylistCommissionPercent)
+        decimal salePrice, bool isForSale, decimal stylistCommissionPercent, string? barcode = null)
     {
         Name = name.Trim();
         Brand = brand.Trim();
@@ -49,6 +52,7 @@ public class SalonProduct
         SalePrice = salePrice;
         IsForSale = isForSale;
         StylistCommissionPercent = Math.Clamp(stylistCommissionPercent, 0m, 100m);
+        Barcode = barcode?.Trim();
     }
 
     public void AdjustStock(int stock) => Stock = stock;
