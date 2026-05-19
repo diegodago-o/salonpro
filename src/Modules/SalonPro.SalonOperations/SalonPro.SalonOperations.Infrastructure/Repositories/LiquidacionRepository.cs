@@ -11,7 +11,7 @@ public class LiquidacionRepository(SalonOpsDbContext db) : ILiquidacionRepositor
     {
         var query = db.Liquidaciones.Where(l => l.TenantId == tenantId);
         if (branchId.HasValue && branchId.Value > 0)
-            query = query.Where(l => l.BranchId == branchId.Value || l.BranchId == null);
+            query = query.Where(l => l.BranchId == branchId.Value); // strict: each branch sees only its own
         return await query.OrderByDescending(l => l.StartDate).ToListAsync(ct);
     }
 

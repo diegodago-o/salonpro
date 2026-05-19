@@ -13,7 +13,7 @@ public class AnticipoRepository(SalonOpsDbContext db) : IAnticipoRepository
     {
         var query = db.Anticipos.Where(a => a.TenantId == tenantId);
         if (branchId.HasValue && branchId.Value > 0)
-            query = query.Where(a => a.BranchId == branchId.Value || a.BranchId == null);
+            query = query.Where(a => a.BranchId == branchId.Value); // strict: each branch sees only its own
         if (status.HasValue)
             query = query.Where(a => a.Status == status.Value);
         return await query.OrderByDescending(a => a.CreatedAt).ToListAsync(ct);
