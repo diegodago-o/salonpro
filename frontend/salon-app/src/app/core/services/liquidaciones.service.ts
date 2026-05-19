@@ -65,7 +65,7 @@ export class LiquidacionesService {
     return this.http.get<ApiResponse<LiquidacionDetalle>>(`${this.api}/liquidaciones/${id}`);
   }
 
-  crearLiquidacion(req: CreateLiquidacionRequest): Observable<ApiResponse<LiquidacionResumen>> {
+  crearLiquidacion(req: CreateLiquidacionRequest, branchId?: number | null): Observable<ApiResponse<LiquidacionResumen>> {
     if (!environment.production) {
       const nueva: LiquidacionResumen = {
         id: this.nextId++, stylistId: req.stylistId, stylistName: 'Peluquero',
@@ -78,7 +78,8 @@ export class LiquidacionesService {
       this.mockData.unshift(nueva);
       return of({ success: true, data: nueva, message: 'Liquidación creada', errors: [] });
     }
-    return this.http.post<ApiResponse<LiquidacionResumen>>(`${this.api}/liquidaciones`, req);
+    const params = branchId ? `?branchId=${branchId}` : '';
+    return this.http.post<ApiResponse<LiquidacionResumen>>(`${this.api}/liquidaciones${params}`, req);
   }
 
   cerrarLiquidacion(id: number): Observable<ApiResponse<void>> {

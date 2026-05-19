@@ -154,7 +154,7 @@ export class LiquidacionesComponent implements OnInit {
     this.liqService.crearLiquidacion({
       stylistId: stylistId!, stylistName,
       startDate: startDate!, endDate: endDate!
-    }).subscribe({
+    }, this.branchService.currentBranchId).subscribe({
       next: () => {
         this.cargar();
         this.mostrarMsg('ok', 'Liquidación creada');

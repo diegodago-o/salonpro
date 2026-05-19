@@ -15,8 +15,13 @@ public class LiquidacionesController(IMediator mediator) : ControllerBase
 {
     private int GetTenantId() => int.Parse(User.FindFirst("tenantId")?.Value ?? "0");
     private int GetBranchId() => int.Parse(User.FindFirst("branchId")?.Value ?? "0");
-    private int? GetEffectiveBranchId(int? requested) =>
-        requested.HasValue && requested.Value > 0 ? requested : GetBranchId();
+    // Returns null when no valid branch is identified (avoids storing BranchId=0)
+    private int? GetEffectiveBranchId(int? requested)
+    {
+        if (requested.HasValue && requested.Value > 0) return requested;
+        var fromJwt = GetBranchId();
+        return fromJwt > 0 ? fromJwt : null;
+    }
 
     [HttpGet]
     public async Task<ActionResult<ApiResponse<IEnumerable<LiquidacionResumenDto>>>> GetAll(
@@ -35,9 +40,9 @@ public class LiquidacionesController(IMediator mediator) : ControllerBase
 
     [HttpPost]
     public async Task<ActionResult<ApiResponse<LiquidacionResumenDto>>> Create(
-        [FromBody] CreateLiquidacionRequest request, CancellationToken ct)
+        [FromBody] CreateLiquidacionRequest request, [FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await mediator.Send(new CreateLiquidacionCommand(GetTenantId(), GetBranchId(), request), ct);
+        var result = await mediator.Send(new CreateLiquidacionCommand(GetTenantId(), GetEffectiveBranchId(branchId), request), ct);
         return CreatedAtAction(nameof(GetById), new { id = result.Id },
             ApiResponse<LiquidacionResumenDto>.Ok(result, "Liquidación creada."));
     }
