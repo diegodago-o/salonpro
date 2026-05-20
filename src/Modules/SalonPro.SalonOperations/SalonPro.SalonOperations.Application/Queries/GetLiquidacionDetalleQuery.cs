@@ -33,20 +33,25 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo, ISaleRepo
             .OrderByDescending(d => d.TotalAmount)
             .ToList();
 
-        // Construir ventas con resumen de métodos de pago
+        // Construir ventas con resumen de métodos de pago e ítems de consumo interno
         var ventas = l.Ventas.Select(v =>
         {
-            var methodsSummary = salesWithPayments.TryGetValue(v.SaleId, out var sale)
-                ? string.Join(", ", sale.Payments
-                    .GroupBy(p => p.PaymentMethodName)
-                    .Select(g => g.Key))
+            salesWithPayments.TryGetValue(v.SaleId, out var sale);
+
+            var methodsSummary = sale is not null
+                ? string.Join(", ", sale.Payments.GroupBy(p => p.PaymentMethodName).Select(g => g.Key))
                 : string.Empty;
+
+            var internalItems = sale?.Items
+                .Where(i => i.Type == SalonPro.SalonOperations.Domain.Enums.SaleItemType.ProductInternal)
+                .Select(i => $"{i.Name} — {(i.UnitPrice * i.Quantity):C0}")
+                .ToList() ?? [];
 
             return new LiquidacionVentaDto(
                 v.SaleId, v.SaleDateTime.ToString("o"), v.ClientName,
                 v.GrossServices, v.GrossProducts, v.Deduction,
                 v.CommServices, v.CommProducts, v.Tip, v.InternalConsumption,
-                methodsSummary);
+                methodsSummary, internalItems);
         }).ToList();
 
         return new LiquidacionDetalleDto(

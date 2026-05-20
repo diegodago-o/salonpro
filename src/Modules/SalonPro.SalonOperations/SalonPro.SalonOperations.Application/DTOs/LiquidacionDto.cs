@@ -15,10 +15,13 @@ public record LiquidacionVentaDto(
     decimal Deduction,
     decimal CommServices,
     decimal CommProducts,
+    /// <summary>Propina neta (ya descontada la deducción proporcional del método de pago).</summary>
     decimal Tip,
     decimal InternalConsumption,
     /// <summary>Métodos de pago usados en esta venta (para mostrar en tabla de detalle).</summary>
-    string PaymentMethodsSummary);
+    string PaymentMethodsSummary,
+    /// <summary>Productos consumidos internamente: ["Tintura rubio — $20.000", …]</summary>
+    List<string> InternalItems);
 
 public record LiquidacionResumenDto(
     int Id,

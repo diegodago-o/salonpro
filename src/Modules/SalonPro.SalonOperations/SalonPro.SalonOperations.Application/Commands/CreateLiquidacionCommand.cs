@@ -32,46 +32,64 @@ public class CreateLiquidacionHandler(
         decimal anticiposAplicados = 0;
 
         // Calculate totals from sales
-        var grossServices      = sales.Sum(s => s.GrossServices);
-        var grossProducts      = sales.Sum(s => s.GrossProducts);
-        var totalDeductions    = sales.Sum(s => s.TotalDeductions);
-        var totalTips          = sales.Sum(s => s.TipAmount);
+        var grossServices       = sales.Sum(s => s.GrossServices);
+        var grossProducts       = sales.Sum(s => s.GrossProducts);
+        var totalDeductions     = sales.Sum(s => s.TotalDeductions);
         var internalConsumption = sales.Sum(s => s.InternalConsumption);
 
-        // Use StylistTotal stored per sale — already correctly calculated during sale registration
-        // (accounts for commission %, deductions, salon fees, product commissions)
+        // StylistTotal already includes netTip and is net of card deductions.
+        // Compute net tips per sale (tip proportionally reduced by deduction ratio).
         var totalStylistComm = sales.Sum(s => s.StylistTotal);
+        var totalNetTips = sales.Sum(s =>
+        {
+            if (s.TipAmount == 0) return 0m;
+            var grossAll       = s.GrossServices + s.GrossProducts + s.TipAmount;
+            var tipDeduction   = grossAll > 0 ? Math.Round(s.TotalDeductions * s.TipAmount / grossAll, 2) : 0m;
+            return s.TipAmount - tipDeduction;
+        });
 
-        // Split proportionally between services and products for display
-        var grossTotal = grossServices + grossProducts;
-        var commServices = grossTotal > 0
-            ? Math.Round(totalStylistComm * grossServices / grossTotal, 2)
-            : totalStylistComm;
-        var commProducts = Math.Round(totalStylistComm - commServices, 2);
+        // commServices / commProducts = commissions on items ONLY (tip excluded)
+        // so that the receipt breakdown is clean and tip shows as a separate line.
+        var commOnItems  = totalStylistComm - totalNetTips;
+        var grossItemsTotal = grossServices + grossProducts;
+        var commServices = grossItemsTotal > 0
+            ? Math.Round(commOnItems * grossServices / grossItemsTotal, 2)
+            : commOnItems;
+        var commProducts = Math.Round(commOnItems - commServices, 2);
 
-        var netoPeluquero = Math.Round(totalStylistComm + totalTips - anticiposAplicados, 2);
+        // netoPeluquero = total earned (incl. net tips) − internal consumption − anticipos
+        // NOTE: deducciones are already baked into totalStylistComm (net amounts).
+        var netoPeluquero = Math.Round(totalStylistComm - internalConsumption - anticiposAplicados, 2);
 
         var liquidacion = Liquidacion.Create(
             cmd.TenantId, cmd.BranchId, req.StylistId, req.StylistName,
             startDate, DateTime.Parse(req.EndDate));
 
+        // Store totalNetTips (net, after deductions) so the receipt displays correctly
         liquidacion.SetTotals(sales.Count, grossServices, grossProducts, totalDeductions,
-            commServices, commProducts, totalTips, internalConsumption, anticiposAplicados, netoPeluquero);
+            commServices, commProducts, totalNetTips, internalConsumption, anticiposAplicados, netoPeluquero);
 
-        // Add venta records
+        // Add venta records — per-sale, split commissions excluding tip
         foreach (var sale in sales)
         {
-            // Use StylistTotal from the sale, split proportionally between services and products
-            var saleGross = sale.GrossServices + sale.GrossProducts;
-            var saleComm = sale.StylistTotal;
-            var saleCommServices = saleGross > 0
-                ? Math.Round(saleComm * sale.GrossServices / saleGross, 2)
-                : saleComm;
-            var saleCommProducts = Math.Round(saleComm - saleCommServices, 2);
+            // Net tip for this sale
+            var saleGrossAll   = sale.GrossServices + sale.GrossProducts + sale.TipAmount;
+            var saleTipDed     = saleGrossAll > 0
+                ? Math.Round(sale.TotalDeductions * sale.TipAmount / saleGrossAll, 2) : 0m;
+            var saleNetTip     = sale.TipAmount - saleTipDed;
+
+            // Commission on items only
+            var saleCommOnItems  = sale.StylistTotal - saleNetTip;
+            var saleGrossItems   = sale.GrossServices + sale.GrossProducts;
+            var saleCommServices = saleGrossItems > 0
+                ? Math.Round(saleCommOnItems * sale.GrossServices / saleGrossItems, 2)
+                : saleCommOnItems;
+            var saleCommProducts = Math.Round(saleCommOnItems - saleCommServices, 2);
+
             liquidacion.Ventas.Add(LiquidacionVenta.Create(
                 0, sale.Id, sale.SaleDateTime, sale.ClientName,
                 sale.GrossServices, sale.GrossProducts, sale.TotalDeductions,
-                saleCommServices, saleCommProducts, sale.TipAmount, sale.InternalConsumption));
+                saleCommServices, saleCommProducts, saleNetTip, sale.InternalConsumption));
         }
 
         await liquidacionRepo.AddAsync(liquidacion, ct);

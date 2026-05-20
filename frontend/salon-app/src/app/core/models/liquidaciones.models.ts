@@ -34,9 +34,12 @@ export interface LiquidacionVenta {
   deduction: number;
   commServices: number;
   commProducts: number;
+  /** Propina neta (ya descontada la deducción proporcional del método de pago) */
   tip: number;
   internalConsumption: number;
   paymentMethodsSummary: string;
+  /** Productos de consumo interno: ["Tintura rubio — $20.000", …] */
+  internalItems: string[];
 }
 
 export interface LiquidacionDetalle extends LiquidacionResumen {
