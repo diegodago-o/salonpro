@@ -47,11 +47,48 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo, ISaleRepo
                 .Select(i => $"{i.Name} — {(i.UnitPrice * i.Quantity):C0}")
                 .ToList() ?? [];
 
+            // Calcular comisión por ítem (misma lógica proporcional de CreateSaleCommand)
+            var serviceCommItems = new List<string>();
+            var productCommItems = new List<string>();
+            if (sale is not null)
+            {
+                var saleGrossAll = sale.GrossServices + sale.GrossProducts + sale.TipAmount;
+                var dedPct = saleGrossAll > 0 ? sale.TotalDeductions / saleGrossAll : 0m;
+                var commPct = sale.CommissionPercent / 100m;
+
+                foreach (var item in sale.Items.Where(i =>
+                    i.Type == SalonPro.SalonOperations.Domain.Enums.SaleItemType.Service))
+                {
+                    var subtotal = item.UnitPrice * item.Quantity;
+                    var netBase = subtotal * (1 - dedPct);
+                    decimal stylistAmt;
+                    if (item.SalonFeePercent > 0)
+                    {
+                        var fee = netBase * item.SalonFeePercent / 100m;
+                        stylistAmt = Math.Round((netBase - fee) * commPct, 0);
+                    }
+                    else
+                    {
+                        stylistAmt = Math.Round(netBase * commPct, 0);
+                    }
+                    serviceCommItems.Add($"{item.Name} — {stylistAmt:C0}");
+                }
+
+                foreach (var item in sale.Items.Where(i =>
+                    i.Type == SalonPro.SalonOperations.Domain.Enums.SaleItemType.ProductSale))
+                {
+                    var subtotal = item.UnitPrice * item.Quantity;
+                    var netBase = subtotal * (1 - dedPct);
+                    var stylistAmt = Math.Round(netBase * commPct, 0);
+                    productCommItems.Add($"{item.Name} — {stylistAmt:C0}");
+                }
+            }
+
             return new LiquidacionVentaDto(
                 v.SaleId, v.SaleDateTime.ToString("o"), v.ClientName,
                 v.GrossServices, v.GrossProducts, v.Deduction,
                 v.CommServices, v.CommProducts, v.Tip, v.InternalConsumption,
-                methodsSummary, internalItems);
+                methodsSummary, internalItems, serviceCommItems, productCommItems);
         }).ToList();
 
         return new LiquidacionDetalleDto(

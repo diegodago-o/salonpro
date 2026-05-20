@@ -40,6 +40,10 @@ export interface LiquidacionVenta {
   paymentMethodsSummary: string;
   /** Productos de consumo interno: ["Tintura rubio — $20.000", …] */
   internalItems: string[];
+  /** Detalle de comisión por servicio: ["Corte — $88.350", …] */
+  serviceCommItems: string[];
+  /** Detalle de comisión por producto vendido: ["Tintura rubio — $12.126", …] */
+  productCommItems: string[];
 }
 
 export interface LiquidacionDetalle extends LiquidacionResumen {

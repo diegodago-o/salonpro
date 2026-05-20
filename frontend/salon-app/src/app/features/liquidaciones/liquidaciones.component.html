@@ -246,7 +246,27 @@
 
         <!-- Comisiones netas (excluyendo propina, ya descontadas deducciones bancarias) -->
         <div class="row"><span style="color:var(--ink-3)">Comisión servicios</span><span class="tnum">{{ detalle()!.commServices | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-        <div class="row"><span style="color:var(--ink-3)">Comisión productos</span><span class="tnum">{{ detalle()!.commProducts | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+        @for (v of detalle()!.ventas; track v.saleId) {
+          @for (item of v.serviceCommItems; track item) {
+            <div style="display:flex;justify-content:space-between;font-size:11px;
+                        padding:2px 0 2px 16px;color:var(--ink-4);
+                        border-left:2px solid var(--border);margin-left:4px">
+              <span>{{ item }}</span>
+            </div>
+          }
+        }
+        @if (detalle()!.commProducts > 0) {
+          <div class="row"><span style="color:var(--ink-3)">Comisión productos</span><span class="tnum">{{ detalle()!.commProducts | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+          @for (v of detalle()!.ventas; track v.saleId) {
+            @for (item of v.productCommItems; track item) {
+              <div style="display:flex;justify-content:space-between;font-size:11px;
+                          padding:2px 0 2px 16px;color:var(--ink-4);
+                          border-left:2px solid var(--border);margin-left:4px">
+                <span>{{ item }}</span>
+              </div>
+            }
+          }
+        }
         @if (detalle()!.totalTips > 0) {
           <div class="row"><span style="color:var(--ink-3)">Propinas (neto)</span><span class="tnum">{{ detalle()!.totalTips | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
         }
@@ -336,8 +356,16 @@
                     @if (v.deduction > 0) { −{{ v.deduction | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }} }
                     @else { <span style="color:var(--ink-4)">—</span> }
                   </td>
-                  <td class="tnum" style="text-align:right;color:var(--accent-deep);font-weight:500">
-                    {{ (v.commServices + v.commProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                  <td style="text-align:right">
+                    <div class="tnum" style="color:var(--accent-deep);font-weight:500">
+                      {{ (v.commServices + v.commProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                    </div>
+                    @for (item of v.serviceCommItems; track item) {
+                      <div style="font-size:10px;color:var(--ink-4)">{{ item }}</div>
+                    }
+                    @for (item of v.productCommItems; track item) {
+                      <div style="font-size:10px;color:var(--ink-4)">{{ item }}</div>
+                    }
                   </td>
                   <td class="tnum" style="text-align:right">
                     @if (v.tip > 0) { {{ v.tip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }} }

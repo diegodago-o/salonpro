@@ -21,7 +21,11 @@ public record LiquidacionVentaDto(
     /// <summary>Métodos de pago usados en esta venta (para mostrar en tabla de detalle).</summary>
     string PaymentMethodsSummary,
     /// <summary>Productos consumidos internamente: ["Tintura rubio — $20.000", …]</summary>
-    List<string> InternalItems);
+    List<string> InternalItems,
+    /// <summary>Detalle de comisión por servicio: ["Corte — $88.350", …]</summary>
+    List<string> ServiceCommItems,
+    /// <summary>Detalle de comisión por producto vendido: ["Tintura rubio — $12.126", …]</summary>
+    List<string> ProductCommItems);
 
 public record LiquidacionResumenDto(
     int Id,
