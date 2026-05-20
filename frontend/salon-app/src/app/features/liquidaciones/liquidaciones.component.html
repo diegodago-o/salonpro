@@ -253,7 +253,7 @@
           <span style="color:var(--ink-3)">(−) Deducciones</span>
           <span class="tnum" style="color:var(--danger)">−{{ detalle()!.totalDeductions | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
         </div>
-        @if (detalle()!.deduccionesDetalle?.length > 0) {
+        @if ((detalle()!.deduccionesDetalle?.length ?? 0) > 0) {
           @for (d of detalle()!.deduccionesDetalle; track d.paymentMethodName) {
             <div style="display:flex;justify-content:space-between;font-size:11px;
                         padding:3px 0 3px 16px;color:var(--ink-4);
