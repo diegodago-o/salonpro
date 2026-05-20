@@ -66,6 +66,12 @@ public class SaleRepository(SalonOpsDbContext db) : ISaleRepository
             .Include(s => s.Payments)
             .FirstOrDefaultAsync(s => s.Id == id, ct);
 
+    public async Task<IEnumerable<Sale>> GetByIdsWithPaymentsAsync(IEnumerable<int> ids, CancellationToken ct = default) =>
+        await db.Sales
+            .Include(s => s.Payments)
+            .Where(s => ids.Contains(s.Id))
+            .ToListAsync(ct);
+
     public async Task AddAsync(Sale sale, CancellationToken ct = default) =>
         await db.Sales.AddAsync(sale, ct);
 

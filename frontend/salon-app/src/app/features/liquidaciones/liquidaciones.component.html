@@ -247,7 +247,24 @@
         <hr class="hr-dotted" style="margin:8px 0" />
         <div class="row"><span style="color:var(--ink-3)">(−) Consumo interno</span><span class="tnum" style="color:var(--danger)">−{{ detalle()!.internalConsumption | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
         <div class="row"><span style="color:var(--ink-3)">(−) Anticipos aplicados</span><span class="tnum" style="color:var(--danger)">−{{ detalle()!.anticiposAplicados | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-        <div class="row"><span style="color:var(--ink-3)">(−) Deducciones</span><span class="tnum" style="color:var(--danger)">−{{ detalle()!.totalDeductions | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+
+        <!-- Deducciones con desglose por método de pago -->
+        <div class="row">
+          <span style="color:var(--ink-3)">(−) Deducciones</span>
+          <span class="tnum" style="color:var(--danger)">−{{ detalle()!.totalDeductions | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+        </div>
+        @if (detalle()!.deduccionesDetalle?.length > 0) {
+          @for (d of detalle()!.deduccionesDetalle; track d.paymentMethodName) {
+            <div style="display:flex;justify-content:space-between;font-size:11px;
+                        padding:3px 0 3px 16px;color:var(--ink-4);
+                        border-left:2px solid #fc8181;margin-left:4px;
+                        background:rgba(252,129,129,.05)">
+              <span>{{ d.paymentMethodName }} ({{ d.deductionPercent }}%)</span>
+              <span class="tnum" style="color:var(--danger)">−{{ d.totalAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+            </div>
+          }
+        }
+
         <div class="row total"><span>Neto a pagar</span><span class="tnum serif" style="font-size:22px">{{ detalle()!.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
       </div>
 
@@ -270,7 +287,7 @@
           <table class="tbl">
             <thead>
               <tr>
-                <th>Fecha</th><th>Cliente</th>
+                <th>Fecha</th><th>Cliente</th><th>Método de pago</th>
                 <th style="text-align:right">Total</th>
                 <th style="text-align:right">Deducción</th>
                 <th style="text-align:right">Comisión</th>
@@ -282,11 +299,13 @@
                 <tr>
                   <td style="font-size:12px;color:var(--ink-3)">{{ v.saleDateTime | date:'dd/MM HH:mm' }}</td>
                   <td>{{ v.clientName }}</td>
+                  <td style="font-size:12px;color:var(--ink-3)">{{ v.paymentMethodsSummary }}</td>
                   <td class="tnum" style="text-align:right">
                     {{ (v.grossServices + v.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
                   </td>
                   <td class="tnum" style="text-align:right;color:var(--danger)">
-                    −{{ v.deduction | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                    @if (v.deduction > 0) { −{{ v.deduction | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }} }
+                    @else { <span style="color:var(--ink-4)">—</span> }
                   </td>
                   <td class="tnum" style="text-align:right;color:var(--accent-deep);font-weight:500">
                     {{ (v.commServices + v.commProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}

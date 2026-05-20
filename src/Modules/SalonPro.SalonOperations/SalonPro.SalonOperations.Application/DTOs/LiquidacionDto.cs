@@ -1,5 +1,11 @@
 namespace SalonPro.SalonOperations.Application.DTOs;
 
+/// <summary>Desglose de una deducción por método de pago dentro de una liquidación.</summary>
+public record DeduccionDetalleDto(
+    string PaymentMethodName,
+    decimal DeductionPercent,
+    decimal TotalAmount);
+
 public record LiquidacionVentaDto(
     int SaleId,
     string SaleDateTime,
@@ -10,7 +16,9 @@ public record LiquidacionVentaDto(
     decimal CommServices,
     decimal CommProducts,
     decimal Tip,
-    decimal InternalConsumption);
+    decimal InternalConsumption,
+    /// <summary>Métodos de pago usados en esta venta (para mostrar en tabla de detalle).</summary>
+    string PaymentMethodsSummary);
 
 public record LiquidacionResumenDto(
     int Id,
@@ -47,4 +55,6 @@ public record LiquidacionDetalleDto(
     decimal AnticiposAplicados,
     decimal NetoPeluquero,
     string Status,
-    List<LiquidacionVentaDto> Ventas);
+    List<LiquidacionVentaDto> Ventas,
+    /// <summary>Desglose de deducciones agrupado por método de pago.</summary>
+    List<DeduccionDetalleDto> DeduccionesDetalle);

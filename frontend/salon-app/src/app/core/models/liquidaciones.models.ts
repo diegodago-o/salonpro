@@ -19,6 +19,12 @@ export interface LiquidacionResumen {
   status: LiquidacionStatus;
 }
 
+export interface DeduccionDetalle {
+  paymentMethodName: string;
+  deductionPercent: number;
+  totalAmount: number;
+}
+
 export interface LiquidacionVenta {
   saleId: number;
   saleDateTime: string;
@@ -30,10 +36,12 @@ export interface LiquidacionVenta {
   commProducts: number;
   tip: number;
   internalConsumption: number;
+  paymentMethodsSummary: string;
 }
 
 export interface LiquidacionDetalle extends LiquidacionResumen {
   ventas: LiquidacionVenta[];
+  deduccionesDetalle: DeduccionDetalle[];
 }
 
 export interface CreateLiquidacionRequest {

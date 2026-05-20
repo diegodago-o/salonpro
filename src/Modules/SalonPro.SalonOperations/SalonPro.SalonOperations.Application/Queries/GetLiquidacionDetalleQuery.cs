@@ -7,7 +7,7 @@ namespace SalonPro.SalonOperations.Application.Queries;
 
 public record GetLiquidacionDetalleQuery(int Id, int TenantId) : IRequest<LiquidacionDetalleDto>;
 
-public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo)
+public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo, ISaleRepository saleRepo)
     : IRequestHandler<GetLiquidacionDetalleQuery, LiquidacionDetalleDto>
 {
     public async Task<LiquidacionDetalleDto> Handle(GetLiquidacionDetalleQuery query, CancellationToken ct)
@@ -16,11 +16,38 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo)
             ?? throw new NotFoundException("Liquidacion", query.Id);
         if (l.TenantId != query.TenantId) throw new ForbiddenException();
 
-        var ventas = l.Ventas.Select(v => new LiquidacionVentaDto(
-            v.SaleId, v.SaleDateTime.ToString("o"), v.ClientName,
-            v.GrossServices, v.GrossProducts, v.Deduction,
-            v.CommServices, v.CommProducts, v.Tip, v.InternalConsumption
-        )).ToList();
+        // Cargar las ventas reales con sus pagos para construir el desglose de deducciones
+        var saleIds = l.Ventas.Select(v => v.SaleId).ToList();
+        var salesWithPayments = (await saleRepo.GetByIdsWithPaymentsAsync(saleIds, ct))
+            .ToDictionary(s => s.Id);
+
+        // Agrupar pagos por (método de pago, porcentaje) y sumar montos de deducción
+        var deduccionesDetalle = salesWithPayments.Values
+            .SelectMany(s => s.Payments)
+            .Where(p => p.DeductionPercent > 0 && p.DeductionAmount > 0)
+            .GroupBy(p => new { p.PaymentMethodName, p.DeductionPercent })
+            .Select(g => new DeduccionDetalleDto(
+                g.Key.PaymentMethodName,
+                g.Key.DeductionPercent,
+                Math.Round(g.Sum(p => p.DeductionAmount), 2)))
+            .OrderByDescending(d => d.TotalAmount)
+            .ToList();
+
+        // Construir ventas con resumen de métodos de pago
+        var ventas = l.Ventas.Select(v =>
+        {
+            var methodsSummary = salesWithPayments.TryGetValue(v.SaleId, out var sale)
+                ? string.Join(", ", sale.Payments
+                    .GroupBy(p => p.PaymentMethodName)
+                    .Select(g => g.Key))
+                : string.Empty;
+
+            return new LiquidacionVentaDto(
+                v.SaleId, v.SaleDateTime.ToString("o"), v.ClientName,
+                v.GrossServices, v.GrossProducts, v.Deduction,
+                v.CommServices, v.CommProducts, v.Tip, v.InternalConsumption,
+                methodsSummary);
+        }).ToList();
 
         return new LiquidacionDetalleDto(
             l.Id, l.StylistId, l.StylistName,
@@ -28,6 +55,6 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo)
             l.TotalVentas, l.GrossServices, l.GrossProducts, l.TotalDeductions,
             l.CommServices, l.CommProducts, l.TotalTips, l.InternalConsumption,
             l.AnticiposAplicados, l.NetoPeluquero, l.Status.ToString(),
-            ventas);
+            ventas, deduccionesDetalle);
     }
 }
