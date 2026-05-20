@@ -246,8 +246,8 @@
 
 @if (mostrarModal()) {
   <div class="modal-back" (click)="cerrarDetalle()">
-    <div class="modal" style="max-width:680px;width:100%" (click)="$event.stopPropagation()">
-      <div style="padding:28px 32px">
+    <div class="modal" style="max-width:680px;width:100%;max-height:92vh;display:flex;flex-direction:column" (click)="$event.stopPropagation()">
+      <div style="padding:28px 32px;overflow-y:auto;flex:1;min-height:0">
 
         <!-- Encabezado modal -->
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
@@ -512,20 +512,22 @@
           }
         }
 
-        <div style="display:flex;gap:8px;margin-top:24px;justify-content:flex-end;flex-wrap:wrap">
-          @if (ventaDetalle()!.status === 'Active') {
-            <button class="btn btn-ghost" style="color:var(--danger)"
-              (click)="iniciarAnulacion(ventaDetalle()!); cerrarDetalle()">
-              <sp-icon name="x" [size]="14" /> Anular venta
-            </button>
-          }
-          <button class="btn btn-ghost"
-            (click)="verRecibo(ventaDetalle()!)" [disabled]="cargandoRecibo() === ventaDetalle()!.id">
-            <sp-icon name="bag" [size]="14" />
-            {{ cargandoRecibo() === ventaDetalle()!.id ? 'Cargando…' : 'Ver recibo' }}
+      </div>
+
+      <!-- Pie fijo (fuera del scroll) -->
+      <div style="padding:14px 32px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;flex-shrink:0">
+        @if (ventaDetalle()!.status === 'Active') {
+          <button class="btn btn-ghost" style="color:var(--danger)"
+            (click)="iniciarAnulacion(ventaDetalle()!); cerrarDetalle()">
+            <sp-icon name="x" [size]="14" /> Anular venta
           </button>
-          <button class="btn btn-primary" (click)="cerrarDetalle()">Cerrar</button>
-        </div>
+        }
+        <button class="btn btn-ghost"
+          (click)="verRecibo(ventaDetalle()!)" [disabled]="cargandoRecibo() === ventaDetalle()!.id">
+          <sp-icon name="bag" [size]="14" />
+          {{ cargandoRecibo() === ventaDetalle()!.id ? 'Cargando…' : 'Ver recibo' }}
+        </button>
+        <button class="btn btn-primary" (click)="cerrarDetalle()">Cerrar</button>
       </div>
     </div>
   </div>
