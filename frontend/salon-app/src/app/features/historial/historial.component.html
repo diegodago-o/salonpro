@@ -382,62 +382,122 @@
             <hr class="hr" />
           }
 
-          <!-- ── Sección: Resumen financiero ── -->
-          <div style="margin:16px 0">
-            <div class="eyebrow" style="margin-bottom:8px">Resumen financiero</div>
-            <div style="font-size:13px">
-              @if (ventaDetalle()!.grossServices > 0) {
-                <div style="display:flex;justify-content:space-between;padding:5px 0;color:var(--ink-3)">
-                  <span>Bruto servicios</span>
-                  <span class="tnum">{{ ventaDetalle()!.grossServices | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                </div>
-              }
-              @if (ventaDetalle()!.grossProducts > 0) {
-                <div style="display:flex;justify-content:space-between;padding:5px 0;color:var(--ink-3)">
-                  <span>Bruto productos</span>
-                  <span class="tnum">{{ ventaDetalle()!.grossProducts | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                </div>
-              }
-              @if (ventaDetalle()!.internalConsumption > 0) {
-                <div style="display:flex;justify-content:space-between;padding:5px 0;color:var(--ink-4)">
-                  <span>Consumo interno (costo)</span>
-                  <span class="tnum">{{ ventaDetalle()!.internalConsumption | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                </div>
-              }
+          <!-- ══ Liquidación de la venta ══════════════════ -->
+
+          <!-- ── SECCIÓN: Resumen de venta ── -->
+          <div style="margin:16px 0;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+
+            <div style="padding:14px 18px 16px;background:var(--surface-2)">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:10px">
+                Resumen de venta
+              </div>
+
               @if (ventaDetalle()!.tipAmount > 0) {
-                <div style="display:flex;justify-content:space-between;padding:5px 0;color:var(--ink-3)">
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-3);padding:5px 0">
+                  <span>Servicios / Productos</span>
+                  <span class="tnum">{{ (ventaDetalle()!.grossServices + ventaDetalle()!.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-3);padding:5px 0">
                   <span>Propina</span>
                   <span class="tnum">{{ ventaDetalle()!.tipAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
                 </div>
+                <hr style="margin:6px 0;border:0;border-top:1px solid var(--border)" />
               }
 
-              <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700;font-size:15px;border-top:2px solid var(--border);margin-top:4px">
+              <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;padding:5px 0">
                 <span>Total bruto</span>
                 <span class="tnum serif">{{ ventaDetalle()!.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
               </div>
 
-              @if (ventaDetalle()!.totalDeductions > 0) {
-                <div style="display:flex;justify-content:space-between;padding:5px 0;color:#e53e3e">
-                  <span>− Deducciones (tarjeta / pasarela)</span>
-                  <span class="tnum">−{{ ventaDetalle()!.totalDeductions | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                </div>
+              @for (p of (ventaDetalle()!.payments ?? []); track p.paymentMethodId) {
+                @if (p.deductionPercent > 0 && p.deductionAmount > 0) {
+                  <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0 5px 10px;
+                              color:#c53030;border-left:3px solid #fc8181;margin:4px 0;
+                              background:rgba(252,129,129,.06);border-radius:0 4px 4px 0">
+                    <span>Cargo {{ p.paymentMethodName }} ({{ p.deductionPercent }}%)</span>
+                    <span class="tnum">−{{ p.deductionAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                }
               }
 
-              <div style="background:var(--surface-2);border-radius:8px;padding:10px 14px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                <div>
-                  <div class="eyebrow" style="font-size:10px">Comisión estilista ({{ ventaDetalle()!.commissionPercent }}%)</div>
-                  <div class="tnum serif" style="font-size:18px;color:var(--accent-deep);font-weight:600">
-                    {{ ventaDetalle()!.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
-                  </div>
+              @if (ventaDetalle()!.totalDeductions > 0) {
+                <hr style="margin:8px 0 6px;border:0;border-top:1px solid var(--border)" />
+                <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:5px 0;color:var(--accent-deep)">
+                  <span>Base neta a repartir</span>
+                  <span class="tnum">{{ (ventaDetalle()!.grossTotal - ventaDetalle()!.totalDeductions) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
                 </div>
-                <div>
-                  <div class="eyebrow" style="font-size:10px">Total salón</div>
-                  <div class="tnum serif" style="font-size:18px;color:var(--accent-deep);font-weight:600">
-                    {{ ventaDetalle()!.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+              }
+            </div>
+
+            <!-- ── SECCIÓN: Desglose comisiones ── -->
+            @if (desgloseDetalle().length > 0) {
+              <div style="padding:14px 18px 16px;background:var(--surface-1);border-top:1px solid var(--border)">
+                <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:10px">
+                  Desglose comisiones
+                </div>
+
+                <!-- Cabeceras -->
+                <div style="display:grid;grid-template-columns:1fr 90px 90px;font-size:10px;font-weight:700;
+                            text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);
+                            padding-bottom:6px;border-bottom:1px solid var(--border)">
+                  <span>Ítem</span>
+                  <span style="text-align:right">Salón</span>
+                  <span style="text-align:right;color:var(--accent-deep)">{{ ventaDetalle()!.stylistName.split(' ')[0] }}</span>
+                </div>
+
+                @for (d of desgloseDetalle(); track d.name) {
+                  <div style="display:grid;grid-template-columns:1fr 90px 90px;align-items:center;
+                              padding:9px 0;border-bottom:1px dashed var(--border)">
+                    <div>
+                      <div style="font-size:13px;font-weight:500">{{ d.name }}</div>
+                      <div style="font-size:11px;color:var(--ink-4);margin-top:1px">
+                        {{ d.isService ? 'Servicio' : 'Producto' }} · {{ ventaDetalle()!.commissionPercent }}%
+                        @if (d.hasFee) { · fee salón {{ d.feePct }}% }
+                      </div>
+                    </div>
+                    <span style="text-align:right;font-size:13px;font-weight:500">{{ d.salonAmt | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                    <span style="text-align:right;font-size:13px;font-weight:700;color:var(--accent-deep)">{{ d.stylistAmt | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
                   </div>
+                }
+
+                @if (ventaDetalle()!.tipAmount > 0) {
+                  <div style="display:grid;grid-template-columns:1fr 90px 90px;align-items:center;padding:9px 0">
+                    <div>
+                      <div style="font-size:13px;font-weight:500">Propina</div>
+                      <div style="font-size:11px;color:var(--ink-4);margin-top:1px">
+                        @if (netTipDetalle() < ventaDetalle()!.tipAmount) {
+                          Cargo método de pago aplicado
+                        } @else {
+                          Va íntegra al colaborador
+                        }
+                      </div>
+                    </div>
+                    <span style="text-align:right;font-size:13px;color:var(--ink-4)">—</span>
+                    <span style="text-align:right;font-size:13px;font-weight:700;color:var(--accent-deep)">{{ netTipDetalle() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- ── SECCIÓN: Distribución final ── -->
+            <div style="padding:14px 18px 16px;background:var(--surface-2);border-top:1px solid var(--border)">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:12px">
+                Distribución final
+              </div>
+              <div style="display:flex;gap:10px">
+                <div style="flex:1;background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+                  <div style="color:var(--ink-4);font-size:10px;text-transform:uppercase;font-weight:700;letter-spacing:.07em;margin-bottom:6px">Salón</div>
+                  <div class="tnum serif" style="font-size:20px;font-weight:600">{{ ventaDetalle()!.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+                </div>
+                <div style="flex:1;background:var(--accent-deep);border-radius:8px;padding:12px 14px;color:#fff">
+                  <div style="font-size:10px;text-transform:uppercase;font-weight:700;letter-spacing:.07em;margin-bottom:6px;opacity:.8">
+                    {{ ventaDetalle()!.stylistName.split(' ')[0] }}
+                  </div>
+                  <div class="tnum serif" style="font-size:20px;font-weight:600">{{ ventaDetalle()!.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
                 </div>
               </div>
             </div>
+
           </div>
 
           @if (ventaDetalle()!.voidedReason) {
