@@ -296,7 +296,7 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
     if (!v?.items) return [];
 
     const grossAll = v.grossServices + v.grossProducts + v.tipAmount;
-    const sPct     = v.commissionPercent / 100;
+    const sPct     = v.commissionPercent / 100; // % general del estilista (para servicios)
 
     return v.items
       .filter(i => i.type !== 'ProductInternal')
@@ -305,22 +305,31 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
         const frac     = grossAll > 0 ? subtotal / grossAll : 0;
         const netBase  = Math.round(subtotal - v.totalDeductions * frac);
 
-        let stylistAmt: number, salonAmt: number;
-        if (item.type === 'Service' && item.salonFeePercent > 0) {
-          const fee  = Math.round(netBase * item.salonFeePercent / 100);
-          const rem  = netBase - fee;
-          stylistAmt = Math.round(rem * sPct);
-          salonAmt   = Math.round(rem * (1 - sPct)) + fee;
+        let stylistAmt: number, salonAmt: number, commPct: number;
+
+        if (item.type === 'Service') {
+          commPct = sPct;
+          if (item.salonFeePercent > 0) {
+            const fee  = Math.round(netBase * item.salonFeePercent / 100);
+            const rem  = netBase - fee;
+            stylistAmt = Math.round(rem * commPct);
+            salonAmt   = Math.round(rem * (1 - commPct)) + fee;
+          } else {
+            stylistAmt = Math.round(netBase * commPct);
+            salonAmt   = Math.round(netBase * (1 - commPct));
+          }
         } else {
-          // Para productos se usa el mismo % que servicios (es informativo;
-          // el total real ya está en v.stylistTotal / v.salonTotal)
-          stylistAmt = Math.round(netBase * sPct);
-          salonAmt   = Math.round(netBase * (1 - sPct));
+          // Producto: usa el % propio del producto guardado en el ítem
+          commPct    = (item.stylistCommissionPercent ?? 0) / 100;
+          stylistAmt = Math.round(netBase * commPct);
+          salonAmt   = Math.round(netBase * (1 - commPct));
         }
+
         return {
           name:      item.name,
           isService: item.type === 'Service',
           subtotal,
+          commPct:   Math.round((item.type === 'Service' ? sPct : commPct) * 100),
           hasFee:    item.type === 'Service' && item.salonFeePercent > 0,
           feePct:    item.salonFeePercent,
           stylistAmt,

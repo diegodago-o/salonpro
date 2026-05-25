@@ -206,14 +206,14 @@ public class CreateSaleHandler(
         foreach (var (prod, price) in productSoldItems)
         {
             sale.Items.Add(SaleItem.CreateForSale(sale, SaleItemType.ProductSale, prod.Id, prod.Name,
-                price, 1, 0));
+                price, 1, salonFeePercent: 0, stylistCommissionPercent: prod.StylistCommissionPercent));
             prod.DecrementStock(1);
         }
 
         foreach (var (prod, price) in productInternalItems)
         {
             sale.Items.Add(SaleItem.CreateForSale(sale, SaleItemType.ProductInternal, prod.Id, prod.Name,
-                prod.PurchasePrice, 1, 0));
+                prod.PurchasePrice, 1, salonFeePercent: 0, stylistCommissionPercent: 0));
             prod.DecrementStock(1);
         }
 

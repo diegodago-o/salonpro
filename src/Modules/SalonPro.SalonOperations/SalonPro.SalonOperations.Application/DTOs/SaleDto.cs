@@ -7,7 +7,12 @@ public record SaleItemDto(
     decimal UnitPrice,
     int Quantity,
     decimal Subtotal,
-    decimal SalonFeePercent
+    decimal SalonFeePercent,
+    /// <summary>
+    /// Comisión del estilista sobre este ítem.
+    /// Servicios: % general del estilista. Productos: % propio del producto.
+    /// </summary>
+    decimal StylistCommissionPercent
 );
 
 public record SalePaymentDto(

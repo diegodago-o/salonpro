@@ -120,9 +120,9 @@ export class VentasService {
         const detail: Sale = {
           ...mock,
           items: [
-            { id: 1, type: 'Service', name: 'Corte dama', unitPrice: 35000, quantity: 1, subtotal: 35000, salonFeePercent: 0 },
-            { id: 2, type: 'Service', name: 'Tintura completa', unitPrice: 80000, quantity: 1, subtotal: 80000, salonFeePercent: 4.5 },
-            { id: 3, type: 'Service', name: 'Tratamiento hidratante', unitPrice: 32000, quantity: 1, subtotal: 32000, salonFeePercent: 0 },
+            { id: 1, type: 'Service',     name: 'Corte dama',            unitPrice: 35000, quantity: 1, subtotal: 35000, salonFeePercent: 0,   stylistCommissionPercent: 0 },
+            { id: 2, type: 'Service',     name: 'Tintura completa',       unitPrice: 80000, quantity: 1, subtotal: 80000, salonFeePercent: 4.5, stylistCommissionPercent: 0 },
+            { id: 3, type: 'ProductSale', name: 'Tratamiento hidratante', unitPrice: 32000, quantity: 1, subtotal: 32000, salonFeePercent: 0,   stylistCommissionPercent: 10 },
           ],
           payments: [
             { paymentMethodId: 2, paymentMethodName: 'Tarjeta crédito', amount: 157000, deductionPercent: 7, deductionAmount: 10990 }

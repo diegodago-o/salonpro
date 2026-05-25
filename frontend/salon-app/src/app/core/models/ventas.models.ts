@@ -138,6 +138,8 @@ export interface SaleItemDto {
   quantity: number;
   subtotal: number;
   salonFeePercent: number;
+  /** Comisión del estilista sobre este ítem. Servicios: % general. Productos: % propio del producto. */
+  stylistCommissionPercent: number;
 }
 
 // Pago de una venta (detalle)

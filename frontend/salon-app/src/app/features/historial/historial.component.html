@@ -451,7 +451,7 @@
                     <div>
                       <div style="font-size:13px;font-weight:500">{{ d.name }}</div>
                       <div style="font-size:11px;color:var(--ink-4);margin-top:1px">
-                        {{ d.isService ? 'Servicio' : 'Producto' }} · {{ ventaDetalle()!.commissionPercent }}%
+                        {{ d.isService ? 'Servicio' : 'Producto' }} · {{ d.commPct }}%
                         @if (d.hasFee) { · fee salón {{ d.feePct }}% }
                       </div>
                     </div>

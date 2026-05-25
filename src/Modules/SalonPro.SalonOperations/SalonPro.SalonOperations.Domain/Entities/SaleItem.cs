@@ -12,13 +12,19 @@ public class SaleItem
     public decimal UnitPrice { get; private set; }
     public int Quantity { get; private set; }
     public decimal SalonFeePercent { get; private set; }
+    /// <summary>
+    /// Comisión del estilista sobre este ítem (0–100).
+    /// Para servicios: es el % general del estilista (informativo).
+    /// Para productos: es el % propio del producto (puede diferir del estilista).
+    /// </summary>
+    public decimal StylistCommissionPercent { get; private set; }
 
     public Sale? Sale { get; private set; }
 
     private SaleItem() { }
 
     public static SaleItem Create(int saleId, SaleItemType type, int referenceId, string name,
-        decimal unitPrice, int quantity, decimal salonFeePercent = 0)
+        decimal unitPrice, int quantity, decimal salonFeePercent = 0, decimal stylistCommissionPercent = 0)
     {
         return new SaleItem
         {
@@ -28,12 +34,13 @@ public class SaleItem
             Name = name,
             UnitPrice = unitPrice,
             Quantity = quantity,
-            SalonFeePercent = salonFeePercent
+            SalonFeePercent = salonFeePercent,
+            StylistCommissionPercent = stylistCommissionPercent,
         };
     }
 
     public static SaleItem CreateForSale(Sale sale, SaleItemType type, int referenceId, string name,
-        decimal unitPrice, int quantity, decimal salonFeePercent = 0)
+        decimal unitPrice, int quantity, decimal salonFeePercent = 0, decimal stylistCommissionPercent = 0)
     {
         return new SaleItem
         {
@@ -44,7 +51,8 @@ public class SaleItem
             Name = name,
             UnitPrice = unitPrice,
             Quantity = quantity,
-            SalonFeePercent = salonFeePercent
+            SalonFeePercent = salonFeePercent,
+            StylistCommissionPercent = stylistCommissionPercent,
         };
     }
 }

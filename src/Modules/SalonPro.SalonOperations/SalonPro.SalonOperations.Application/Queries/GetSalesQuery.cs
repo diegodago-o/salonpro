@@ -16,7 +16,8 @@ public static class SaleDtoMapper
                 i.Id, i.Type.ToString(), i.Name,
                 i.UnitPrice, i.Quantity,
                 Math.Round(i.UnitPrice * i.Quantity, 2),
-                i.SalonFeePercent))
+                i.SalonFeePercent,
+                i.StylistCommissionPercent))
             : null;
         var payments = includeItems
             ? s.Payments.Select(p => new SalePaymentDto(
