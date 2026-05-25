@@ -330,18 +330,29 @@
 
           <!-- STEP 2: Productos -->
           @if (step() === 2) {
+            <!-- Sub-tabs con contadores -->
             <div style="display:flex;gap:6px;margin-bottom:18px;padding:3px;background:var(--bone);border-radius:7px;width:fit-content">
               <button [class]="'btn btn-sm ' + (filtroProductoVenta() !== '__internal__' ? 'btn-primary' : 'btn-ghost')"
                 (click)="filtroProductoVenta.set('')">
-                <sp-icon name="bag" [size]="12" /> Venta a cliente
+                <sp-icon name="bag" [size]="12" />
+                Venta a cliente
+                @if (cantProdVenta() > 0) {
+                  <span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:white;color:var(--accent-deep);font-size:10px;font-weight:700;margin-left:4px">{{ cantProdVenta() }}</span>
+                }
               </button>
               <button [class]="'btn btn-sm ' + (filtroProductoVenta() === '__internal__' ? 'btn-primary' : 'btn-ghost')"
                 (click)="filtroProductoVenta.set('__internal__')">
-                <sp-icon name="sparkle" [size]="12" /> Consumo interno
+                <sp-icon name="sparkle" [size]="12" />
+                Consumo interno
+                @if (cantProdInterno() > 0) {
+                  <span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:white;color:var(--accent-deep);font-size:10px;font-weight:700;margin-left:4px">{{ cantProdInterno() }}</span>
+                }
               </button>
             </div>
+
+            <!-- Catálogo: Venta a cliente -->
             @if (filtroProductoVenta() !== '__internal__') {
-              <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Productos que el cliente se lleva con él.</div>
+              <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Productos que el cliente se lleva. Toca de nuevo para quitar.</div>
               <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
                 @for (p of productosVentaFiltrados(); track p.id) {
                   <button [class]="'tile' + (productoVentaYaAgregado(p.id) ? ' selected' : '')" (click)="agregarProductoVenta(p)">
@@ -350,23 +361,81 @@
                         <div style="font-weight:500;font-size:14px">{{ p.name }}</div>
                         <div class="tile-meta" style="margin-top:2px">{{ p.brand }}</div>
                       </div>
-                      <div class="serif tnum" style="font-size:16px">{{ p.salePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+                      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+                        <div class="serif tnum" style="font-size:16px">{{ p.salePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+                        @if (productoVentaYaAgregado(p.id)) {
+                          <sp-icon name="check" [size]="12" style="color:var(--accent)" />
+                        }
+                      </div>
                     </div>
                   </button>
                 }
               </div>
-              @if (productosVentaFiltrados().length === 0) { <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Opcional · sin productos para venta</div> }
+              @if (productosVentaFiltrados().length === 0) {
+                <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Opcional · sin productos para venta</div>
+              }
+
+            <!-- Catálogo: Consumo interno -->
             } @else {
-              <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Productos aplicados por el colaborador durante el servicio.</div>
+              <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Productos usados durante el servicio. Toca de nuevo para quitar.</div>
               <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
                 @for (p of productosInternosFiltrados(); track p.id) {
                   <button [class]="'tile' + (productoInternoYaAgregado(p.id) ? ' selected' : '')" (click)="agregarProductoInterno(p)">
-                    <div style="font-weight:500;font-size:14px">{{ p.name }}</div>
-                    <div class="tile-meta" style="margin-top:2px">{{ p.brand }}</div>
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                      <div>
+                        <div style="font-weight:500;font-size:14px">{{ p.name }}</div>
+                        <div class="tile-meta" style="margin-top:2px">{{ p.brand }}</div>
+                      </div>
+                      @if (productoInternoYaAgregado(p.id)) {
+                        <sp-icon name="check" [size]="12" style="color:var(--accent)" />
+                      }
+                    </div>
                   </button>
                 }
               </div>
-              @if (productosInternosFiltrados().length === 0) { <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Opcional · sin consumos internos</div> }
+              @if (productosInternosFiltrados().length === 0) {
+                <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Opcional · sin consumos internos</div>
+              }
+            }
+
+            <!-- Panel unificado de edición (siempre visible si hay algún producto) -->
+            @if (hayProductos()) {
+              <div style="margin-top:22px;padding:16px;background:var(--bone);border-radius:6px">
+                <div class="eyebrow" style="margin-bottom:10px">Editar cantidades y precios</div>
+
+                <!-- Productos de venta -->
+                @for (item of itemsProductoVenta(); track trackItem($index, item)) {
+                  <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--hair-2)">
+                    <sp-icon name="bag" [size]="12" style="color:var(--accent);flex-shrink:0" />
+                    <span style="flex:1;font-size:13px;font-weight:500">{{ item.name }}</span>
+                    <input class="input mono" type="number" [value]="item.quantity" min="1" style="width:60px;text-align:center"
+                      (change)="actualizarCantidad(item, $any($event.target).valueAsNumber)" />
+                    <span style="color:var(--ink-4);font-size:11px">×</span>
+                    <input class="input mono" type="number" [value]="item.price" min="0" style="width:110px"
+                      (change)="actualizarPrecio(item, $any($event.target).valueAsNumber)" />
+                    <button class="btn btn-icon btn-ghost" (click)="quitarItem(item)" title="Quitar">
+                      <sp-icon name="x" [size]="12" />
+                    </button>
+                  </div>
+                }
+
+                <!-- Productos de consumo interno -->
+                @for (item of itemsProductoInterno(); track trackItem($index, item)) {
+                  <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--hair-2)">
+                    <sp-icon name="sparkle" [size]="12" style="color:var(--ink-3);flex-shrink:0" />
+                    <span style="flex:1;font-size:13px;font-weight:500">{{ item.name }}</span>
+                    <span style="font-size:10px;color:var(--ink-4);white-space:nowrap;background:var(--hair-2);padding:2px 6px;border-radius:4px">Interno</span>
+                    <input class="input mono" type="number" [value]="item.quantity" min="1" style="width:60px;text-align:center"
+                      (change)="actualizarCantidad(item, $any($event.target).valueAsNumber)" />
+                    <span style="color:var(--ink-4);font-size:11px">×</span>
+                    <input class="input mono" type="number" [value]="item.price" min="0" style="width:110px"
+                      (change)="actualizarPrecio(item, $any($event.target).valueAsNumber)" />
+                    <button class="btn btn-icon btn-ghost" (click)="quitarItem(item)" title="Quitar">
+                      <sp-icon name="x" [size]="12" />
+                    </button>
+                  </div>
+                }
+              </div>
             }
           }
 

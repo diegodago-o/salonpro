@@ -175,7 +175,10 @@ export class VentasComponent implements OnInit {
       && Math.abs(this.diferenciaPago()) === 0;
   });
 
-  readonly hayServicios = computed(() => this.items().some(i => i.type === 'Service'));
+  readonly hayServicios  = computed(() => this.items().some(i => i.type === 'Service'));
+  readonly hayProductos  = computed(() => this.items().some(i => i.type === 'ProductSale' || i.type === 'ProductInternal'));
+  readonly cantProdVenta    = computed(() => this.items().filter(i => i.type === 'ProductSale').length);
+  readonly cantProdInterno  = computed(() => this.items().filter(i => i.type === 'ProductInternal').length);
 
   /** Desglose de deducciones por método de pago, solo los que tienen deducción > 0 */
   readonly deduccionesPorPago = computed(() =>
@@ -441,7 +444,8 @@ export class VentasComponent implements OnInit {
   agregarProductoVenta(producto: ProductOption): void {
     const existente = this.items().find(i => i.type === 'ProductSale' && (i as SaleProductItem).productId === producto.id) as SaleProductItem | undefined;
     if (existente) {
-      this.items.update(l => l.map(i => i === existente ? { ...existente, quantity: existente.quantity + 1 } : i));
+      // Toggle: segundo click quita el producto
+      this.items.update(l => l.filter(i => i !== existente));
     } else {
       this.items.update(l => [...l, { type: 'ProductSale', productId: producto.id, name: producto.name, price: producto.salePrice, quantity: 1, stylistCommissionPercent: producto.stylistCommissionPercent ?? 10 } as SaleProductItem]);
     }
@@ -451,7 +455,8 @@ export class VentasComponent implements OnInit {
   agregarProductoInterno(producto: ProductOption): void {
     const existente = this.items().find(i => i.type === 'ProductInternal' && (i as SaleProductItem).productId === producto.id) as SaleProductItem | undefined;
     if (existente) {
-      this.items.update(l => l.map(i => i === existente ? { ...existente, quantity: existente.quantity + 1 } : i));
+      // Toggle: segundo click quita el producto
+      this.items.update(l => l.filter(i => i !== existente));
     } else {
       this.items.update(l => [...l, { type: 'ProductInternal', productId: producto.id, name: producto.name, price: producto.purchasePrice, quantity: 1, stylistCommissionPercent: 0 } as SaleProductItem]);
     }
