@@ -19,6 +19,12 @@ export interface LiquidacionResumen {
   status: LiquidacionStatus;
 }
 
+export interface DeduccionDetalle {
+  paymentMethodName: string;
+  deductionPercent: number;
+  totalAmount: number;
+}
+
 export interface LiquidacionVenta {
   saleId: number;
   saleDateTime: string;
@@ -28,12 +34,21 @@ export interface LiquidacionVenta {
   deduction: number;
   commServices: number;
   commProducts: number;
+  /** Propina neta (ya descontada la deducción proporcional del método de pago) */
   tip: number;
   internalConsumption: number;
+  paymentMethodsSummary: string;
+  /** Productos de consumo interno: ["Tintura rubio — $20.000", …] */
+  internalItems: string[];
+  /** Detalle de comisión por servicio: ["Corte — $88.350", …] */
+  serviceCommItems: string[];
+  /** Detalle de comisión por producto vendido: ["Tintura rubio — $12.126", …] */
+  productCommItems: string[];
 }
 
 export interface LiquidacionDetalle extends LiquidacionResumen {
   ventas: LiquidacionVenta[];
+  deduccionesDetalle: DeduccionDetalle[];
 }
 
 export interface CreateLiquidacionRequest {

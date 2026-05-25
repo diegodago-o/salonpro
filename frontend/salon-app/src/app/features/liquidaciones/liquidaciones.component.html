@@ -225,9 +225,9 @@
           </div>
         </div>
         <div style="padding:16px;background:var(--bone);border-radius:6px">
-          <div class="eyebrow">Comisión</div>
+          <div class="eyebrow">Comisión + propinas</div>
           <div class="serif tnum" style="font-size:26px;margin-top:4px">
-            {{ (detalle()!.commServices + detalle()!.commProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+            {{ (detalle()!.commServices + detalle()!.commProducts + detalle()!.totalTips) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
           </div>
         </div>
         <div style="padding:16px;background:var(--ink);color:var(--bone);border-radius:6px">
@@ -240,14 +240,79 @@
 
       <!-- Recibo desglosado -->
       <div class="receipt" style="background:var(--bone)">
+
+        <!-- Totales facturados -->
         <div class="row"><span style="color:var(--ink-3)">Facturado en período</span><span class="tnum">{{ (detalle()!.grossServices + detalle()!.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+
+        <!-- Comisiones netas (excluyendo propina, ya descontadas deducciones bancarias) -->
         <div class="row"><span style="color:var(--ink-3)">Comisión servicios</span><span class="tnum">{{ detalle()!.commServices | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-        <div class="row"><span style="color:var(--ink-3)">Comisión productos</span><span class="tnum">{{ detalle()!.commProducts | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-        <div class="row"><span style="color:var(--ink-3)">Propinas</span><span class="tnum">{{ detalle()!.totalTips | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-        <hr class="hr-dotted" style="margin:8px 0" />
-        <div class="row"><span style="color:var(--ink-3)">(−) Consumo interno</span><span class="tnum" style="color:var(--danger)">−{{ detalle()!.internalConsumption | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+        @for (v of detalle()!.ventas; track v.saleId) {
+          @for (item of v.serviceCommItems; track item) {
+            <div style="display:flex;justify-content:space-between;font-size:11px;
+                        padding:2px 0 2px 16px;color:var(--ink-4);
+                        border-left:2px solid var(--border);margin-left:4px">
+              <span>{{ item }}</span>
+            </div>
+          }
+        }
+        @if (detalle()!.commProducts > 0) {
+          <div class="row"><span style="color:var(--ink-3)">Comisión productos</span><span class="tnum">{{ detalle()!.commProducts | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+          @for (v of detalle()!.ventas; track v.saleId) {
+            @for (item of v.productCommItems; track item) {
+              <div style="display:flex;justify-content:space-between;font-size:11px;
+                          padding:2px 0 2px 16px;color:var(--ink-4);
+                          border-left:2px solid var(--border);margin-left:4px">
+                <span>{{ item }}</span>
+              </div>
+            }
+          }
+        }
+        @if (detalle()!.totalTips > 0) {
+          <div class="row"><span style="color:var(--ink-3)">Propinas (neto)</span><span class="tnum">{{ detalle()!.totalTips | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+        }
+
+        <!-- Subtotal comisión total -->
+        <hr class="hr-dotted" style="margin:6px 0" />
+        <div class="row" style="font-weight:600">
+          <span>Total comisión + propinas</span>
+          <span class="tnum">{{ (detalle()!.commServices + detalle()!.commProducts + detalle()!.totalTips) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+        </div>
+
+        <!-- Descuentos -->
+        <hr class="hr-dotted" style="margin:6px 0" />
+        @if (detalle()!.internalConsumption > 0) {
+          <div class="row">
+            <span style="color:var(--ink-3)">(−) Consumo interno</span>
+            <span class="tnum" style="color:var(--danger)">−{{ detalle()!.internalConsumption | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+          </div>
+          @for (v of detalle()!.ventas; track v.saleId) {
+            @for (item of v.internalItems; track item) {
+              <div style="display:flex;justify-content:space-between;font-size:11px;
+                          padding:2px 0 2px 16px;color:var(--ink-4);
+                          border-left:2px solid var(--border);margin-left:4px">
+                <span>{{ item }}</span>
+              </div>
+            }
+          }
+        }
         <div class="row"><span style="color:var(--ink-3)">(−) Anticipos aplicados</span><span class="tnum" style="color:var(--danger)">−{{ detalle()!.anticiposAplicados | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-        <div class="row"><span style="color:var(--ink-3)">(−) Deducciones</span><span class="tnum" style="color:var(--danger)">−{{ detalle()!.totalDeductions | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+
+        <!-- Deducciones bancarias: informativo (ya incluidas en las comisiones) -->
+        @if ((detalle()!.deduccionesDetalle?.length ?? 0) > 0) {
+          <div style="margin:6px 0 2px;font-size:10px;color:var(--ink-4);font-style:italic">
+            * Deducciones bancarias ya descontadas de las comisiones:
+          </div>
+          @for (d of detalle()!.deduccionesDetalle; track d.paymentMethodName) {
+            <div style="display:flex;justify-content:space-between;font-size:11px;
+                        padding:2px 0 2px 16px;color:var(--ink-4);
+                        border-left:2px solid #fc8181;margin-left:4px;
+                        background:rgba(252,129,129,.05)">
+              <span>{{ d.paymentMethodName }} ({{ d.deductionPercent }}%)</span>
+              <span class="tnum" style="color:var(--danger)">−{{ d.totalAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+            </div>
+          }
+        }
+
         <div class="row total"><span>Neto a pagar</span><span class="tnum serif" style="font-size:22px">{{ detalle()!.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
       </div>
 
@@ -270,11 +335,12 @@
           <table class="tbl">
             <thead>
               <tr>
-                <th>Fecha</th><th>Cliente</th>
+                <th>Fecha</th><th>Cliente</th><th>Método de pago</th>
                 <th style="text-align:right">Total</th>
                 <th style="text-align:right">Deducción</th>
-                <th style="text-align:right">Comisión</th>
-                <th style="text-align:right">Propina</th>
+                <th style="text-align:right">Comisión (neto)</th>
+                <th style="text-align:right">Propina (neto)</th>
+                <th style="text-align:right">Consumo interno</th>
               </tr>
             </thead>
             <tbody>
@@ -282,17 +348,40 @@
                 <tr>
                   <td style="font-size:12px;color:var(--ink-3)">{{ v.saleDateTime | date:'dd/MM HH:mm' }}</td>
                   <td>{{ v.clientName }}</td>
+                  <td style="font-size:12px;color:var(--ink-3)">{{ v.paymentMethodsSummary }}</td>
                   <td class="tnum" style="text-align:right">
                     {{ (v.grossServices + v.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
                   </td>
                   <td class="tnum" style="text-align:right;color:var(--danger)">
-                    −{{ v.deduction | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                    @if (v.deduction > 0) { −{{ v.deduction | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }} }
+                    @else { <span style="color:var(--ink-4)">—</span> }
                   </td>
-                  <td class="tnum" style="text-align:right;color:var(--accent-deep);font-weight:500">
-                    {{ (v.commServices + v.commProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                  <td style="text-align:right">
+                    <div class="tnum" style="color:var(--accent-deep);font-weight:500">
+                      {{ (v.commServices + v.commProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                    </div>
+                    @for (item of v.serviceCommItems; track item) {
+                      <div style="font-size:10px;color:var(--ink-4)">{{ item }}</div>
+                    }
+                    @for (item of v.productCommItems; track item) {
+                      <div style="font-size:10px;color:var(--ink-4)">{{ item }}</div>
+                    }
                   </td>
                   <td class="tnum" style="text-align:right">
-                    {{ v.tip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                    @if (v.tip > 0) { {{ v.tip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }} }
+                    @else { <span style="color:var(--ink-4)">—</span> }
+                  </td>
+                  <td style="text-align:right">
+                    @if (v.internalConsumption > 0) {
+                      <div class="tnum" style="color:var(--danger);font-size:12px">
+                        −{{ v.internalConsumption | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                      </div>
+                      @for (item of v.internalItems; track item) {
+                        <div style="font-size:10px;color:var(--ink-4)">{{ item }}</div>
+                      }
+                    } @else {
+                      <span style="color:var(--ink-4)">—</span>
+                    }
                   </td>
                 </tr>
               }

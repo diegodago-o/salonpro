@@ -290,13 +290,51 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
            type === 'ProductSale' ? 'pill-success' : 'pill-warning';
   }
 
-  /** Comisión estimada del estilista sobre servicios */
-  comisionEstilista(v: Sale): number {
-    if (!v.items) return v.stylistTotal;
-    const baseServicios = v.grossServices - (v.totalDeductions * (v.grossServices / Math.max(v.grossTotal, 1)));
-    const feesSalon = (v.items ?? [])
-      .filter(i => i.type === 'Service' && i.salonFeePercent > 0)
-      .reduce((s, i) => s + Math.round(i.subtotal * i.salonFeePercent / 100), 0);
-    return Math.round((baseServicios - feesSalon) * v.commissionPercent / 100);
-  }
+  /** Desglose por ítem del detalle abierto (espejo de sale-calculator.ts para visualización) */
+  readonly desgloseDetalle = computed(() => {
+    const v = this.ventaDetalle();
+    if (!v?.items) return [];
+
+    const grossAll = v.grossServices + v.grossProducts + v.tipAmount;
+    const sPct     = v.commissionPercent / 100;
+
+    return v.items
+      .filter(i => i.type !== 'ProductInternal')
+      .map(item => {
+        const subtotal = item.subtotal;
+        const frac     = grossAll > 0 ? subtotal / grossAll : 0;
+        const netBase  = Math.round(subtotal - v.totalDeductions * frac);
+
+        let stylistAmt: number, salonAmt: number;
+        if (item.type === 'Service' && item.salonFeePercent > 0) {
+          const fee  = Math.round(netBase * item.salonFeePercent / 100);
+          const rem  = netBase - fee;
+          stylistAmt = Math.round(rem * sPct);
+          salonAmt   = Math.round(rem * (1 - sPct)) + fee;
+        } else {
+          // Para productos se usa el mismo % que servicios (es informativo;
+          // el total real ya está en v.stylistTotal / v.salonTotal)
+          stylistAmt = Math.round(netBase * sPct);
+          salonAmt   = Math.round(netBase * (1 - sPct));
+        }
+        return {
+          name:      item.name,
+          isService: item.type === 'Service',
+          subtotal,
+          hasFee:    item.type === 'Service' && item.salonFeePercent > 0,
+          feePct:    item.salonFeePercent,
+          stylistAmt,
+          salonAmt,
+        };
+      });
+  });
+
+  /** Propina neta (descontada la deducción proporcional) */
+  netTipDetalle = computed(() => {
+    const v = this.ventaDetalle();
+    if (!v || v.tipAmount === 0) return 0;
+    const grossAll = v.grossServices + v.grossProducts + v.tipAmount;
+    const frac = grossAll > 0 ? v.tipAmount / grossAll : 0;
+    return Math.round(v.tipAmount - v.totalDeductions * frac);
+  });
 }

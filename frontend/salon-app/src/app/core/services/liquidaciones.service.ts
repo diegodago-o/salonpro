@@ -56,8 +56,12 @@ export class LiquidacionesService {
       const detalle: LiquidacionDetalle = {
         ...base,
         ventas: [
-          { saleId: 101, saleDateTime: hace7.toISOString(), clientName: 'Ana López', grossServices: 80000, grossProducts: 32000, deduction: 7840, commServices: 33688, commProducts: 3200, tip: 10000, internalConsumption: 12000 },
-          { saleId: 102, saleDateTime: new Date(Date.now() - 5 * 86400000).toISOString(), clientName: 'Carlos Medina', grossServices: 35000, grossProducts: 0, deduction: 2450, commServices: 16275, commProducts: 0, tip: 5000, internalConsumption: 0 },
+          { saleId: 101, saleDateTime: hace7.toISOString(), clientName: 'Ana López', grossServices: 80000, grossProducts: 32000, deduction: 7840, commServices: 33688, commProducts: 3200, tip: 9300, internalConsumption: 12000, paymentMethodsSummary: 'Tarjeta crédito', internalItems: ['Tintura rubio — $12.000'], serviceCommItems: ['Corte dama — $28.500', 'Tinte — $5.188'], productCommItems: ['Shampoo pro — $3.200'] },
+          { saleId: 102, saleDateTime: new Date(Date.now() - 5 * 86400000).toISOString(), clientName: 'Carlos Medina', grossServices: 35000, grossProducts: 0, deduction: 2450, commServices: 16275, commProducts: 0, tip: 4800, internalConsumption: 0, paymentMethodsSummary: 'Tarjeta débito', internalItems: [], serviceCommItems: ['Corte caballero — $16.275'], productCommItems: [] },
+        ],
+        deduccionesDetalle: [
+          { paymentMethodName: 'Tarjeta crédito', deductionPercent: 5, totalAmount: 7840 },
+          { paymentMethodName: 'Tarjeta débito', deductionPercent: 7, totalAmount: 2450 },
         ],
       };
       return of({ success: true, data: detalle, message: '', errors: [] });
