@@ -2,17 +2,12 @@
   <div class="page-head">
     <div>
       <div class="eyebrow">Stock</div>
-      <h1><span class="serif">Inventario de</span> <span class="serif-italic">productos</span></h1>
+      <h1><span class="serif">Inventario de </span><span class="serif-italic">productos</span></h1>
       <div class="deck">{{ productos().length }} productos · {{ conStockBajo() }} con stock bajo</div>
     </div>
-    <div style="display:flex;gap:10px">
-      <button class="btn btn-ghost" (click)="abrirEntrada()">
-        <sp-icon name="upload" [size]="14" /> Entrada stock
-      </button>
-      <button class="btn btn-primary" (click)="abrirNuevo()">
-        <sp-icon name="plus" [size]="14" /> Nuevo producto
-      </button>
-    </div>
+    <button class="btn btn-primary" (click)="abrirNuevo()">
+      <sp-icon name="plus" [size]="14" /> Nuevo producto
+    </button>
   </div>
 
   <!-- Tabs -->
