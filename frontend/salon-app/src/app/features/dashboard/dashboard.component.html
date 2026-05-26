@@ -1,46 +1,86 @@
 <div class="page fade-in">
-  <!-- Page head -->
+
+  <!-- ── PAGE HEAD ──────────────────────────────────────── -->
   <div class="page-head">
     <div>
-      <div class="eyebrow" style="margin-bottom:8px">Hoy · {{ today | date:'EEEE d \'de\' MMMM':'America/Bogota':'es-CO' }}</div>
+      <div class="eyebrow" style="margin-bottom:8px">
+        Hoy · {{ today | date:'EEEE d \'de\' MMMM':'America/Bogota':'es-CO' }}
+      </div>
       <h1>
         <span class="serif">Buenos días,</span>
         <span class="serif-italic" style="color:var(--accent)"> {{ helloName() }}</span>
       </h1>
-      <div class="deck">{{ user()?.tenantName }} · {{ user()?.branchName }}</div>
+      <div class="deck">{{ user()?.tenantName }}</div>
     </div>
-    <div style="display:flex;gap:10px;align-items:center">
-      <button class="btn btn-ghost"><sp-icon name="download" [size]="14" /> Exportar</button>
-      <button class="btn btn-primary" (click)="irAlPOS()"><sp-icon name="plus" [size]="14" /> Nueva venta</button>
-    </div>
+    <button class="btn btn-primary" (click)="irAlPOS()">
+      <sp-icon name="plus" [size]="14" /> Nueva venta
+    </button>
   </div>
 
-  <!-- KPIs -->
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px">
+  @if (loading()) {
+    <div style="display:flex;align-items:center;gap:10px;color:var(--ink-4);font-size:13px;padding:20px 0">
+      <span style="display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite"></span>
+      Cargando datos…
+    </div>
+  }
+
+  <!-- ── KPI ROW ─────────────────────────────────────────── -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+
+    <!-- Ingresos hoy -->
     <div class="kpi">
       <div class="kpi-label">Ingresos hoy</div>
-      <div class="kpi-value tnum">{{ kpiHoy() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-      <div class="kpi-delta up" style="font-size:12px">{{ ventasCount() }} ventas registradas</div>
+      <div class="kpi-value tnum">
+        {{ kpiHoy() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+      </div>
+      <div style="font-size:11px;color:var(--ink-4);margin-top:6px;display:flex;flex-direction:column;gap:3px">
+        <span>{{ countHoy() }} venta{{ countHoy() !== 1 ? 's' : '' }} activa{{ countHoy() !== 1 ? 's' : '' }}</span>
+        <span style="color:var(--ink-3)">
+          Salón:
+          <strong>{{ salonHoy() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</strong>
+        </span>
+      </div>
     </div>
+
+    <!-- Ticket promedio -->
     <div class="kpi">
-      <div class="kpi-label">Ticket promedio</div>
-      <div class="kpi-value tnum">{{ ticketPromedio() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-      <div class="kpi-delta" style="font-size:12px">por venta activa</div>
+      <div class="kpi-label">Ticket promedio hoy</div>
+      <div class="kpi-value tnum">
+        {{ ticketPromedio() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+      </div>
+      <div style="font-size:11px;color:var(--ink-4);margin-top:6px">
+        por venta activa
+      </div>
     </div>
+
+    <!-- Esta semana -->
     <div class="kpi">
       <div class="kpi-label">Esta semana</div>
-      <div class="kpi-value tnum serif" style="font-size:30px">—</div>
-      <div class="kpi-delta" style="font-size:12px">datos históricos próximamente</div>
+      <div class="kpi-value tnum">
+        {{ kpiSemana() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+      </div>
+      <div style="font-size:11px;color:var(--ink-4);margin-top:6px">
+        {{ countSemana() }} venta{{ countSemana() !== 1 ? 's' : '' }}
+      </div>
     </div>
+
+    <!-- Este mes -->
     <div class="kpi">
       <div class="kpi-label">Este mes</div>
-      <div class="kpi-value tnum serif" style="font-size:30px">—</div>
-      <div class="kpi-delta" style="font-size:12px">datos históricos próximamente</div>
+      <div class="kpi-value tnum">
+        {{ kpiMes() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+      </div>
+      <div style="font-size:11px;color:var(--ink-4);margin-top:6px">
+        {{ countMes() }} venta{{ countMes() !== 1 ? 's' : '' }}
+      </div>
     </div>
+
   </div>
 
-  <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:16px">
-    <!-- Ventas hoy -->
+  <!-- ── MAIN GRID ───────────────────────────────────────── -->
+  <div style="display:grid;grid-template-columns:1.65fr 1fr;gap:16px;margin-bottom:16px">
+
+    <!-- Ventas del día -->
     <div class="card" style="padding:24px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px">
         <div>
@@ -50,7 +90,7 @@
         <button class="btn btn-sm btn-ghost" routerLink="/historial">Ver todas</button>
       </div>
 
-      @if (ventas().length === 0) {
+      @if (ventasHoy().length === 0 && !loading()) {
         <div style="padding:40px;text-align:center;color:var(--ink-4)">
           <sp-icon name="pos" [size]="32" />
           <div style="margin-top:12px;font-size:13px">Aún no hay ventas registradas hoy</div>
@@ -63,7 +103,8 @@
           <table class="tbl">
             <thead>
               <tr>
-                <th>Peluquero</th>
+                <th>Hora</th>
+                <th>Estilista</th>
                 <th>Cliente</th>
                 <th>Pago</th>
                 <th style="text-align:right">Total</th>
@@ -71,62 +112,159 @@
               </tr>
             </thead>
             <tbody>
-              @for (v of ventas().slice(0, 8); track v.id) {
-                <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'">
+              @for (v of ventasHoy().slice(0, 10); track v.id) {
+                <tr [style.opacity]="v.status === 'Voided' ? '0.45' : '1'">
+                  <td class="mono" style="font-size:11px;color:var(--ink-4);white-space:nowrap">
+                    {{ v.saleDateTime | date:'HH:mm':'America/Bogota' }}
+                  </td>
                   <td style="font-weight:500">{{ v.stylistName }}</td>
-                  <td style="color:var(--ink-3)">{{ v.clientName }}</td>
-                  <td>{{ v.paymentMethodName }}</td>
+                  <td style="color:var(--ink-3);font-size:13px">{{ v.clientName }}</td>
+                  <td style="font-size:12px;color:var(--ink-3)">{{ v.paymentMethodName }}</td>
                   <td class="tnum" style="text-align:right;font-weight:500">
                     {{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
                   </td>
                   <td>
-                    @if (v.status === 'Active') {
-                      <span class="pill pill-success"><span class="pill-dot"></span>Activa</span>
-                    } @else if (v.status === 'Voided') {
-                      <span class="pill pill-danger"><span class="pill-dot"></span>Anulada</span>
-                    } @else {
-                      <span class="pill"><span class="pill-dot"></span>{{ v.status }}</span>
-                    }
+                    <span class="pill {{ statusPill(v.status) }}">
+                      <span class="pill-dot"></span>{{ statusLabel(v.status) }}
+                    </span>
                   </td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
+        @if (ventasHoy().length > 10) {
+          <div style="padding:10px 0 0;font-size:12px;color:var(--ink-4);text-align:center">
+            Mostrando 10 de {{ ventasHoy().length }} —
+            <a routerLink="/historial" style="color:var(--accent);cursor:pointer">ver todas</a>
+          </div>
+        }
       }
     </div>
 
-    <!-- Quick actions + alerts -->
+    <!-- Columna derecha -->
     <div style="display:flex;flex-direction:column;gap:16px">
-      <div class="card" style="padding:24px">
-        <div class="eyebrow" style="margin-bottom:12px">Accesos rápidos</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <button class="btn btn-primary btn-lg" style="justify-content:flex-start" (click)="irAlPOS()">
-            <sp-icon name="pos" [size]="16" /> Nueva venta (POS)
-          </button>
-          <button class="btn btn-ghost" style="justify-content:flex-start" routerLink="/caja">
-            <sp-icon name="cash" [size]="16" /> Gestionar caja
-          </button>
-          <button class="btn btn-ghost" style="justify-content:flex-start" routerLink="/liquidaciones">
-            <sp-icon name="wallet" [size]="16" /> Liquidaciones
-          </button>
-          <button class="btn btn-ghost" style="justify-content:flex-start" routerLink="/reportes">
-            <sp-icon name="chart" [size]="16" /> Ver reportes
-          </button>
-        </div>
+
+      <!-- Top estilistas hoy -->
+      <div class="card" style="padding:22px">
+        <div class="eyebrow" style="margin-bottom:14px">Estilistas hoy</div>
+        @if (topEstilistas().length === 0) {
+          <div style="color:var(--ink-4);font-size:13px;padding:12px 0">Sin actividad hoy</div>
+        } @else {
+          @for (e of topEstilistas(); track e.name; let i = $index) {
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--hair-2)">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--bone);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--ink-3);flex-shrink:0">
+                {{ i + 1 }}
+              </div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.name }}</div>
+                <div style="font-size:11px;color:var(--ink-4)">{{ e.ventas }} venta{{ e.ventas !== 1 ? 's' : '' }}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div class="tnum" style="font-size:13px;font-weight:600">
+                  {{ e.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </div>
+                <div class="tnum" style="font-size:10px;color:var(--ink-4)">
+                  salón {{ e.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </div>
+              </div>
+            </div>
+          }
+        }
       </div>
 
-      <div class="card" style="padding:24px">
-        <div class="eyebrow" style="margin-bottom:4px;color:var(--accent-deep)">Sistema</div>
-        <h3 class="serif" style="margin:0 0 14px;font-size:20px;font-weight:400">Estado</h3>
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--success-soft);border-radius:6px">
-          <sp-icon name="check" [size]="14" />
-          <div style="font-size:12px">
-            <div style="font-weight:500">Sistema operativo</div>
-            <div style="color:var(--ink-3);font-size:11px">Backend conectado · BD activa</div>
+      <!-- Métodos de pago hoy -->
+      <div class="card" style="padding:22px">
+        <div class="eyebrow" style="margin-bottom:14px">Métodos de pago · hoy</div>
+        @if (pagosSummary().length === 0) {
+          <div style="color:var(--ink-4);font-size:13px;padding:12px 0">Sin ventas activas</div>
+        } @else {
+          @for (p of pagosSummary(); track p.name) {
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--hair-2)">
+              <span style="font-size:13px;color:var(--ink-2)">{{ p.name }}</span>
+              <span class="tnum" style="font-size:13px;font-weight:500">
+                {{ p.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+              </span>
+            </div>
+          }
+          <!-- Total -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 0">
+            <span style="font-size:12px;font-weight:600;color:var(--ink-2)">Total bruto</span>
+            <span class="tnum serif" style="font-size:15px;font-weight:600">
+              {{ kpiHoy() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+            </span>
           </div>
-        </div>
+        }
       </div>
+
     </div>
   </div>
+
+  <!-- ── BOTTOM GRID ─────────────────────────────────────── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+    <!-- Liquidaciones abiertas -->
+    <div class="card" style="padding:22px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+        <div class="eyebrow">
+          Liquidaciones abiertas
+          @if (liquidacionesAbiertas().length > 0) {
+            <span style="margin-left:6px;background:var(--warn);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px">
+              {{ liquidacionesAbiertas().length }}
+            </span>
+          }
+        </div>
+        <button class="btn btn-sm btn-ghost" routerLink="/liquidaciones">Ver todas</button>
+      </div>
+      @if (liquidacionesAbiertas().length === 0) {
+        <div style="color:var(--ink-4);font-size:13px;padding:16px 0;text-align:center">
+          No hay liquidaciones pendientes
+        </div>
+      } @else {
+        @for (l of liquidacionesAbiertas().slice(0, 4); track l.id) {
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--hair-2)">
+            <div>
+              <div style="font-size:13px;font-weight:500">{{ l.stylistName }}</div>
+              <div style="font-size:11px;color:var(--ink-4)">
+                {{ l.startDate | date:'dd/MM':'UTC' }} — {{ l.endDate | date:'dd/MM/yy':'UTC' }}
+                · {{ l.totalVentas }} ventas
+              </div>
+            </div>
+            <div class="tnum" style="font-size:14px;font-weight:600;color:var(--accent-deep)">
+              {{ l.netoPeluquero | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+            </div>
+          </div>
+        }
+        @if (liquidacionesAbiertas().length > 4) {
+          <div style="padding:8px 0 0;font-size:12px;color:var(--ink-4);text-align:center">
+            +{{ liquidacionesAbiertas().length - 4 }} más
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Accesos rápidos -->
+    <div class="card" style="padding:22px">
+      <div class="eyebrow" style="margin-bottom:14px">Accesos rápidos</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-primary btn-lg" style="justify-content:flex-start" (click)="irAlPOS()">
+          <sp-icon name="pos" [size]="16" /> Nueva venta (POS)
+        </button>
+        <button class="btn btn-ghost" style="justify-content:flex-start" routerLink="/caja">
+          <sp-icon name="cash" [size]="16" /> Gestionar caja
+        </button>
+        <button class="btn btn-ghost" style="justify-content:flex-start" routerLink="/liquidaciones">
+          <sp-icon name="wallet" [size]="16" /> Liquidaciones
+        </button>
+        <button class="btn btn-ghost" style="justify-content:flex-start" routerLink="/historial">
+          <sp-icon name="history" [size]="16" /> Consultar ventas
+        </button>
+        <button class="btn btn-ghost" style="justify-content:flex-start" routerLink="/reportes">
+          <sp-icon name="chart" [size]="16" /> Ver reportes
+        </button>
+      </div>
+    </div>
+
+  </div>
+
 </div>
