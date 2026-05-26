@@ -21,8 +21,8 @@ export class LoginComponent {
   readonly loading = signal(false);
 
   readonly form = this.fb.group({
-    email:    ['dueno@demo.com', [Validators.required, Validators.email]],
-    password: ['Owner2026!', Validators.required],
+    email:    ['', [Validators.required, Validators.email]],
+    password: ['', Validators.required],
   });
 
   submit(): void {
