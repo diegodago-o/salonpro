@@ -245,30 +245,40 @@
         <div class="row"><span style="color:var(--ink-3)">Facturado en período</span><span class="tnum">{{ (detalle()!.grossServices + detalle()!.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
 
         <!-- Comisiones netas (excluyendo propina, ya descontadas deducciones bancarias) -->
-        <div class="row"><span style="color:var(--ink-3)">Comisión servicios</span><span class="tnum">{{ detalle()!.commServices | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+        <!-- Comisión servicios: cabecera solo si hay 2+ ítems -->
+        @if (totalSvcItems(detalle()!.ventas) > 1) {
+          <div class="row"><span style="color:var(--ink-3)">Comisión servicios</span><span class="tnum">{{ detalle()!.commServices | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+        }
         @for (v of detalle()!.ventas; track v.saleId) {
           @for (item of v.serviceCommItems; track item) {
             <div style="display:flex;justify-content:space-between;align-items:center;
-                        font-size:11px;padding:3px 0 3px 14px;color:var(--ink-4)">
-              <span style="display:flex;align-items:center;gap:5px">
-                <span style="width:4px;height:4px;border-radius:50%;background:var(--ink-5);flex-shrink:0;display:inline-block"></span>
+                        font-size:12px;padding:4px 0 4px {{ totalSvcItems(detalle()!.ventas) > 1 ? '14px' : '0' }};color:var(--ink-3)">
+              <span style="display:flex;align-items:center;gap:6px">
+                @if (totalSvcItems(detalle()!.ventas) > 1) {
+                  <span style="width:4px;height:4px;border-radius:50%;background:var(--ink-5);flex-shrink:0;display:inline-block"></span>
+                }
                 {{ commLeft(item) }}
               </span>
-              <span class="tnum" style="font-weight:500;color:var(--ink-3)">{{ commRight(item) }}</span>
+              <span class="tnum" style="font-weight:500">{{ commRight(item) }}</span>
             </div>
           }
         }
         @if (detalle()!.commProducts > 0) {
-          <div class="row"><span style="color:var(--ink-3)">Comisión productos</span><span class="tnum">{{ detalle()!.commProducts | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+          <!-- Comisión productos: cabecera solo si hay 2+ ítems -->
+          @if (totalProdItems(detalle()!.ventas) > 1) {
+            <div class="row"><span style="color:var(--ink-3)">Comisión productos</span><span class="tnum">{{ detalle()!.commProducts | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+          }
           @for (v of detalle()!.ventas; track v.saleId) {
             @for (item of v.productCommItems; track item) {
               <div style="display:flex;justify-content:space-between;align-items:center;
-                          font-size:11px;padding:3px 0 3px 14px;color:var(--ink-4)">
-                <span style="display:flex;align-items:center;gap:5px">
-                  <span style="width:4px;height:4px;border-radius:50%;background:var(--accent);flex-shrink:0;display:inline-block"></span>
+                          font-size:12px;padding:4px 0 4px {{ totalProdItems(detalle()!.ventas) > 1 ? '14px' : '0' }};color:var(--ink-3)">
+                <span style="display:flex;align-items:center;gap:6px">
+                  @if (totalProdItems(detalle()!.ventas) > 1) {
+                    <span style="width:4px;height:4px;border-radius:50%;background:var(--accent);flex-shrink:0;display:inline-block"></span>
+                  }
                   {{ commLeft(item) }}
                 </span>
-                <span class="tnum" style="font-weight:500;color:var(--ink-3)">{{ commRight(item) }}</span>
+                <span class="tnum" style="font-weight:500">{{ commRight(item) }}</span>
               </div>
             }
           }

@@ -186,4 +186,13 @@ export class LiquidacionesComponent implements OnInit {
   commLeft(item: string): string  { return item.split(' → ')[0] ?? item; }
   /** Parte derecha de "Nombre · X% → $monto" */
   commRight(item: string): string { return item.split(' → ')[1] ?? ''; }
+
+  /** Nro total de ítems de servicio en todas las ventas de la liquidación */
+  totalSvcItems(ventas: any[]): number {
+    return ventas.reduce((s: number, v: any) => s + (v.serviceCommItems?.length ?? 0), 0);
+  }
+  /** Nro total de ítems de producto en todas las ventas de la liquidación */
+  totalProdItems(ventas: any[]): number {
+    return ventas.reduce((s: number, v: any) => s + (v.productCommItems?.length ?? 0), 0);
+  }
 }
