@@ -95,7 +95,7 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo, ISaleRepo
             // Usar valores dinámicos (correctos) en lugar de los almacenados (pueden ser incorrectos
             // en liquidaciones creadas antes de este fix)
             return new LiquidacionVentaDto(
-                v.SaleId, v.SaleDateTime.ToString("o"), v.ClientName,
+                v.SaleId, v.SaleDateTime.ToString("yyyy-MM-ddTHH:mm:ss") + "-05:00", v.ClientName,
                 v.GrossServices, v.GrossProducts, v.Deduction,
                 dynCommServices, dynCommProducts, v.Tip, v.InternalConsumption,
                 methodsSummary, internalItems, serviceCommItems, productCommItems);

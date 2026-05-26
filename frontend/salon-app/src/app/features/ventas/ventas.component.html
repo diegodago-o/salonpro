@@ -43,7 +43,7 @@
               @for (v of ventas(); track v.id) {
                 <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'">
                   <td class="mono" style="font-size:11px">{{ v.id }}</td>
-                  <td>{{ v.saleDateTime | date:'HH:mm' }}</td>
+                  <td>{{ v.saleDateTime | date:'HH:mm':'America/Bogota' }}</td>
                   <td style="font-weight:500">{{ v.clientName }}</td>
                   <td>{{ v.stylistName }}</td>
                   <td>{{ v.paymentMethodName }}</td>
@@ -148,7 +148,7 @@
                 {{ ventaExitosaData()!.branchName }}
               </div>
               <div style="font-size:11px;color:var(--ink-4);margin-top:3px">
-                {{ ventaExitosaData()!.fecha | date:'dd/MM/yyyy · HH:mm' }}
+                {{ ventaExitosaData()!.fecha | date:'dd/MM/yyyy · HH:mm':'America/Bogota' }}
               </div>
             </div>
 

@@ -42,7 +42,7 @@
               <div>
                 <div style="font-weight:600;font-size:15px">{{ l.stylistName }}</div>
                 <div style="font-size:12px;color:var(--ink-3);margin-top:2px">
-                  {{ l.startDate | date:'dd/MM/yy' }} — {{ l.endDate | date:'dd/MM/yy' }}
+                  {{ l.startDate | date:'dd/MM/yy':'UTC' }} — {{ l.endDate | date:'dd/MM/yy':'UTC' }}
                 </div>
               </div>
               <span class="pill pill-accent"><span class="pill-dot"></span>Abierta</span>
@@ -81,7 +81,7 @@
                 <tr>
                   <td style="font-weight:500">{{ l.stylistName }}</td>
                   <td style="font-size:12px;color:var(--ink-3)">
-                    {{ l.startDate | date:'dd/MM/yy' }} — {{ l.endDate | date:'dd/MM/yy' }}
+                    {{ l.startDate | date:'dd/MM/yy':'UTC' }} — {{ l.endDate | date:'dd/MM/yy':'UTC' }}
                   </td>
                   <td>{{ l.totalVentas }}</td>
                   <td class="tnum" style="text-align:right">
@@ -130,9 +130,9 @@
 
         @if (periodo() !== 'personalizado' && rangoAutomatico()) {
           <div style="margin-top:16px;padding:12px;background:var(--bone);border-radius:6px;font-size:11px;color:var(--ink-3);line-height:1.6">
-            <div>{{ rangoAutomatico()!.start | date:'dd MMM yyyy':'':'es-CO' }}</div>
+            <div>{{ rangoAutomatico()!.start | date:'dd MMM yyyy':'UTC':'es-CO' }}</div>
             <div style="color:var(--ink-4)">→</div>
-            <div>{{ rangoAutomatico()!.end | date:'dd MMM yyyy':'':'es-CO' }}</div>
+            <div>{{ rangoAutomatico()!.end | date:'dd MMM yyyy':'UTC':'es-CO' }}</div>
           </div>
         }
       </div>
@@ -206,7 +206,7 @@
     <div class="card" style="padding:28px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
         <div>
-          <div class="eyebrow">Liquidación · {{ detalle()!.startDate | date:'dd MMM' }} — {{ detalle()!.endDate | date:'dd MMM yyyy' }}</div>
+          <div class="eyebrow">Liquidación · {{ detalle()!.startDate | date:'dd MMM':'UTC' }} — {{ detalle()!.endDate | date:'dd MMM yyyy':'UTC' }}</div>
           <h2 class="serif" style="font-size:32px;font-weight:400;margin:6px 0 4px">{{ detalle()!.stylistName }}</h2>
           <div style="color:var(--ink-3);font-size:13px">{{ detalle()!.totalVentas }} servicios en el período</div>
         </div>
@@ -367,7 +367,7 @@
             <tbody>
               @for (v of detalle()!.ventas; track v.saleId) {
                 <tr>
-                  <td style="font-size:12px;color:var(--ink-3)">{{ v.saleDateTime | date:'dd/MM HH:mm' }}</td>
+                  <td style="font-size:12px;color:var(--ink-3)">{{ v.saleDateTime | date:'dd/MM HH:mm':'America/Bogota' }}</td>
                   <td>{{ v.clientName }}</td>
                   <td style="font-size:12px;color:var(--ink-3)">{{ v.paymentMethodsSummary }}</td>
                   <td class="tnum" style="text-align:right">

@@ -55,7 +55,7 @@
           <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px dashed var(--hair-2)">
             <div>
               <div style="font-size:13px;font-weight:500">{{ v.clientName }}</div>
-              <div style="font-size:11px;color:var(--ink-4)">{{ v.saleDateTime | date:'HH:mm' }} · {{ v.paymentMethodName }}</div>
+              <div style="font-size:11px;color:var(--ink-4)">{{ v.saleDateTime | date:'HH:mm':'America/Bogota' }} · {{ v.paymentMethodName }}</div>
             </div>
             <div style="text-align:right">
               <div class="serif tnum" style="font-size:16px;color:var(--accent-deep)">{{ v.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>

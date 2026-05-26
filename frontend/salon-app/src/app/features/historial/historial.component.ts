@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { colombiaEndOfDay, colombiaStartOfDay, todayColombia } from '../../core/utils/colombia-time';
 import { CurrencyPipe, DatePipe, DecimalPipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -202,8 +203,8 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
     const hasta = this.filtroFechaHasta;
     const branch = this.branchService.selectedBranch();
     this.ventasService.getVentas(
-      desde ? new Date(desde + 'T00:00:00').toISOString() : undefined,
-      hasta ? new Date(hasta + 'T23:59:59').toISOString() : undefined,
+      desde ? colombiaStartOfDay(desde) : undefined,  // sin conversión UTC
+      hasta ? colombiaEndOfDay(hasta)   : undefined,
       branch?.id,
       branch?.name
     ).subscribe(r => {
@@ -230,7 +231,7 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
   }
 
   private hoy(): string {
-    return new Date().toISOString().slice(0, 10);
+    return todayColombia(); // fecha en hora Colombia (GMT-5)
   }
 
   filtrarHoy(): void {

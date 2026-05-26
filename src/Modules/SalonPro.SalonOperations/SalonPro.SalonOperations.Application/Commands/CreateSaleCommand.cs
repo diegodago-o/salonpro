@@ -4,6 +4,7 @@ using SalonPro.SalonOperations.Application.Queries;
 using SalonPro.SalonOperations.Domain.Entities;
 using SalonPro.SalonOperations.Domain.Enums;
 using SalonPro.SalonOperations.Domain.Interfaces;
+using SalonPro.Shared.Common;
 using SalonPro.Shared.Exceptions;
 
 namespace SalonPro.SalonOperations.Application.Commands;
@@ -146,7 +147,7 @@ public class CreateSaleHandler(
         decimal stylistTotal = Math.Round(stylistCommServices + stylistCommProducts + netTip, 2);
         decimal salonTotal   = Math.Round(salonCommServices   + salonCommProducts, 2);
 
-        // 7. Validate and resolve sale datetime
+        // 7. Validate and resolve sale datetime (siempre en hora Colombia, GMT-5)
         DateTime saleDateTime;
         if (!string.IsNullOrWhiteSpace(req.SaleDateTime))
         {
@@ -156,21 +157,24 @@ public class CreateSaleHandler(
                     out var parsed))
                 throw new BadRequestException($"Formato de fecha inválido: '{req.SaleDateTime}'.");
 
-            // Normalizar a UTC
+            // Convertir a hora Colombia: si viene con offset/UTC, convertir; si viene sin zona, asumir Colombia
+            var nowColombia = ColombiaTime.Now;
             saleDateTime = parsed.Kind == DateTimeKind.Utc
-                ? parsed
-                : parsed.Kind == DateTimeKind.Unspecified
-                    ? DateTime.SpecifyKind(parsed, DateTimeKind.Utc) // tratar Unspecified como UTC
-                    : parsed.ToUniversalTime();
+                ? TimeZoneInfo.ConvertTimeFromUtc(parsed, TimeZoneInfo.FindSystemTimeZoneById(
+                      OperatingSystem.IsWindows() ? "SA Pacific Standard Time" : "America/Bogota"))
+                : parsed.Kind == DateTimeKind.Local
+                    ? TimeZoneInfo.ConvertTime(parsed, TimeZoneInfo.FindSystemTimeZoneById(
+                          OperatingSystem.IsWindows() ? "SA Pacific Standard Time" : "America/Bogota"))
+                    : parsed; // Unspecified → se asume Colombia (enviado sin zona desde el frontend)
 
-            if (saleDateTime > DateTime.UtcNow.AddMinutes(5))
+            if (saleDateTime > nowColombia.AddMinutes(5))
                 throw new BadRequestException("No se puede registrar una venta con fecha futura.");
-            if (saleDateTime < new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc))
+            if (saleDateTime < new DateTime(2025, 1, 1))
                 throw new BadRequestException("La fecha mínima permitida es el 1 de enero de 2025.");
         }
         else
         {
-            saleDateTime = DateTime.UtcNow;
+            saleDateTime = ColombiaTime.Now;
         }
 
         // 8. Create sale

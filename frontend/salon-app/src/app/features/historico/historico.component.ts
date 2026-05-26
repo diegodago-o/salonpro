@@ -10,6 +10,7 @@ import {
   ServiceOption, StylistOption, Sale
 } from '../../core/models/ventas.models';
 import { calculateSale } from '../../core/utils/sale-calculator';
+import { colombiaEndOfDay, colombiaStartOfDay, todayColombia } from '../../core/utils/colombia-time';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
 type Vista = 'lista' | 'nueva-venta';
@@ -327,7 +328,7 @@ export class HistoricoComponent implements OnInit {
       to   = `${anio}-12-31`;
     }
     this.cargandoVentas.set(true);
-    this.ventasService.getVentas(from, to, branch?.id, branch?.name).subscribe({
+    this.ventasService.getVentas(colombiaStartOfDay(from), colombiaEndOfDay(to), branch?.id, branch?.name).subscribe({
       next: r => { this.ventas.set(r.data); this.cargandoVentas.set(false); },
       error: () => this.cargandoVentas.set(false)
     });
@@ -572,8 +573,7 @@ export class HistoricoComponent implements OnInit {
   }
 
   private hoy(): string {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
+    return todayColombia(); // fecha en hora Colombia (GMT-5)
   }
 
   get maxDate(): string { return this.hoy(); }

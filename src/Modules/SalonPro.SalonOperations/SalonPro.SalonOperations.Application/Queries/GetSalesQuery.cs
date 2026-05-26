@@ -24,9 +24,12 @@ public static class SaleDtoMapper
                 p.PaymentMethodId, p.PaymentMethodName,
                 p.Amount, p.DeductionPercent, p.DeductionAmount))
             : null;
+        // Retorna con offset Colombia explícito (-05:00) para que el frontend
+        // pueda mostrarlo correctamente sin ambigüedad de zona horaria.
+        var saleDateTimeColombia = s.SaleDateTime.ToString("yyyy-MM-ddTHH:mm:ss") + "-05:00";
         return new SaleDto(
             s.Id,
-            s.SaleDateTime.ToString("o"),
+            saleDateTimeColombia,
             s.StylistId, s.StylistName, s.CommissionPercent,
             s.ClientName, s.ClientDocument,
             s.ClientDocumentType, s.ClientEmail, s.ClientPhone,

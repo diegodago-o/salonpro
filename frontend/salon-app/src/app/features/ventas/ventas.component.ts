@@ -15,6 +15,7 @@ import {
   ServiceOption, StylistOption, Sale
 } from '../../core/models/ventas.models';
 import { calculateSale } from '../../core/utils/sale-calculator';
+import { colombiaEndOfDay, colombiaStartOfDay, todayColombia } from '../../core/utils/colombia-time';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
 type Vista = 'lista' | 'nueva-venta' | 'anular';
@@ -372,9 +373,9 @@ export class VentasComponent implements OnInit {
 
   private cargarVentas(): void {
     const branch = this.branchService.selectedBranch();
-    const hoy = new Date().toISOString().slice(0, 10);
-    const from = new Date(hoy + 'T00:00:00').toISOString();
-    const to   = new Date(hoy + 'T23:59:59').toISOString();
+    const hoy  = todayColombia();
+    const from = colombiaStartOfDay(hoy);
+    const to   = colombiaEndOfDay(hoy);
     this.ventasService.getVentas(from, to, branch?.id, branch?.name).subscribe(r => this.ventas.set(r.data));
   }
 

@@ -8,6 +8,7 @@ import { BranchService } from '../../core/services/branch.service';
 import { LiquidacionDetalle, LiquidacionResumen } from '../../core/models/liquidaciones.models';
 import { StylistOption } from '../../core/models/ventas.models';
 import { IconComponent } from '../../shared/components/icon/icon.component';
+import { todayColombia } from '../../core/utils/colombia-time';
 
 type Vista    = 'lista' | 'nueva' | 'detalle';
 type Periodo  = 'hoy' | 'semana' | 'quincena' | 'mes' | 'personalizado';
@@ -47,31 +48,36 @@ export class LiquidacionesComponent implements OnInit {
   ];
 
   readonly rangoAutomatico = computed(() => {
-    const hoy = new Date();
-    const fmt  = (d: Date) => d.toISOString().split('T')[0];
+    // Usar siempre la fecha de Colombia (UTC-5) para evitar desfases de zona horaria
+    const hoyStr = todayColombia();                       // "YYYY-MM-DD" en hora Colombia
+    const [y, mo, d] = hoyStr.split('-').map(Number);
+
+    const pad     = (n: number) => String(n).padStart(2, '0');
+    const ymd     = (yr: number, mn: number, dy: number) => `${yr}-${pad(mn)}-${pad(dy)}`;
+    const lastDay = (yr: number, mn: number) =>            // mn 1-based
+      new Date(yr, mn, 0).getDate();                       // new Date(y, m, 0) = último día del mes m
+
     switch (this.periodo()) {
       case 'hoy':
-        return { start: fmt(hoy), end: fmt(hoy) };
+        return { start: hoyStr, end: hoyStr };
+
       case 'semana': {
-        const lun = new Date(hoy);
-        lun.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
-        return { start: fmt(lun), end: fmt(hoy) };
+        // Lunes de la semana actual
+        const dow = new Date(y, mo - 1, d).getDay();      // 0=Dom … 6=Sab
+        const daysBack = (dow + 6) % 7;                   // días desde el lunes
+        const lunDate  = new Date(y, mo - 1, d - daysBack);
+        const lunStr   = ymd(lunDate.getFullYear(), lunDate.getMonth() + 1, lunDate.getDate());
+        return { start: lunStr, end: hoyStr };
       }
-      case 'quincena': {
-        const d = hoy.getDate();
-        const y = hoy.getFullYear();
-        const m = hoy.getMonth();
-        if (d <= 15) {
-          return { start: fmt(new Date(y, m, 1)), end: fmt(new Date(y, m, 15)) };
-        } else {
-          return { start: fmt(new Date(y, m, 16)), end: fmt(new Date(y, m + 1, 0)) };
-        }
-      }
-      case 'mes': {
-        const y = hoy.getFullYear();
-        const m = hoy.getMonth();
-        return { start: fmt(new Date(y, m, 1)), end: fmt(new Date(y, m + 1, 0)) };
-      }
+
+      case 'quincena':
+        return d <= 15
+          ? { start: ymd(y, mo, 1),  end: ymd(y, mo, 15) }
+          : { start: ymd(y, mo, 16), end: ymd(y, mo, lastDay(y, mo)) };
+
+      case 'mes':
+        return { start: ymd(y, mo, 1), end: ymd(y, mo, lastDay(y, mo)) };
+
       default:
         return null; // personalizado: el usuario llena los campos
     }

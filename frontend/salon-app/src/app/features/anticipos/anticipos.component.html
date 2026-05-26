@@ -42,7 +42,7 @@
             <tbody>
               @for (a of anticiposFiltrados(); track a.id) {
                 <tr [class.voided]="a.status==='Voided'" [class.applied]="a.status==='Applied'">
-                  <td>{{ a.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td>{{ a.createdAt | date:'dd/MM/yyyy HH:mm':'America/Bogota' }}</td>
                   <td class="name-cell">{{ a.clientName }}</td>
                   <td class="doc-cell">{{ a.clientDocument }}</td>
                   <td>{{ a.paymentMethodName }}</td>

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SalonPro.SalonOperations.Domain.Entities;
 using SalonPro.SalonOperations.Domain.Interfaces;
 using SalonPro.SalonOperations.Infrastructure.Data;
+using SalonPro.Shared.Common;
 
 namespace SalonPro.SalonOperations.Infrastructure.Repositories;
 
@@ -18,7 +19,7 @@ public class SaleRepository(SalonOpsDbContext db) : ISaleRepository
 
     public async Task<IEnumerable<Sale>> GetTodayByTenantAsync(int tenantId, int? branchId = null, string? branchName = null, CancellationToken ct = default)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = ColombiaTime.Today;      // fecha de hoy en Colombia (GMT-5)
         var tomorrow = today.AddDays(1);
         return await db.Sales
             .Include(s => s.Payments)

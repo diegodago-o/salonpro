@@ -4,7 +4,7 @@
       <div class="eyebrow" style="margin-bottom:8px">Caja</div>
       <h1><span class="serif">Apertura y</span> <span class="serif-italic">cierre</span></h1>
       @if (cajaActual()) {
-        <div class="deck">Turno abierto · {{ cajaActual()!.openedAt | date:'HH:mm' }}</div>
+        <div class="deck">Turno abierto · {{ cajaActual()!.openedAt | date:'HH:mm':'America/Bogota' }}</div>
       } @else {
         <div class="deck">No hay turno activo</div>
       }
@@ -52,7 +52,7 @@
         @for (c of historial().slice(0,5); track c.id) {
           <div (click)="verDetalle(c)" style="padding:10px 12px;border-radius:6px;cursor:pointer;border:1px solid var(--hair-2);margin-bottom:8px;background:var(--paper)">
             <div style="display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:13px;font-weight:500">{{ c.openedAt | date:'dd/MM/yyyy' }}</span>
+              <span style="font-size:13px;font-weight:500">{{ c.openedAt | date:'dd/MM/yyyy':'America/Bogota' }}</span>
               @if (c.status==='Closed') {
                 <span class="pill pill-success"><span class="pill-dot"></span>Cerrada</span>
               }
@@ -83,7 +83,7 @@
             <div style="padding:14px;background:var(--bone);border-radius:6px">
               <div class="eyebrow">Apertura</div>
               <div class="serif tnum" style="font-size:22px;margin-top:4px">{{ cajaActual()!.openingBalance | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-              <div style="font-size:11px;color:var(--ink-4)">{{ cajaActual()!.openedAt | date:'HH:mm' }}</div>
+              <div style="font-size:11px;color:var(--ink-4)">{{ cajaActual()!.openedAt | date:'HH:mm':'America/Bogota' }}</div>
             </div>
             <div style="padding:14px;background:var(--bone);border-radius:6px">
               <div class="eyebrow">Ventas</div>
@@ -168,7 +168,7 @@
       <div class="card" style="padding:28px">
         <div class="eyebrow" style="margin-bottom:4px">Registro de caja</div>
         <h3 class="serif" style="margin:4px 0 20px;font-size:24px;font-weight:400">
-          {{ cajaDetalle()!.openedAt | date:'dd/MM/yyyy' }} · {{ cajaDetalle()!.cashierName }}
+          {{ cajaDetalle()!.openedAt | date:'dd/MM/yyyy':'America/Bogota' }} · {{ cajaDetalle()!.cashierName }}
         </h3>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
           <div style="padding:14px;background:var(--bone);border-radius:6px">

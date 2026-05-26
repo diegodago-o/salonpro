@@ -113,8 +113,8 @@
                 <td class="mono" style="font-size:11px;color:var(--ink-3)">#{{ v.id }}</td>
 
                 <td style="white-space:nowrap;font-size:12px">
-                  {{ v.saleDateTime | date:'dd/MM/yy' }}<br>
-                  <span style="color:var(--ink-4)">{{ v.saleDateTime | date:'HH:mm' }}</span>
+                  {{ v.saleDateTime | date:'dd/MM/yy':'America/Bogota' }}<br>
+                  <span style="color:var(--ink-4)">{{ v.saleDateTime | date:'HH:mm':'America/Bogota' }}</span>
                 </td>
 
                 <td style="font-size:12px;color:var(--ink-3)">
@@ -281,7 +281,7 @@
 
         <!-- Fecha -->
         <div style="font-size:12px;color:var(--ink-4);margin-bottom:20px">
-          {{ ventaDetalle()!.saleDateTime | date:'EEEE dd \'de\' MMMM yyyy, HH:mm':'':'es-CO' }}
+          {{ ventaDetalle()!.saleDateTime | date:'EEEE dd \'de\' MMMM yyyy, HH:mm':'America/Bogota':'es-CO' }}
         </div>
 
         <hr class="hr" />
