@@ -48,10 +48,11 @@ public class CreateSaleHandler(
         var req = cmd.Request;
 
         // 0. Validar que haya una caja abierta — bloqueo fuerte en el servidor
+        // branchId=0 → GetCurrentOpenByTenantAsync busca en cualquier sede del tenant
         var branchId = req.BranchId ?? 0;
         var cajaAbierta = await cashRegisterRepo.GetCurrentOpenByTenantAsync(cmd.TenantId, branchId, ct);
         if (cajaAbierta is null)
-            throw new BadRequestException("No hay una caja abierta. Abre la caja antes de registrar ventas.");
+            throw new BadRequestException("No hay una caja abierta. Ve a Caja → Abrir turno e intenta de nuevo.");
 
         // 1. Find or create client (upsert by tenant + document number)
         var client = await clientRepo.GetByDocumentAsync(cmd.TenantId, req.ClientDocumentNumber, ct);
