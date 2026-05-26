@@ -322,10 +322,10 @@ export class ConfiguracionComponent implements OnInit {
     this.saving.set(true);
     this.modalError.set('');
     this.userSvc.create(f).subscribe({
-      next: (user) => {
-        this.users.update(list => [...list, user]);
+      next: () => {
         this.saving.set(false);
         this.closeModal();
+        this.loadUsers();   // recarga la lista completa con todos los campos
       },
       error: (err) => {
         this.saving.set(false);
@@ -367,10 +367,10 @@ export class ConfiguracionComponent implements OnInit {
     this.savingEdit.set(true);
     this.editError.set('');
     this.userSvc.update(u.id, f).subscribe({
-      next: (updated) => {
-        this.users.update(list => list.map(x => x.id === u.id ? updated : x));
+      next: () => {
         this.savingEdit.set(false);
         this.closeEditModal();
+        this.loadUsers();   // recarga la lista completa con todos los campos actualizados
       },
       error: (err) => {
         this.savingEdit.set(false);
