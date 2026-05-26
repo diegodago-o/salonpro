@@ -1,87 +1,917 @@
 <div class="page fade-in">
+
+  <!-- ── PAGE HEAD ──────────────────────────────────────── -->
   <div class="page-head">
     <div>
       <div class="eyebrow" style="margin-bottom:8px">Análisis</div>
       <h1><span class="serif">Reportes y</span> <span class="serif-italic">métricas</span></h1>
-      <div class="deck">Comparativos · tendencias · clientes</div>
-    </div>
-    <button class="btn btn-ghost"><sp-icon name="download" [size]="14" /> Exportar CSV</button>
-  </div>
-
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
-    <div class="kpi">
-      <div class="kpi-label">Ventas registradas</div>
-      <div class="kpi-value tnum">{{ countActivas() }}</div>
-      <div class="kpi-delta">registros activos</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Ingresos brutos</div>
-      <div class="kpi-value tnum">{{ totalMes() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-      <div class="kpi-delta">total período</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Deducciones</div>
-      <div class="kpi-value tnum" style="font-size:28px">{{ totalDeducciones() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-      <div class="kpi-delta down">total deducciones</div>
+      <div class="deck">
+        {{ rango().label }} ·
+        @if (loading()) { cargando… }
+        @else { {{ kpiCount() }} venta{{ kpiCount() !== 1 ? 's' : '' }} ·
+          {{ kpiTotal() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }} }
+      </div>
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-    <div class="card" style="padding:24px">
-      <div class="eyebrow" style="margin-bottom:4px">Período actual</div>
-      <h3 class="serif" style="margin:4px 0 18px;font-size:22px;font-weight:400">Ventas recientes</h3>
+  <!-- ── SELECTOR DE PERÍODO ────────────────────────────── -->
+  <div class="card" style="padding:14px 18px;margin-bottom:18px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;color:var(--ink-4);text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Período</span>
+      @for (op of [
+        {v:'hoy',          l:'Hoy'},
+        {v:'semana',       l:'Esta semana'},
+        {v:'mes',          l:'Este mes'},
+        {v:'mes-anterior', l:'Mes anterior'}
+      ]; track op.v) {
+        <button class="btn btn-sm"
+          [class.btn-primary]="periodo() === op.v"
+          [class.btn-ghost]="periodo() !== op.v"
+          (click)="cambiarPeriodo($any(op.v))">{{ op.l }}</button>
+      }
+      <!-- Rango personalizado -->
+      <div style="display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap">
+        <input type="date" class="input" style="width:140px;font-size:12px;padding:5px 10px"
+          [(ngModel)]="fechaDesde" />
+        <span style="font-size:12px;color:var(--ink-4)">—</span>
+        <input type="date" class="input" style="width:140px;font-size:12px;padding:5px 10px"
+          [(ngModel)]="fechaHasta" />
+        <button class="btn btn-sm btn-ghost" (click)="aplicarFechas()"
+          [disabled]="!fechaDesde || !fechaHasta">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div style="display:flex;align-items:center;gap:10px;color:var(--ink-4);font-size:13px;padding:8px 0 16px">
+      <span style="display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite"></span>
+      Cargando datos…
+    </div>
+  }
+
+  <!-- ── TAB BAR ────────────────────────────────────────── -->
+  <div style="display:flex;gap:0;overflow-x:auto;margin-bottom:20px;border-bottom:2px solid var(--hair-2);scrollbar-width:none">
+    @for (tab of TABS; track tab.v) {
+      <button
+        style="padding:9px 16px;border:none;background:none;cursor:pointer;font-size:13px;white-space:nowrap;
+               border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 150ms;flex-shrink:0"
+        [style.border-bottom-color]="tabActiva() === tab.v ? 'var(--accent)' : 'transparent'"
+        [style.color]="tabActiva() === tab.v ? 'var(--accent)' : 'var(--ink-3)'"
+        [style.font-weight]="tabActiva() === tab.v ? '600' : '400'"
+        (click)="tabActiva.set(tab.v)">{{ tab.l }}</button>
+    }
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- TAB 1 · RESUMEN                                     -->
+  <!-- ════════════════════════════════════════════════════ -->
+  @if (tabActiva() === 'resumen') {
+
+    <!-- Fila 1: KPIs principales -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px">
+      <div class="kpi">
+        <div class="kpi-label">Ventas válidas</div>
+        <div class="kpi-value tnum">{{ kpiCount() }}</div>
+        <div style="font-size:11px;color:var(--ink-4);margin-top:4px">
+          {{ kpiAnuladas() }} anulada{{ kpiAnuladas() !== 1 ? 's' : '' }}
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Total bruto</div>
+        <div class="kpi-value tnum">{{ kpiTotal() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+        <div style="font-size:11px;color:var(--ink-4);margin-top:4px">
+          Ticket prom. {{ kpiTicket() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Para el salón</div>
+        <div class="kpi-value tnum">{{ kpiSalon() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+        <div style="font-size:11px;color:var(--ink-4);margin-top:4px">
+          {{ kpiTotal() ? ((kpiSalon() / kpiTotal() * 100) | number:'1.0-0') : 0 }}% del bruto
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Para estilistas</div>
+        <div class="kpi-value tnum">{{ kpiEstil() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+        <div style="font-size:11px;color:var(--ink-4);margin-top:4px">
+          {{ kpiTotal() ? ((kpiEstil() / kpiTotal() * 100) | number:'1.0-0') : 0 }}% del bruto
+        </div>
+      </div>
+    </div>
+
+    <!-- Fila 2: KPIs secundarios -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px">
+      <div class="kpi">
+        <div class="kpi-label">Servicios</div>
+        <div class="kpi-value tnum" style="font-size:22px">{{ kpiServ() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+        <div style="font-size:11px;color:var(--ink-4);margin-top:4px">
+          {{ mixIngreso().pctServ }}% del bruto
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Productos</div>
+        <div class="kpi-value tnum" style="font-size:22px">{{ kpiProd() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+        <div style="font-size:11px;color:var(--ink-4);margin-top:4px">
+          {{ mixIngreso().pctProd }}% del bruto
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Propinas</div>
+        <div class="kpi-value tnum" style="font-size:22px">{{ kpiPropinas() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Deducciones</div>
+        <div class="kpi-value tnum" style="font-size:22px;color:var(--danger)">
+          {{ kpiDeduc() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+        </div>
+        <div style="font-size:11px;color:var(--danger);margin-top:4px;opacity:.7">
+          {{ kpiTotal() ? ((kpiDeduc() / kpiTotal() * 100) | number:'1.1-1') : 0 }}% del bruto
+        </div>
+      </div>
+    </div>
+
+    <!-- Fila 3: Top estilistas + Top clientes -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card" style="padding:22px">
+        <div class="eyebrow" style="margin-bottom:14px">Top estilistas · período</div>
+        @if (porEstilista().length === 0) {
+          <div style="color:var(--ink-4);font-size:13px;padding:16px 0">Sin datos</div>
+        } @else {
+          @for (e of porEstilista(); track e.name; let i = $index) {
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--hair-2)">
+              <span style="width:22px;font-size:11px;color:var(--ink-4);font-weight:700">{{ i + 1 }}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.name }}</div>
+                <div style="font-size:11px;color:var(--ink-4)">{{ e.ventas }} venta{{ e.ventas !== 1 ? 's' : '' }} · ticket {{ e.ticket | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div class="tnum" style="font-size:14px;font-weight:600">{{ e.bruto | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+                <div class="tnum" style="font-size:10px;color:var(--ink-4)">salón {{ e.salon | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <div class="card" style="padding:22px">
+        <div class="eyebrow" style="margin-bottom:14px">Top clientes · período</div>
+        @if (porCliente().length === 0) {
+          <div style="color:var(--ink-4);font-size:13px;padding:16px 0">Sin datos</div>
+        } @else {
+          @for (c of porCliente().slice(0, 7); track c.name; let i = $index) {
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--hair-2)">
+              <span style="width:22px;font-size:11px;color:var(--ink-4);font-weight:700">{{ i + 1 }}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</div>
+                <div style="font-size:11px;color:var(--ink-4)">{{ c.visitas }} visita{{ c.visitas !== 1 ? 's' : '' }}</div>
+              </div>
+              <div class="tnum" style="font-size:14px;font-weight:600;flex-shrink:0">{{ c.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- TAB 2 · VENTAS                                      -->
+  <!-- ════════════════════════════════════════════════════ -->
+  @if (tabActiva() === 'ventas') {
+    <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+      <input class="input" style="max-width:240px;font-size:13px"
+        placeholder="Filtrar por estilista…"
+        [value]="filtroEstilista()" (input)="filtroEstilista.set($any($event.target).value)" />
+      <select class="input select-cat" style="width:auto;font-size:13px;padding:7px 10px"
+        [value]="filtroStatus()" (change)="filtroStatus.set($any($event.target).value)">
+        <option value="todos">Todos los estados</option>
+        <option value="activas">Solo válidas (Activas + Liquidadas)</option>
+        <option value="anuladas">Solo anuladas</option>
+      </select>
+      <span style="font-size:12px;color:var(--ink-4);margin-left:auto">{{ ventasTabFiltradas().length }} registros</span>
+      <button class="btn btn-sm btn-ghost" (click)="exportarCSV()">
+        <sp-icon name="download" [size]="13" /> CSV
+      </button>
+    </div>
+
+    <div class="card" style="overflow:hidden">
       <div class="table-wrap">
         <table class="tbl">
-          <thead><tr><th>Peluquero</th><th>Cliente</th><th style="text-align:right">Total</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Estilista</th>
+              <th>Cliente</th>
+              <th>Método pago</th>
+              <th style="text-align:right">Servicios</th>
+              <th style="text-align:right">Productos</th>
+              <th style="text-align:right">Propina</th>
+              <th style="text-align:right">Total bruto</th>
+              <th style="text-align:right">Salón</th>
+              <th style="text-align:right">Estilista</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
           <tbody>
-            @for (v of ventas().slice(0,8); track v.id) {
-              <tr>
-                <td style="font-weight:500">{{ v.stylistName }}</td>
-                <td style="color:var(--ink-3)">{{ v.clientName }}</td>
-                <td class="tnum" style="text-align:right">{{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+            @for (v of ventasTabFiltradas(); track v.id) {
+              <tr [style.opacity]="v.status === 'Voided' ? '0.4' : '1'">
+                <td class="mono" style="font-size:12px;color:var(--ink-4);white-space:nowrap">
+                  {{ v.saleDateTime | date:'dd/MM/yy':'America/Bogota' }}
+                </td>
+                <td class="mono" style="font-size:12px;color:var(--ink-4)">
+                  {{ v.saleDateTime | date:'HH:mm':'America/Bogota' }}
+                </td>
+                <td style="font-weight:500;white-space:nowrap">{{ v.stylistName }}</td>
+                <td style="color:var(--ink-3);font-size:13px;white-space:nowrap">{{ v.clientName }}</td>
+                <td style="font-size:12px;color:var(--ink-3)">{{ v.paymentMethodName }}</td>
+                <td class="tnum" style="text-align:right;font-size:12px">
+                  {{ v.grossServices > 0 ? (v.grossServices | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}
+                </td>
+                <td class="tnum" style="text-align:right;font-size:12px">
+                  {{ v.grossProducts > 0 ? (v.grossProducts | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}
+                </td>
+                <td class="tnum" style="text-align:right;font-size:12px;color:var(--ink-3)">
+                  {{ v.tipAmount > 0 ? (v.tipAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}
+                </td>
+                <td class="tnum" style="text-align:right;font-weight:600">
+                  {{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right;font-size:12px">
+                  {{ v.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right;font-size:12px">
+                  {{ v.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td>
+                  <span class="pill {{ statusPill(v.status) }}">
+                    <span class="pill-dot"></span>{{ statusLabel(v.status) }}
+                  </span>
+                </td>
               </tr>
             }
           </tbody>
+          @if (ventasTabFiltradas().length > 0) {
+            <tfoot>
+              <tr style="background:var(--bone);font-weight:600">
+                <td colspan="5" style="font-size:12px;color:var(--ink-3)">
+                  Total ({{ ventasTabFiltradas().length }})
+                </td>
+                <td class="tnum" style="text-align:right;font-size:12px">
+                  {{ sumArr(ventasTabFiltradas(), 'grossServices') | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right;font-size:12px">
+                  {{ sumArr(ventasTabFiltradas(), 'grossProducts') | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right;font-size:12px">
+                  {{ sumArr(ventasTabFiltradas(), 'tipAmount') | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right">
+                  {{ sumArr(ventasTabFiltradas(), 'grossTotal') | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right;font-size:12px">
+                  {{ sumArr(ventasTabFiltradas(), 'salonTotal') | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right;font-size:12px">
+                  {{ sumArr(ventasTabFiltradas(), 'stylistTotal') | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td></td>
+              </tr>
+            </tfoot>
+          }
         </table>
       </div>
-      @if (ventas().length === 0) {
-        <div style="padding:20px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período</div>
-      }
-    </div>
-
-    <div class="card" style="padding:24px">
-      <div class="eyebrow" style="margin-bottom:4px">Distribución</div>
-      <h3 class="serif" style="margin:4px 0 18px;font-size:22px;font-weight:400">Ingresos por peluquero</h3>
-      @for (stylist of getStylistStats(); track stylist.name) {
-        <div style="margin-bottom:14px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-            <span style="font-size:13px;font-weight:500">{{ stylist.name }}</span>
-            <span class="tnum" style="font-size:13px">{{ stylist.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-          </div>
-          <div class="bar">
-            <div class="bar-fill" [style.width]="stylist.pct + '%'"></div>
-          </div>
-        </div>
-      }
-      @if (getStylistStats().length === 0) {
-        <div style="color:var(--ink-4);font-size:13px">Sin datos disponibles</div>
-      }
-    </div>
-  </div>
-
-  <div class="card" style="padding:24px">
-    <div class="eyebrow" style="margin-bottom:12px">Horarios pico</div>
-    <div style="display:flex;align-items:flex-end;gap:4px;height:100px">
-      @for (h of [2,4,8,14,18,22,24,20,16,19,24,18,12,6]; track $index) {
-        <div style="flex:1;min-width:6px;border-radius:2px 2px 0 0;transition:opacity 120ms"
-             [style.height]="(h/24*100)+'%'"
-             [style.background]="$index===6||$index===10 ? 'var(--accent)' : 'var(--ink)'"
-             [style.opacity]="$index===6||$index===10 ? '1' : '0.85'">
+      @if (ventasTabFiltradas().length === 0 && !loading()) {
+        <div style="padding:48px;text-align:center;color:var(--ink-4);font-size:13px">
+          Sin registros para el período y filtros seleccionados
         </div>
       }
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ink-4);margin-top:8px">
-      <span>9am</span><span>1pm</span><span>5pm</span><span>9pm</span>
+  }
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- TAB 3 · ESTILISTAS                                  -->
+  <!-- ════════════════════════════════════════════════════ -->
+  @if (tabActiva() === 'estilistas') {
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn btn-sm btn-ghost" (click)="exportarCSV()">
+        <sp-icon name="download" [size]="13" /> CSV
+      </button>
     </div>
-  </div>
+    <div class="card" style="overflow:hidden">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Estilista</th>
+              <th style="text-align:right">Ventas</th>
+              <th style="text-align:right">Total bruto</th>
+              <th style="text-align:right">Para salón</th>
+              <th style="text-align:right">Para estilista</th>
+              <th style="text-align:right">Propinas</th>
+              <th style="text-align:right">Ticket prom.</th>
+              <th>% del total</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (e of porEstilista(); track e.name; let i = $index) {
+              <tr>
+                <td style="color:var(--ink-4);font-size:12px;width:32px">{{ i + 1 }}</td>
+                <td style="font-weight:500">{{ e.name }}</td>
+                <td class="tnum" style="text-align:right">{{ e.ventas }}</td>
+                <td class="tnum" style="text-align:right;font-weight:600">
+                  {{ e.bruto | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right">
+                  {{ e.salon | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right">
+                  {{ e.estil | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right;color:var(--ink-3)">
+                  {{ e.propinas > 0 ? (e.propinas | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}
+                </td>
+                <td class="tnum" style="text-align:right">
+                  {{ e.ticket | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td style="min-width:120px">
+                  @if (kpiTotal() > 0) {
+                    <div style="display:flex;align-items:center;gap:6px">
+                      <div class="bar" style="flex:1">
+                        <div class="bar-fill" [style.width]="(e.bruto / kpiTotal() * 100) + '%'"></div>
+                      </div>
+                      <span style="font-size:11px;color:var(--ink-4);width:30px;text-align:right">
+                        {{ (e.bruto / kpiTotal() * 100) | number:'1.0-0' }}%
+                      </span>
+                    </div>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+          @if (porEstilista().length > 0) {
+            <tfoot>
+              <tr style="background:var(--bone);font-weight:600">
+                <td colspan="2" style="font-size:12px;color:var(--ink-3)">Total</td>
+                <td class="tnum" style="text-align:right">{{ kpiCount() }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiTotal() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiSalon() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiEstil() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiPropinas() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiTicket() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+      @if (porEstilista().length === 0 && !loading()) {
+        <div style="padding:48px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período</div>
+      }
+    </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- TAB 4 · MÉTODOS DE PAGO                             -->
+  <!-- ════════════════════════════════════════════════════ -->
+  @if (tabActiva() === 'pagos') {
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn btn-sm btn-ghost" (click)="exportarCSV()">
+        <sp-icon name="download" [size]="13" /> CSV
+      </button>
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Método de pago</th>
+              <th style="text-align:right">Ventas</th>
+              <th style="text-align:right">Total bruto</th>
+              <th style="text-align:right">Deducciones</th>
+              <th style="text-align:right">Neto real</th>
+              <th style="text-align:right">% deducción</th>
+              <th>Participación</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of porPago(); track p.name) {
+              <tr>
+                <td style="font-weight:500">{{ p.name }}</td>
+                <td class="tnum" style="text-align:right">{{ p.count }}</td>
+                <td class="tnum" style="text-align:right;font-weight:600">
+                  {{ p.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right;color:var(--danger)">
+                  {{ p.deduc > 0 ? (p.deduc | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}
+                </td>
+                <td class="tnum" style="text-align:right">
+                  {{ p.neto | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right;font-size:12px;color:var(--ink-3)">
+                  {{ p.pct > 0 ? p.pct + '%' : '—' }}
+                </td>
+                <td style="min-width:120px">
+                  @if (kpiTotal() > 0) {
+                    <div style="display:flex;align-items:center;gap:6px">
+                      <div class="bar" style="flex:1">
+                        <div class="bar-fill" [style.width]="(p.total / kpiTotal() * 100) + '%'"></div>
+                      </div>
+                      <span style="font-size:11px;color:var(--ink-4);width:30px;text-align:right">
+                        {{ (p.total / kpiTotal() * 100) | number:'1.0-0' }}%
+                      </span>
+                    </div>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+          @if (porPago().length > 0) {
+            <tfoot>
+              <tr style="background:var(--bone);font-weight:600">
+                <td style="font-size:12px;color:var(--ink-3)">Total</td>
+                <td class="tnum" style="text-align:right">{{ kpiCount() }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiTotal() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right;color:var(--danger)">{{ kpiDeduc() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ (kpiTotal() - kpiDeduc()) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+      @if (porPago().length === 0 && !loading()) {
+        <div style="padding:48px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período</div>
+      }
+    </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- TAB 5 · CLIENTES                                    -->
+  <!-- ════════════════════════════════════════════════════ -->
+  @if (tabActiva() === 'clientes') {
+    <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+      <input class="input" style="max-width:280px;font-size:13px"
+        placeholder="Buscar por nombre o documento…"
+        [value]="filtroCliente()" (input)="filtroCliente.set($any($event.target).value)" />
+      <span style="font-size:12px;color:var(--ink-4);margin-left:auto">
+        {{ porCliente().length }} cliente{{ porCliente().length !== 1 ? 's' : '' }}
+      </span>
+      <button class="btn btn-sm btn-ghost" (click)="exportarCSV()">
+        <sp-icon name="download" [size]="13" /> CSV
+      </button>
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Cliente</th>
+              <th>Documento</th>
+              <th style="text-align:right">Visitas</th>
+              <th style="text-align:right">Total gastado</th>
+              <th style="text-align:right">Propinas</th>
+              <th style="text-align:right">Ticket prom.</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of porCliente(); track c.name; let i = $index) {
+              <tr>
+                <td style="color:var(--ink-4);font-size:12px;width:32px">{{ i + 1 }}</td>
+                <td style="font-weight:500">{{ c.name }}</td>
+                <td style="font-size:12px;color:var(--ink-3)">{{ c.doc || '—' }}</td>
+                <td class="tnum" style="text-align:right">{{ c.visitas }}</td>
+                <td class="tnum" style="text-align:right;font-weight:600">
+                  {{ c.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right;color:var(--ink-3)">
+                  {{ c.propinas > 0 ? (c.propinas | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}
+                </td>
+                <td class="tnum" style="text-align:right">
+                  {{ c.ticket | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+          @if (porCliente().length > 0) {
+            <tfoot>
+              <tr style="background:var(--bone);font-weight:600">
+                <td colspan="3" style="font-size:12px;color:var(--ink-3)">
+                  Total ({{ porCliente().length }} clientes)
+                </td>
+                <td class="tnum" style="text-align:right">{{ kpiCount() }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiTotal() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiPropinas() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiTicket() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+      @if (porCliente().length === 0 && !loading()) {
+        <div style="padding:48px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período</div>
+      }
+    </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- TAB 6 · POR DÍA                                     -->
+  <!-- ════════════════════════════════════════════════════ -->
+  @if (tabActiva() === 'diario') {
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn btn-sm btn-ghost" (click)="exportarCSV()">
+        <sp-icon name="download" [size]="13" /> CSV
+      </button>
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th style="text-align:right">Ventas</th>
+              <th style="text-align:right">Total bruto</th>
+              <th style="text-align:right">Para salón</th>
+              <th style="text-align:right">Para estilistas</th>
+              <th style="text-align:right">Ticket prom.</th>
+              <th style="text-align:right">Anuladas</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of porDia(); track d.dia) {
+              <tr>
+                <td class="mono" style="font-weight:500;white-space:nowrap">
+                  {{ d.dia | date:'EEEE, dd/MM/yyyy':'UTC':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right">{{ d.ventas }}</td>
+                <td class="tnum" style="text-align:right;font-weight:600">
+                  {{ d.bruto | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right">
+                  {{ d.salon | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right">
+                  {{ d.estil | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right;font-size:13px">
+                  {{ d.ticket > 0 ? (d.ticket | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}
+                </td>
+                <td class="tnum" style="text-align:right;color:var(--danger);font-size:12px">
+                  {{ d.anuladas > 0 ? d.anuladas : '—' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+          @if (porDia().length > 0) {
+            <tfoot>
+              <tr style="background:var(--bone);font-weight:600">
+                <td style="font-size:12px;color:var(--ink-3)">Total ({{ porDia().length }} días)</td>
+                <td class="tnum" style="text-align:right">{{ kpiCount() }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiTotal() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiSalon() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiEstil() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiTicket() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right;color:var(--danger)">{{ kpiAnuladas() > 0 ? kpiAnuladas() : '—' }}</td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+      @if (porDia().length === 0 && !loading()) {
+        <div style="padding:48px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período</div>
+      }
+    </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- TAB 7 · SERVICIOS VS PRODUCTOS                      -->
+  <!-- ════════════════════════════════════════════════════ -->
+  @if (tabActiva() === 'servicios') {
+    <!-- KPIs de mix -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">
+      <div class="kpi">
+        <div class="kpi-label">Servicios</div>
+        <div class="kpi-value tnum">{{ mixIngreso().services | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+        <div style="font-size:11px;color:var(--ink-4);margin-top:6px">{{ mixIngreso().pctServ }}% del ingreso total</div>
+        <div class="bar" style="margin-top:10px">
+          <div class="bar-fill" [style.width]="mixIngreso().pctServ + '%'"></div>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Productos (venta)</div>
+        <div class="kpi-value tnum">{{ mixIngreso().products | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+        <div style="font-size:11px;color:var(--ink-4);margin-top:6px">{{ mixIngreso().pctProd }}% del ingreso total</div>
+        <div class="bar" style="margin-top:10px">
+          <div class="bar-fill" [style.width]="mixIngreso().pctProd + '%'"></div>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Propinas</div>
+        <div class="kpi-value tnum">{{ mixIngreso().tips | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+        <div style="font-size:11px;color:var(--ink-4);margin-top:6px">{{ mixIngreso().pctTips }}% del ingreso total</div>
+        <div class="bar" style="margin-top:10px">
+          <div class="bar-fill" [style.width]="mixIngreso().pctTips + '%'"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla por estilista -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-size:13px;font-weight:600;color:var(--ink-2)">Detalle por estilista</span>
+      <button class="btn btn-sm btn-ghost" (click)="exportarCSV()">
+        <sp-icon name="download" [size]="13" /> CSV
+      </button>
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Estilista</th>
+              <th style="text-align:right">Ventas</th>
+              <th style="text-align:right">Servicios</th>
+              <th style="text-align:right">Productos</th>
+              <th style="text-align:right">Propinas</th>
+              <th style="text-align:right">Total</th>
+              <th>Mix</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (e of mixPorEstilista(); track e.name) {
+              <tr>
+                <td style="font-weight:500">{{ e.name }}</td>
+                <td class="tnum" style="text-align:right">{{ e.ventas }}</td>
+                <td class="tnum" style="text-align:right">{{ e.services | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">
+                  {{ e.products > 0 ? (e.products | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}
+                </td>
+                <td class="tnum" style="text-align:right;color:var(--ink-3)">
+                  {{ e.tips > 0 ? (e.tips | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}
+                </td>
+                <td class="tnum" style="text-align:right;font-weight:600">{{ e.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td>
+                  <div style="display:flex;gap:4px;align-items:center">
+                    <span style="padding:2px 7px;background:var(--accent);color:#fff;border-radius:3px;font-size:10px;font-weight:600">
+                      {{ e.pctServ }}% S
+                    </span>
+                    @if (e.pctProd > 0) {
+                      <span style="padding:2px 7px;background:var(--bone);color:var(--ink-2);border-radius:3px;font-size:10px;font-weight:600;border:1px solid var(--hair-2)">
+                        {{ e.pctProd }}% P
+                      </span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+          @if (mixPorEstilista().length > 0) {
+            <tfoot>
+              <tr style="background:var(--bone);font-weight:600">
+                <td style="font-size:12px;color:var(--ink-3)">Total</td>
+                <td class="tnum" style="text-align:right">{{ kpiCount() }}</td>
+                <td class="tnum" style="text-align:right">{{ mixIngreso().services | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ mixIngreso().products | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ mixIngreso().tips | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ mixIngreso().total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+      @if (mixPorEstilista().length === 0 && !loading()) {
+        <div style="padding:48px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período</div>
+      }
+    </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- TAB 8 · PROPINAS                                    -->
+  <!-- ════════════════════════════════════════════════════ -->
+  @if (tabActiva() === 'propinas') {
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;color:var(--ink-3)">
+        Total propinas:
+        <strong class="tnum">{{ kpiPropinas() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</strong>
+        ·
+        <strong>{{ totalPropinasCount() }}</strong> venta{{ totalPropinasCount() !== 1 ? 's' : '' }} con propina
+        · {{ propinas().length }} estilista{{ propinas().length !== 1 ? 's' : '' }}
+      </div>
+      <button class="btn btn-sm btn-ghost" (click)="exportarCSV()">
+        <sp-icon name="download" [size]="13" /> CSV
+      </button>
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Estilista</th>
+              <th style="text-align:right">Ventas con propina</th>
+              <th style="text-align:right">Total propinas</th>
+              <th style="text-align:right">Promedio por propina</th>
+              <th>% del total propinas</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of propinas(); track p.name; let i = $index) {
+              <tr>
+                <td style="color:var(--ink-4);font-size:12px;width:32px">{{ i + 1 }}</td>
+                <td style="font-weight:500">{{ p.name }}</td>
+                <td class="tnum" style="text-align:right">{{ p.count }}</td>
+                <td class="tnum" style="text-align:right;font-weight:600">
+                  {{ p.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right">
+                  {{ p.promedio | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td style="min-width:130px">
+                  @if (kpiPropinas() > 0) {
+                    <div style="display:flex;align-items:center;gap:6px">
+                      <div class="bar" style="flex:1">
+                        <div class="bar-fill" [style.width]="(p.total / kpiPropinas() * 100) + '%'"></div>
+                      </div>
+                      <span style="font-size:11px;color:var(--ink-4);width:34px;text-align:right">
+                        {{ (p.total / kpiPropinas() * 100) | number:'1.0-0' }}%
+                      </span>
+                    </div>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+          @if (propinas().length > 0) {
+            <tfoot>
+              <tr style="background:var(--bone);font-weight:600">
+                <td colspan="2" style="font-size:12px;color:var(--ink-3)">Total</td>
+                <td class="tnum" style="text-align:right">{{ totalPropinasCount() }}</td>
+                <td class="tnum" style="text-align:right">{{ kpiPropinas() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+      @if (propinas().length === 0 && !loading()) {
+        <div style="padding:48px;text-align:center;color:var(--ink-4);font-size:13px">
+          No hay propinas registradas en el período
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- TAB 9 · DEDUCCIONES                                 -->
+  <!-- ════════════════════════════════════════════════════ -->
+  @if (tabActiva() === 'deducciones') {
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;color:var(--ink-3)">
+        Total deducido:
+        <strong class="tnum" style="color:var(--danger)">{{ kpiDeduc() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</strong>
+        ·
+        {{ kpiTotal() ? ((kpiDeduc() / kpiTotal() * 100) | number:'1.1-1') : 0 }}% del bruto total
+      </div>
+      <button class="btn btn-sm btn-ghost" (click)="exportarCSV()">
+        <sp-icon name="download" [size]="13" /> CSV
+      </button>
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Método de pago</th>
+              <th style="text-align:right">Ventas afectadas</th>
+              <th style="text-align:right">Total bruto</th>
+              <th style="text-align:right">Total deducción</th>
+              <th style="text-align:right">Neto real</th>
+              <th style="text-align:right">% efectivo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of deducciones(); track d.name) {
+              <tr>
+                <td style="font-weight:500">{{ d.name }}</td>
+                <td class="tnum" style="text-align:right">{{ d.count }}</td>
+                <td class="tnum" style="text-align:right">{{ d.bruto | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right;color:var(--danger);font-weight:600">
+                  {{ d.deduc | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </td>
+                <td class="tnum" style="text-align:right">{{ d.neto | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right;font-size:13px">{{ d.pct }}%</td>
+              </tr>
+            }
+          </tbody>
+          @if (deducciones().length > 0) {
+            <tfoot>
+              <tr style="background:var(--bone);font-weight:600">
+                <td style="font-size:12px;color:var(--ink-3)">Total</td>
+                <td class="tnum" style="text-align:right">{{ totalDeducCount() }}</td>
+                <td class="tnum" style="text-align:right">{{ totalDeducBruto() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right;color:var(--danger)">{{ kpiDeduc() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td class="tnum" style="text-align:right">{{ (totalDeducBruto() - kpiDeduc()) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+      @if (deducciones().length === 0 && !loading()) {
+        <div style="padding:48px;text-align:center;color:var(--ink-4);font-size:13px">
+          No hay deducciones en el período (todos los pagos son sin comisión)
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- TAB 10 · HORARIOS PICO                              -->
+  <!-- ════════════════════════════════════════════════════ -->
+  @if (tabActiva() === 'horarios') {
+    <div class="card" style="padding:28px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px">
+        <div>
+          <div class="eyebrow" style="margin-bottom:4px">Distribución horaria</div>
+          <h3 class="serif" style="margin:0;font-size:20px;font-weight:400">Horarios pico del período</h3>
+        </div>
+        <button class="btn btn-sm btn-ghost" (click)="exportarCSV()">
+          <sp-icon name="download" [size]="13" /> CSV
+        </button>
+      </div>
+
+      @if (ventasValidas().length === 0 && !loading()) {
+        <div style="text-align:center;color:var(--ink-4);font-size:13px;padding:48px 0">Sin datos para el período</div>
+      } @else {
+        <!-- Gráfica de barras -->
+        <div style="display:flex;align-items:flex-end;gap:5px;height:130px;margin-bottom:6px;padding:0 2px">
+          @for (h of horariosPico(); track h.h) {
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:default"
+                 [title]="h.label + ': ' + h.count + ' ventas — ' + (h.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO')">
+              @if (h.count > 0) {
+                <span style="font-size:9px;color:var(--ink-4);font-weight:600">{{ h.count }}</span>
+              }
+              <div style="width:100%;border-radius:3px 3px 0 0;transition:all 200ms"
+                   [style.height]="h.pct > 0 ? (h.pct * 0.9 + 5) + '%' : '4px'"
+                   [style.background]="h.pct >= 80 ? 'var(--accent)' : h.pct >= 45 ? 'var(--ink-2)' : 'var(--hair-2)'">
+              </div>
+            </div>
+          }
+        </div>
+        <!-- Labels de hora -->
+        <div style="display:flex;padding:0 2px;margin-bottom:24px">
+          @for (h of horariosPico(); track h.h) {
+            <span style="flex:1;text-align:center;font-size:9px;color:var(--ink-4)">{{ h.label }}</span>
+          }
+        </div>
+
+        <!-- Tabla de detalle -->
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th style="text-align:right">Ventas</th>
+                <th style="text-align:right">Total recaudado</th>
+                <th style="text-align:right">Ticket prom.</th>
+                <th>Actividad relativa</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (h of horariosPico(); track h.h) {
+                @if (h.count > 0) {
+                  <tr>
+                    <td class="mono" style="font-weight:500">{{ h.label }}</td>
+                    <td class="tnum" style="text-align:right">{{ h.count }}</td>
+                    <td class="tnum" style="text-align:right;font-weight:600">
+                      {{ h.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                    </td>
+                    <td class="tnum" style="text-align:right;font-size:12px">
+                      {{ h.count ? (h.total / h.count | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}
+                    </td>
+                    <td style="min-width:140px">
+                      <div style="display:flex;align-items:center;gap:6px">
+                        <div class="bar" style="flex:1">
+                          <div class="bar-fill" [style.width]="h.pct + '%'"
+                               [style.background]="h.pct >= 80 ? 'var(--accent)' : 'var(--ink-2)'"></div>
+                        </div>
+                        @if (h.pct >= 80) {
+                          <span style="font-size:10px;padding:2px 7px;background:var(--accent);color:#fff;border-radius:3px;font-weight:600;white-space:nowrap">
+                            Hora pico
+                          </span>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
 </div>
