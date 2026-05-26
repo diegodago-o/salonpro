@@ -1,3 +1,10 @@
+# SSH / deploy keys (nunca al repo)
+deploy_key
+deploy_key.pub
+fatal
+git
+To
+
 # .NET / C#
 bin/
 obj/
