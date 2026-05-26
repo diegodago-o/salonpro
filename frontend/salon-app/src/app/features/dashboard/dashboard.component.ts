@@ -35,22 +35,23 @@ export class DashboardComponent {
   readonly ventasMes  = signal<Sale[]>([]);
   readonly liquidaciones = signal<LiquidacionResumen[]>([]);
 
-  // ── HOY ──────────────────────────────────────────────
-  readonly ventasHoyActivas = computed(() =>
-    this.ventasHoy().filter(v => v.status === 'Active'));
+  // ── HOY (Active + Settled — excluye solo Voided) ─────
+  // Una venta liquidada sigue siendo ingreso real del día
+  readonly ventasHoyValidas = computed(() =>
+    this.ventasHoy().filter(v => v.status !== 'Voided'));
 
   readonly kpiHoy = computed(() =>
-    this.ventasHoyActivas().reduce((s, v) => s + v.grossTotal, 0));
+    this.ventasHoyValidas().reduce((s, v) => s + v.grossTotal, 0));
 
   readonly salonHoy = computed(() =>
-    this.ventasHoyActivas().reduce((s, v) => s + v.salonTotal, 0));
+    this.ventasHoyValidas().reduce((s, v) => s + v.salonTotal, 0));
 
-  readonly countHoy = computed(() => this.ventasHoyActivas().length);
+  readonly countHoy = computed(() => this.ventasHoyValidas().length);
 
   readonly ticketPromedio = computed(() =>
     this.countHoy() ? Math.round(this.kpiHoy() / this.countHoy()) : 0);
 
-  // ── SEMANA (lunes → hoy) ─────────────────────────────
+  // ── SEMANA (lunes → hoy, sin Voided) ─────────────────
   readonly ventasSemanales = computed(() => {
     const hoyStr = todayColombia();
     const [y, mo, d] = hoyStr.split('-').map(Number);
@@ -58,20 +59,20 @@ export class DashboardComponent {
     const daysBack = (dow + 6) % 7;
     const lunesTs  = new Date(y, mo - 1, d - daysBack).getTime();
     return this.ventasMes()
-      .filter(v => v.status === 'Active' && new Date(v.saleDateTime).getTime() >= lunesTs);
+      .filter(v => v.status !== 'Voided' && new Date(v.saleDateTime).getTime() >= lunesTs);
   });
 
-  readonly kpiSemana  = computed(() =>
+  readonly kpiSemana   = computed(() =>
     this.ventasSemanales().reduce((s, v) => s + v.grossTotal, 0));
   readonly countSemana = computed(() => this.ventasSemanales().length);
 
-  // ── MES ──────────────────────────────────────────────
-  readonly ventasMesActivas = computed(() =>
-    this.ventasMes().filter(v => v.status === 'Active'));
+  // ── MES (sin Voided) ─────────────────────────────────
+  readonly ventasMesValidas = computed(() =>
+    this.ventasMes().filter(v => v.status !== 'Voided'));
 
   readonly kpiMes   = computed(() =>
-    this.ventasMesActivas().reduce((s, v) => s + v.grossTotal, 0));
-  readonly countMes = computed(() => this.ventasMesActivas().length);
+    this.ventasMesValidas().reduce((s, v) => s + v.grossTotal, 0));
+  readonly countMes = computed(() => this.ventasMesValidas().length);
 
   // ── LIQUIDACIONES ABIERTAS ───────────────────────────
   readonly liquidacionesAbiertas = computed(() =>
@@ -80,7 +81,7 @@ export class DashboardComponent {
   // ── MÉTODOS DE PAGO HOY ──────────────────────────────
   readonly pagosSummary = computed(() => {
     const map = new Map<string, number>();
-    for (const v of this.ventasHoyActivas()) {
+    for (const v of this.ventasHoyValidas()) {
       map.set(v.paymentMethodName, (map.get(v.paymentMethodName) ?? 0) + v.grossTotal);
     }
     return Array.from(map.entries())
@@ -91,7 +92,7 @@ export class DashboardComponent {
   // ── TOP ESTILISTAS HOY ───────────────────────────────
   readonly topEstilistas = computed(() => {
     const map = new Map<string, { ventas: number; total: number; salonTotal: number }>();
-    for (const v of this.ventasHoyActivas()) {
+    for (const v of this.ventasHoyValidas()) {
       const e = map.get(v.stylistName) ?? { ventas: 0, total: 0, salonTotal: 0 };
       e.ventas++;
       e.total      += v.grossTotal;
