@@ -82,4 +82,7 @@ public class Sale
         VoidedReason = reason;
         VoidedAt = DateTime.UtcNow;
     }
+
+    /// <summary>Marca la venta como liquidada (incluida en una liquidación cerrada).</summary>
+    public void Settle() => Status = SaleStatus.Settled;
 }

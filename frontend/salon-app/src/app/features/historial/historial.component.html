@@ -32,6 +32,7 @@
       <select class="select" style="width:auto" (change)="filtroEstado.set($any($event.target).value)">
         <option value="all">Todos los estados</option>
         <option value="Active">Activa</option>
+        <option value="Settled">Liquidada</option>
         <option value="Voided">Anulada</option>
       </select>
 
@@ -107,7 +108,7 @@
           </thead>
           <tbody>
             @for (v of ventasFiltradas(); track v.id) {
-              <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'">
+              <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'" [style.background]="v.status === 'Settled' ? 'rgba(99,102,241,.04)' : ''">
 
                 <td class="mono" style="font-size:11px;color:var(--ink-3)">#{{ v.id }}</td>
 
@@ -163,6 +164,8 @@
                 <td>
                   @if (v.status === 'Active') {
                     <span class="pill pill-success"><span class="pill-dot"></span>Activa</span>
+                  } @else if (v.status === 'Settled') {
+                    <span class="pill" style="background:rgba(99,102,241,.12);color:#4338ca"><span class="pill-dot" style="background:#4338ca"></span>Liquidada</span>
                   } @else {
                     <span class="pill pill-danger"><span class="pill-dot"></span>Anulada</span>
                   }
@@ -182,7 +185,7 @@
                     <sp-icon name="bag" [size]="13" />
                     {{ cargandoRecibo() === v.id ? '…' : 'Recibo' }}
                   </button>
-                  <!-- Anular (solo ventas activas) -->
+                  <!-- Anular (solo ventas activas, no liquidadas) -->
                   @if (v.status === 'Active') {
                     <button class="btn btn-ghost btn-sm"
                       style="font-size:11px;padding:3px 8px;display:inline-flex;align-items:center;gap:3px;color:var(--danger)"
@@ -259,6 +262,8 @@
             <div style="display:flex;gap:6px;flex-wrap:wrap">
               @if (ventaDetalle()!.status === 'Active') {
                 <span class="pill pill-success"><span class="pill-dot"></span>Activa</span>
+              } @else if (ventaDetalle()!.status === 'Settled') {
+                <span class="pill" style="background:rgba(99,102,241,.12);color:#4338ca"><span class="pill-dot" style="background:#4338ca"></span>Liquidada</span>
               } @else {
                 <span class="pill pill-danger"><span class="pill-dot"></span>Anulada</span>
               }

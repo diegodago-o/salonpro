@@ -64,6 +64,12 @@ public class SaleRepository(SalonOpsDbContext db) : ISaleRepository
     public async Task AddAsync(Sale sale, CancellationToken ct = default) =>
         await db.Sales.AddAsync(sale, ct);
 
+    public async Task MarkAsSettledAsync(IEnumerable<int> saleIds, CancellationToken ct = default)
+    {
+        var sales = await db.Sales.Where(s => saleIds.Contains(s.Id)).ToListAsync(ct);
+        foreach (var sale in sales) sale.Settle();
+    }
+
     public async Task SaveChangesAsync(CancellationToken ct = default) =>
         await db.SaveChangesAsync(ct);
 }

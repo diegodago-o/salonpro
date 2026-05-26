@@ -4,5 +4,7 @@ public enum SaleStatus
 {
     Active,
     Voided,
-    Edited
+    Edited,
+    /// <summary>Venta incluida en una liquidación cerrada/aprobada.</summary>
+    Settled
 }
