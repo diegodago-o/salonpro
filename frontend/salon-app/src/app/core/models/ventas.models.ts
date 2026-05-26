@@ -1,5 +1,5 @@
 export type SaleDetailType = 'Service' | 'ProductSale' | 'ProductInternal';
-export type SaleStatus = 'Active' | 'Voided' | 'Edited';
+export type SaleStatus = 'Active' | 'Voided' | 'Edited' | 'Settled';
 
 export interface ServiceOption {
   id: number;
