@@ -380,9 +380,10 @@ export class VentasComponent implements OnInit {
   }
 
   private verificarCaja(): void {
-    this.cajaService.getCajaActual().subscribe({
+    const branchId = this.branchService.selectedBranch()?.id;
+    this.cajaService.getCajaActual(branchId).subscribe({
       next:  r => this.cajaAbierta.set(!!r.data),
-      error: () => this.cajaAbierta.set(false)   // ante cualquier error → sin caja
+      error: () => this.cajaAbierta.set(false)
     });
   }
 

@@ -11,7 +11,9 @@ public class CashRegisterRepository(SalonOpsDbContext db) : ICashRegisterReposit
     public async Task<CashRegister?> GetCurrentOpenByTenantAsync(int tenantId, int branchId, CancellationToken ct = default) =>
         await db.CashRegisters
             .Include(c => c.Details)
-            .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.BranchId == branchId && c.Status == CashRegisterStatus.Open, ct);
+            .FirstOrDefaultAsync(c => c.TenantId == tenantId
+                && (branchId == 0 || c.BranchId == branchId)   // branchId=0 → cualquier sede
+                && c.Status == CashRegisterStatus.Open, ct);
 
     public async Task<IEnumerable<CashRegister>> GetAllByTenantAsync(int tenantId, int branchId, CancellationToken ct = default) =>
         await db.CashRegisters
