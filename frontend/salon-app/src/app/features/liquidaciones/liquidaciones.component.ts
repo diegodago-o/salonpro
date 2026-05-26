@@ -181,4 +181,9 @@ export class LiquidacionesComponent implements OnInit {
     this.msg.set({ type, text });
     setTimeout(() => this.msg.set(null), 4000);
   }
+
+  /** Parte izquierda de "Nombre · X% → $monto" */
+  commLeft(item: string): string  { return item.split(' → ')[0] ?? item; }
+  /** Parte derecha de "Nombre · X% → $monto" */
+  commRight(item: string): string { return item.split(' → ')[1] ?? ''; }
 }

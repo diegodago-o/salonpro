@@ -44,7 +44,7 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo, ISaleRepo
 
             var internalItems = sale?.Items
                 .Where(i => i.Type == SalonPro.SalonOperations.Domain.Enums.SaleItemType.ProductInternal)
-                .Select(i => $"{i.Name} — {(i.UnitPrice * i.Quantity):C0}")
+                .Select(i => $"{i.Name} → ${(i.UnitPrice * i.Quantity):N0}")
                 .ToList() ?? [];
 
             // Calcular comisión por ítem (misma lógica proporcional de CreateSaleCommand)
@@ -55,6 +55,7 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo, ISaleRepo
                 var saleGrossAll = sale.GrossServices + sale.GrossProducts + sale.TipAmount;
                 var dedPct = saleGrossAll > 0 ? sale.TotalDeductions / saleGrossAll : 0m;
                 var commPct = sale.CommissionPercent / 100m;
+                var commPctLabel = (int)Math.Round(sale.CommissionPercent);
 
                 foreach (var item in sale.Items.Where(i =>
                     i.Type == SalonPro.SalonOperations.Domain.Enums.SaleItemType.Service))
@@ -71,7 +72,7 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo, ISaleRepo
                     {
                         stylistAmt = Math.Round(netBase * commPct, 0);
                     }
-                    serviceCommItems.Add($"{item.Name} — {stylistAmt:C0}");
+                    serviceCommItems.Add($"{item.Name} · {commPctLabel}% → ${stylistAmt:N0}");
                 }
 
                 foreach (var item in sale.Items.Where(i =>
@@ -79,8 +80,11 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo, ISaleRepo
                 {
                     var subtotal = item.UnitPrice * item.Quantity;
                     var netBase = subtotal * (1 - dedPct);
-                    var stylistAmt = Math.Round(netBase * commPct, 0);
-                    productCommItems.Add($"{item.Name} — {stylistAmt:C0}");
+                    // Usa el % propio del producto (no el % general del estilista)
+                    var prodCommPct = item.StylistCommissionPercent / 100m;
+                    var prodCommPctLabel = (int)Math.Round(item.StylistCommissionPercent);
+                    var stylistAmt = Math.Round(netBase * prodCommPct, 0);
+                    productCommItems.Add($"{item.Name} · {prodCommPctLabel}% → ${stylistAmt:N0}");
                 }
             }
 
