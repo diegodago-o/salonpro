@@ -206,17 +206,17 @@
                   </div>
                   <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:13px;font-weight:600;color:#374151">Rol *</label>
-                    <select class="input" [value]="userForm().role" (change)="updateForm('role', $any($event.target).value)">
-                      <option value="Cashier">Cajero/a</option>
-                      <option value="Stylist">Estilista</option>
+                    <select class="input" (change)="updateForm('role', $any($event.target).value)">
+                      <option value="Cashier" [selected]="userForm().role === 'Cashier'">Cajero/a</option>
+                      <option value="Stylist" [selected]="userForm().role === 'Stylist'">Estilista</option>
                     </select>
                   </div>
                   <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:13px;font-weight:600;color:#374151">Sede</label>
-                    <select class="input" [value]="userForm().branchId ?? ''" (change)="onBranchSelect($any($event.target).value)">
-                      <option value="">Sin sede específica</option>
+                    <select class="input" (change)="onBranchSelect($any($event.target).value)">
+                      <option value="" [selected]="!userForm().branchId">Sin sede específica</option>
                       @for (b of branches; track b.id) {
-                        <option [value]="b.id">{{ b.name }}</option>
+                        <option [value]="b.id" [selected]="userForm().branchId === b.id">{{ b.name }}</option>
                       }
                     </select>
                   </div>
@@ -281,20 +281,18 @@
                 <!-- Rol -->
                 <div style="display:flex;flex-direction:column;gap:6px">
                   <label style="font-size:13px;font-weight:600;color:#374151">Rol *</label>
-                  <select class="input" [value]="editUserForm().role"
-                    (change)="updateEditForm('role', $any($event.target).value)">
-                    <option value="Cashier">Cajero/a</option>
-                    <option value="Stylist">Estilista</option>
+                  <select class="input" (change)="updateEditForm('role', $any($event.target).value)">
+                    <option value="Cashier" [selected]="editUserForm().role === 'Cashier'">Cajero/a</option>
+                    <option value="Stylist" [selected]="editUserForm().role === 'Stylist'">Estilista</option>
                   </select>
                 </div>
                 <!-- Sede -->
                 <div style="display:flex;flex-direction:column;gap:6px">
                   <label style="font-size:13px;font-weight:600;color:#374151">Sede</label>
-                  <select class="input" [value]="editUserForm().branchId ?? ''"
-                    (change)="onEditBranchSelect($any($event.target).value)">
-                    <option value="">Sin sede específica</option>
+                  <select class="input" (change)="onEditBranchSelect($any($event.target).value)">
+                    <option value="" [selected]="!editUserForm().branchId">Sin sede específica</option>
                     @for (b of branches; track b.id) {
-                      <option [value]="b.id">{{ b.name }}</option>
+                      <option [value]="b.id" [selected]="editUserForm().branchId === b.id">{{ b.name }}</option>
                     }
                   </select>
                 </div>
