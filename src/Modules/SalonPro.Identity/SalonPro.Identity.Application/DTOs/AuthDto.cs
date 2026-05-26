@@ -22,7 +22,9 @@ public record UserDto(
     string? BranchName,
     string? TenantName,
     bool IsActive = true,
-    string? EmployeeCode = null
+    string? EmployeeCode = null,
+    string? Phone = null,
+    string? DocumentNumber = null
 );
 
 public record CreateUserRequest(
@@ -54,5 +56,7 @@ public record UpdateUserAdminRequest(
     int?    BranchId,
     string? BranchName,
     decimal CommissionPercent,
-    string? EmployeeCode
+    string? EmployeeCode,
+    string? Phone = null,
+    string? DocumentNumber = null
 );

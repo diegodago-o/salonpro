@@ -49,7 +49,7 @@ export class ConfiguracionComponent implements OnInit {
   readonly editingUser   = signal<SalonUser | null>(null);
   readonly editUserForm  = signal<UpdateUserAdminRequest>({
     fullName: '', role: 'Cashier', branchId: null, branchName: null,
-    commissionPercent: 0, employeeCode: null
+    commissionPercent: 0, employeeCode: null, phone: null, documentNumber: null
   });
   readonly savingEdit  = signal(false);
   readonly editError   = signal('');
@@ -336,12 +336,14 @@ export class ConfiguracionComponent implements OnInit {
 
   openEdit(u: SalonUser): void {
     this.editUserForm.set({
-      fullName:         u.fullName,
-      role:             u.role,
-      branchId:         u.branchId,
-      branchName:       u.branchName,
+      fullName:          u.fullName,
+      role:              u.role,
+      branchId:          u.branchId,
+      branchName:        u.branchName,
       commissionPercent: u.commissionPercent,
-      employeeCode:     u.employeeCode
+      employeeCode:      u.employeeCode,
+      phone:             u.phone,
+      documentNumber:    u.documentNumber
     });
     this.editError.set('');
     this.editingUser.set(u);

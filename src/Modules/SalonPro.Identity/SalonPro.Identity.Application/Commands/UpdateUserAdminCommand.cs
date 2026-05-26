@@ -33,12 +33,15 @@ public class UpdateUserAdminHandler(IUserRepository userRepo)
             cmd.Request.BranchId,
             cmd.Request.BranchName,
             cmd.Request.CommissionPercent,
-            cmd.Request.EmployeeCode);
+            cmd.Request.EmployeeCode,
+            cmd.Request.Phone,
+            cmd.Request.DocumentNumber);
 
         await userRepo.SaveChangesAsync(ct);
 
         return new UserDto(user.Id, user.FullName, user.Email, user.Role.ToString(),
             user.TenantId, user.BranchId, user.CommissionPercent,
-            user.BranchName, user.TenantName, user.IsActive, user.EmployeeCode);
+            user.BranchName, user.TenantName, user.IsActive, user.EmployeeCode,
+            user.Phone, user.DocumentNumber);
     }
 }

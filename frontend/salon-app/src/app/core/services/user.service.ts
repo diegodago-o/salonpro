@@ -15,6 +15,8 @@ export interface SalonUser {
   tenantName: string | null;
   isActive: boolean;
   employeeCode: string | null;
+  phone: string | null;
+  documentNumber: string | null;
 }
 
 export interface UpdateUserAdminRequest {
@@ -24,6 +26,8 @@ export interface UpdateUserAdminRequest {
   branchName: string | null;
   commissionPercent: number;
   employeeCode: string | null;
+  phone: string | null;
+  documentNumber: string | null;
 }
 
 export interface CreateUserRequest {
