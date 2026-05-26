@@ -13,7 +13,7 @@ import { environment } from '../../../environments/environment';
 interface PaymentMethod { id: number; name: string; hasDeduction: boolean; deductionPercent: number; isActive: boolean; }
 interface ApiResp<T> { success: boolean; data: T; message: string; }
 
-type Tab = 'salon' | 'users' | 'commissions' | 'policies' | 'payments';
+type Tab = 'salon' | 'users' | 'payments';
 
 @Component({
   selector: 'app-configuracion',
@@ -76,19 +76,10 @@ export class ConfiguracionComponent implements OnInit {
   readonly subiendoLogo  = signal(false);
   readonly salonMsg = signal<{ type: 'ok' | 'err'; text: string } | null>(null);
 
-  readonly policies = signal({
-    descontarConsumoInterno: true,
-    clienteObligatorio: false,
-    editarPrecioEnPOS: true,
-    imprimirReciboAuto: false,
-  });
-
   readonly tabs: { key: Tab; label: string; icon: string }[] = [
-    { key: 'salon',       label: 'Datos del salón', icon: 'building' },
-    { key: 'users',       label: 'Usuarios',         icon: 'user' },
-    { key: 'commissions', label: 'Comisiones',        icon: 'sliders' },
-    { key: 'policies',    label: 'Políticas',          icon: 'gear' },
-    { key: 'payments',    label: 'Métodos de pago',   icon: 'card' },
+    { key: 'salon',    label: 'Datos del salón', icon: 'building' },
+    { key: 'users',    label: 'Usuarios',         icon: 'user' },
+    { key: 'payments', label: 'Métodos de pago',  icon: 'card' },
   ];
 
   constructor() {
@@ -394,7 +385,4 @@ export class ConfiguracionComponent implements OnInit {
     return m[role] ?? role;
   }
 
-  togglePolicy(key: keyof ReturnType<typeof this.policies>): void {
-    this.policies.update(p => ({ ...p, [key]: !p[key] }));
-  }
 }

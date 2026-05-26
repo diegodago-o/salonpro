@@ -341,66 +341,6 @@
         </div>
       }
 
-      <!-- COMISIONES -->
-      @if (tab() === 'commissions') {
-        <div class="eyebrow">Reglas</div>
-        <h3 class="serif" style="margin:4px 0 24px;font-size:26px;font-weight:400">Comisiones</h3>
-        <div style="padding:16px;background:var(--bone);border-radius:6px;margin-bottom:24px">
-          <div class="eyebrow" style="margin-bottom:8px">Por defecto</div>
-          <div style="font-size:13px;margin-bottom:8px">Salón / Peluquero</div>
-          <div class="bar" style="height:28px;border-radius:4px">
-            <div class="bar-fill" style="width:60%;background:var(--ink)"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--ink-3)">
-            <span>60% Salón</span><span>40% Peluquero</span>
-          </div>
-        </div>
-        <div class="eyebrow" style="margin-bottom:12px">Ajuste por peluquero</div>
-        <div style="padding:12px 14px;border-bottom:1px dashed var(--hair-2);display:flex;align-items:center;gap:14px;color:var(--ink-4);font-size:12px">
-          <span style="flex:1">Configura comisiones individuales en la sección de Usuarios</span>
-        </div>
-      }
-
-      <!-- POLÍTICAS -->
-      @if (tab() === 'policies') {
-        <div class="eyebrow">Reglas operativas</div>
-        <h3 class="serif" style="margin:4px 0 24px;font-size:26px;font-weight:400">Políticas</h3>
-        <div style="display:flex;flex-direction:column;gap:14px">
-          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--bone);border-radius:6px">
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:500">Descontar consumo interno en liquidación</div>
-              <div style="font-size:12px;color:var(--ink-3);margin-top:2px">Restar el costo de los productos aplicados al calcular la comisión</div>
-            </div>
-            <div [class]="'toggle' + (policies().descontarConsumoInterno ? ' on' : '')"
-              (click)="togglePolicy('descontarConsumoInterno')"></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--bone);border-radius:6px">
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:500">Cliente obligatorio en cada venta</div>
-              <div style="font-size:12px;color:var(--ink-3);margin-top:2px">Forzar registro de nombre o teléfono del cliente</div>
-            </div>
-            <div [class]="'toggle' + (policies().clienteObligatorio ? ' on' : '')"
-              (click)="togglePolicy('clienteObligatorio')"></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--bone);border-radius:6px">
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:500">Permitir editar precio de servicios en el POS</div>
-              <div style="font-size:12px;color:var(--ink-3);margin-top:2px">El cajero puede ajustar el precio precargado en cada venta</div>
-            </div>
-            <div [class]="'toggle' + (policies().editarPrecioEnPOS ? ' on' : '')"
-              (click)="togglePolicy('editarPrecioEnPOS')"></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--bone);border-radius:6px">
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:500">Imprimir recibo automáticamente</div>
-              <div style="font-size:12px;color:var(--ink-3);margin-top:2px">Al confirmar una venta, enviar a la impresora térmica</div>
-            </div>
-            <div [class]="'toggle' + (policies().imprimirReciboAuto ? ' on' : '')"
-              (click)="togglePolicy('imprimirReciboAuto')"></div>
-          </div>
-        </div>
-      }
-
       <!-- MÉTODOS DE PAGO -->
       @if (tab() === 'payments') {
         <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px">
