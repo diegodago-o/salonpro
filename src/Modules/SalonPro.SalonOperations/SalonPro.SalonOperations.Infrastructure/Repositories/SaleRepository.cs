@@ -41,6 +41,7 @@ public class SaleRepository(SalonOpsDbContext db) : ISaleRepository
         DateTime from, DateTime to, int? branchId = null, string? branchName = null, CancellationToken ct = default) =>
         await db.Sales
             .Include(s => s.Payments)
+            .Include(s => s.Items)   // necesario para calcular comisión por ítem en liquidaciones
             .Where(s => s.TenantId == tenantId && s.StylistId == stylistId
                         && s.SaleDateTime >= from && s.SaleDateTime <= to
                         && (branchId == null || s.BranchId == branchId))

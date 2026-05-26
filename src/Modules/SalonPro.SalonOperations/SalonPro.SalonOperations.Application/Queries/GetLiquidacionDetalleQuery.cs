@@ -47,9 +47,12 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo, ISaleRepo
                 .Select(i => $"{i.Name} → ${(i.UnitPrice * i.Quantity):N0}")
                 .ToList() ?? [];
 
-            // Calcular comisión por ítem (misma lógica proporcional de CreateSaleCommand)
+            // Calcular comisión por ítem (misma lógica que CreateLiquidacionCommand y desgloseDetalle)
             var serviceCommItems = new List<string>();
             var productCommItems = new List<string>();
+            decimal dynCommServices = 0m;
+            decimal dynCommProducts = 0m;
+
             if (sale is not null)
             {
                 var saleGrossAll = sale.GrossServices + sale.GrossProducts + sale.TipAmount;
@@ -72,6 +75,7 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo, ISaleRepo
                     {
                         stylistAmt = Math.Round(netBase * commPct, 0);
                     }
+                    dynCommServices += stylistAmt;
                     serviceCommItems.Add($"{item.Name} · {commPctLabel}% → ${stylistAmt:N0}");
                 }
 
@@ -80,26 +84,32 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo, ISaleRepo
                 {
                     var subtotal = item.UnitPrice * item.Quantity;
                     var netBase = subtotal * (1 - dedPct);
-                    // Usa el % propio del producto (no el % general del estilista)
                     var prodCommPct = item.StylistCommissionPercent / 100m;
                     var prodCommPctLabel = (int)Math.Round(item.StylistCommissionPercent);
                     var stylistAmt = Math.Round(netBase * prodCommPct, 0);
+                    dynCommProducts += stylistAmt;
                     productCommItems.Add($"{item.Name} · {prodCommPctLabel}% → ${stylistAmt:N0}");
                 }
             }
 
+            // Usar valores dinámicos (correctos) en lugar de los almacenados (pueden ser incorrectos
+            // en liquidaciones creadas antes de este fix)
             return new LiquidacionVentaDto(
                 v.SaleId, v.SaleDateTime.ToString("o"), v.ClientName,
                 v.GrossServices, v.GrossProducts, v.Deduction,
-                v.CommServices, v.CommProducts, v.Tip, v.InternalConsumption,
+                dynCommServices, dynCommProducts, v.Tip, v.InternalConsumption,
                 methodsSummary, internalItems, serviceCommItems, productCommItems);
         }).ToList();
+
+        // Totales globales calculados dinámicamente por ítem (consistentes con el desglose)
+        var totalCommServices = ventas.Sum(v => v.CommServices);
+        var totalCommProducts = ventas.Sum(v => v.CommProducts);
 
         return new LiquidacionDetalleDto(
             l.Id, l.StylistId, l.StylistName,
             l.StartDate.ToString("yyyy-MM-dd"), l.EndDate.ToString("yyyy-MM-dd"),
             l.TotalVentas, l.GrossServices, l.GrossProducts, l.TotalDeductions,
-            l.CommServices, l.CommProducts, l.TotalTips, l.InternalConsumption,
+            totalCommServices, totalCommProducts, l.TotalTips, l.InternalConsumption,
             l.AnticiposAplicados, l.NetoPeluquero, l.Status.ToString(),
             ventas, deduccionesDetalle);
     }
