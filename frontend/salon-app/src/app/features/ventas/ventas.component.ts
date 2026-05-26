@@ -380,10 +380,14 @@ export class VentasComponent implements OnInit {
   }
 
   private verificarCaja(): void {
-    this.cajaService.getCajaActual().subscribe(r => this.cajaAbierta.set(!!r.data));
+    this.cajaService.getCajaActual().subscribe({
+      next:  r => this.cajaAbierta.set(!!r.data),
+      error: () => this.cajaAbierta.set(false)   // ante cualquier error → sin caja
+    });
   }
 
   nuevaVenta(): void {
+    this.verificarCaja();  // refrescar estado async — el botón se deshabilita si no hay caja
     this.resetFormulario();
     this.step.set(0);
     this.ventaExitosa.set(false);
@@ -533,6 +537,11 @@ export class VentasComponent implements OnInit {
   // ── Guardar venta ─────────────────────────────────────
   guardarVenta(): void {
     if (!this.puedeRegistrar()) return;
+    // Guardia final — verifica caja antes de enviar (captura estado obsoleto en memoria)
+    if (!this.cajaAbierta()) {
+      this.errorMsg.set('No hay caja abierta. Ve a Caja → Abrir turno e intenta de nuevo.');
+      return;
+    }
     this.guardando.set(true);
     this.errorMsg.set(null);
 
@@ -597,8 +606,16 @@ export class VentasComponent implements OnInit {
         this.ventaExitosa.set(true);
         this.guardando.set(false);
       },
-      error: () => {
-        this.errorMsg.set('Error al guardar la venta. Intenta de nuevo.');
+      error: (err: any) => {
+        // El middleware devuelve { success: false, message: "..." } con camelCase
+        const msg: string = err?.error?.message || err?.error?.title
+          || 'Error al guardar la venta. Intenta de nuevo.';
+        this.errorMsg.set(msg);
+        // Si el backend rechazó por caja, sincronizar el estado local
+        if (msg.toLowerCase().includes('caja')) {
+          this.cajaAbierta.set(false);
+          this.vista.set('lista');  // volver a la lista para que el aviso sea visible
+        }
         this.guardando.set(false);
       }
     });

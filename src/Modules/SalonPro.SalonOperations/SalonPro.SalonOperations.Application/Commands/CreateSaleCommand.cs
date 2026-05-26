@@ -39,12 +39,19 @@ public class CreateSaleHandler(
     IClientRepository clientRepo,
     ISalonServiceRepository serviceRepo,
     ISalonProductRepository productRepo,
-    IPaymentMethodRepository paymentMethodRepo)
+    IPaymentMethodRepository paymentMethodRepo,
+    ICashRegisterRepository cashRegisterRepo)
     : IRequestHandler<CreateSaleCommand, SaleDto>
 {
     public async Task<SaleDto> Handle(CreateSaleCommand cmd, CancellationToken ct)
     {
         var req = cmd.Request;
+
+        // 0. Validar que haya una caja abierta — bloqueo fuerte en el servidor
+        var branchId = req.BranchId ?? 0;
+        var cajaAbierta = await cashRegisterRepo.GetCurrentOpenByTenantAsync(cmd.TenantId, branchId, ct);
+        if (cajaAbierta is null)
+            throw new BadRequestException("No hay una caja abierta. Abre la caja antes de registrar ventas.");
 
         // 1. Find or create client (upsert by tenant + document number)
         var client = await clientRepo.GetByDocumentAsync(cmd.TenantId, req.ClientDocumentNumber, ct);
@@ -188,7 +195,7 @@ public class CreateSaleHandler(
             req.ClientDocumentType,
             req.ClientEmail,
             req.ClientPhone,
-            cmd.CashRegisterId,
+            cajaAbierta.Id,   // ID real de la caja abierta (no el claim obsoleto del JWT)
             req.BranchId,
             req.BranchName,
             req.CommissionPercent,
