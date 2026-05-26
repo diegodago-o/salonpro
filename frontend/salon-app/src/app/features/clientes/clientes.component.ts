@@ -30,7 +30,8 @@ export class ClientesComponent implements OnInit {
     return this.clientes().filter(c =>
       c.fullName.toLowerCase().includes(f) ||
       c.documentNumber.includes(f) ||
-      c.phone.includes(f)
+      c.phone.includes(f) ||
+      (c.email ?? '').toLowerCase().includes(f)
     );
   });
 
@@ -88,6 +89,33 @@ export class ClientesComponent implements OnInit {
         this.guardando.set(false);
       }
     });
+  }
+
+  exportarCSV(): void {
+    const lista = this.clientesFiltrados();
+    const sep   = ';';
+    const headers = ['Nombre', 'Tipo Doc', 'Documento', 'Teléfono', 'Correo',
+                     'Visitas', 'Total Gastado (COP)', 'Última visita', 'Registrado'];
+    const rows = lista.map(c => [
+      `"${c.fullName}"`,
+      c.documentType,
+      c.documentNumber,
+      c.phone,
+      c.email ?? '',
+      c.totalVisits,
+      c.totalSpent,
+      c.lastVisit  ? c.lastVisit.slice(0, 10)  : '',
+      c.createdAt  ? c.createdAt.slice(0, 10)  : '',
+    ].join(sep));
+
+    const csv  = '﻿' + [headers.join(sep), ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `clientes_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   private mostrarMsg(type: 'ok' | 'err', text: string): void {
