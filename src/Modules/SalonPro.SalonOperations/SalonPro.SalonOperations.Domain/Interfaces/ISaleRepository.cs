@@ -8,6 +8,8 @@ public interface ISaleRepository
     Task<IEnumerable<Sale>> GetTodayByTenantAsync(int tenantId, int? branchId = null, string? branchName = null, CancellationToken ct = default);
     Task<IEnumerable<Sale>> GetByTenantAndDateRangeAsync(int tenantId, DateTime from, DateTime to, int? branchId = null, string? branchName = null, CancellationToken ct = default);
     Task<IEnumerable<Sale>> GetByStylistAndDateRangeAsync(int tenantId, int stylistId, DateTime from, DateTime to, int? branchId = null, string? branchName = null, CancellationToken ct = default);
+    /// <summary>Todas las ventas de una caja específica (incluye Payments). Excluye nada — el filtro de status queda en la capa de aplicación.</summary>
+    Task<IEnumerable<Sale>> GetByCashRegisterAsync(int cashRegisterId, CancellationToken ct = default);
     Task<Sale?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<IEnumerable<Sale>> GetByIdsWithPaymentsAsync(IEnumerable<int> ids, CancellationToken ct = default);
     Task AddAsync(Sale sale, CancellationToken ct = default);

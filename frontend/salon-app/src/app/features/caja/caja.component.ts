@@ -39,10 +39,29 @@ export class CajaComponent {
     notes: ['']
   });
 
+  // ── Getters de resumen del turno activo ───────────────
+  get totalVentasBruto(): number {
+    const caja = this.cajaActual();
+    if (!caja) return 0;
+    return caja.details.reduce((s, d) => s + d.totalAmount, 0);
+  }
+
+  get totalDeduc(): number {
+    const caja = this.cajaActual();
+    if (!caja) return 0;
+    return caja.details.reduce((s, d) => s + d.totalDeductions, 0);
+  }
+
+  get totalNeto(): number {
+    return this.totalVentasBruto - this.totalDeduc;
+  }
+
+  /** Efectivo esperado en el cajón físico = apertura + ventas en efectivo */
   get expectedCash(): number {
     const caja = this.cajaActual();
     if (!caja) return 0;
-    const efectivo = caja.details.find(d => d.paymentMethodName === 'Efectivo')?.totalAmount ?? 0;
+    const efectivo = caja.details.find(d =>
+      d.paymentMethodName.toLowerCase() === 'efectivo')?.totalAmount ?? 0;
     return efectivo + caja.openingBalance;
   }
 

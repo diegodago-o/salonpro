@@ -12,6 +12,6 @@ public class GetCashRegisterHistoryHandler(ICashRegisterRepository repo)
     public async Task<IEnumerable<CashRegisterDto>> Handle(GetCashRegisterHistoryQuery query, CancellationToken ct)
     {
         var registers = await repo.GetAllByTenantAsync(query.TenantId, query.BranchId, ct);
-        return registers.Select(GetCurrentCashRegisterHandler.MapToDto);
+        return registers.Select(cr => GetCurrentCashRegisterHandler.MapToDto(cr));
     }
 }

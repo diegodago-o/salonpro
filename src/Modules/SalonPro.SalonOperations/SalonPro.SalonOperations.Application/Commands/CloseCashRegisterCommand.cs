@@ -23,11 +23,10 @@ public class CloseCashRegisterHandler(ICashRegisterRepository cashRepo, ISaleRep
         if (cr.Status == CashRegisterStatus.Closed)
             throw new ConflictException("La caja ya está cerrada.");
 
-        // Calculate expected cash from today's sales — filtrado por la sede de esta caja
-        var sales = await saleRepo.GetByTenantAndDateRangeAsync(
-            cr.TenantId, cr.OpenedAt, DateTime.UtcNow, branchId: cr.BranchId, ct: ct);
-
-        var activeSales = sales.Where(s => s.Status == SaleStatus.Active).ToList();
+        // Cargar todas las ventas del turno por FK directo (más preciso que filtrar por rango de fechas).
+        // Incluye Active y Settled; excluye solo Voided (anuladas no generaron caja).
+        var sales = await saleRepo.GetByCashRegisterAsync(cr.Id, ct);
+        var activeSales = sales.Where(s => s.Status != SaleStatus.Voided).ToList();
 
         // Group payments by method to build details
         var paymentGroups = activeSales

@@ -49,6 +49,13 @@ public class SaleRepository(SalonOpsDbContext db) : ISaleRepository
             .OrderByDescending(s => s.SaleDateTime)
             .ToListAsync(ct);
 
+    public async Task<IEnumerable<Sale>> GetByCashRegisterAsync(int cashRegisterId, CancellationToken ct = default) =>
+        await db.Sales
+            .Include(s => s.Payments)
+            .Where(s => s.CashRegisterId == cashRegisterId)
+            .OrderByDescending(s => s.SaleDateTime)
+            .ToListAsync(ct);
+
     public async Task<Sale?> GetByIdAsync(int id, CancellationToken ct = default) =>
         await db.Sales
             .Include(s => s.Items)

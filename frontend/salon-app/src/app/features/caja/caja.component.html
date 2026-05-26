@@ -75,44 +75,110 @@
       <div>
         <div class="card" style="padding:28px;margin-bottom:16px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-            <h3 class="serif" style="margin:0;font-size:24px;font-weight:400">Resumen del turno</h3>
+            <div>
+              <h3 class="serif" style="margin:0 0 4px;font-size:24px;font-weight:400">Resumen del turno</h3>
+              <div style="font-size:12px;color:var(--ink-4)">
+                Abierto {{ cajaActual()!.openedAt | date:'HH:mm':'America/Bogota' }}
+                · {{ cajaActual()!.cashierName }}
+                @if ((cajaActual()!.saleCount ?? 0) > 0) {
+                  · <strong>{{ cajaActual()!.saleCount }}</strong> venta{{ cajaActual()!.saleCount !== 1 ? 's' : '' }}
+                }
+              </div>
+            </div>
             <span class="pill pill-success"><span class="pill-dot"></span>Abierto</span>
           </div>
 
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
+          <!-- KPIs del turno -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px">
             <div style="padding:14px;background:var(--bone);border-radius:6px">
               <div class="eyebrow">Apertura</div>
-              <div class="serif tnum" style="font-size:22px;margin-top:4px">{{ cajaActual()!.openingBalance | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-              <div style="font-size:11px;color:var(--ink-4)">{{ cajaActual()!.openedAt | date:'HH:mm':'America/Bogota' }}</div>
+              <div class="serif tnum" style="font-size:20px;margin-top:4px">
+                {{ cajaActual()!.openingBalance | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+              </div>
+              <div style="font-size:11px;color:var(--ink-4)">efectivo inicial</div>
             </div>
             <div style="padding:14px;background:var(--bone);border-radius:6px">
-              <div class="eyebrow">Ventas</div>
-              <div class="serif tnum" style="font-size:22px;margin-top:4px">{{ totalVentas(cajaActual()!) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-              <div style="font-size:11px;color:var(--ink-4)">{{ cajaActual()!.details.length }} métodos</div>
+              <div class="eyebrow">Ventas (bruto)</div>
+              <div class="serif tnum" style="font-size:20px;margin-top:4px">
+                {{ totalVentasBruto | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+              </div>
+              <div style="font-size:11px;color:var(--ink-4)">
+                {{ cajaActual()!.details.length }} método{{ cajaActual()!.details.length !== 1 ? 's' : '' }}
+              </div>
+            </div>
+            <div style="padding:14px;background:var(--bone);border-radius:6px">
+              <div class="eyebrow">Deducciones</div>
+              <div class="serif tnum" style="font-size:20px;margin-top:4px;color:var(--danger)">
+                {{ totalDeduc | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+              </div>
+              <div style="font-size:11px;color:var(--ink-4)">comisiones bancarias</div>
             </div>
             <div style="padding:14px;background:var(--ink);color:var(--bone);border-radius:6px">
-              <div class="eyebrow" style="color:var(--ink-5)">Esperado en caja</div>
-              <div class="serif tnum" style="font-size:22px;margin-top:4px">{{ expectedCash | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-              <div style="font-size:11px;color:var(--ink-5)">Efectivo + apertura</div>
+              <div class="eyebrow" style="color:var(--ink-5)">Cajón físico</div>
+              <div class="serif tnum" style="font-size:20px;margin-top:4px">
+                {{ expectedCash | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+              </div>
+              <div style="font-size:11px;color:var(--ink-5)">apertura + efectivo</div>
             </div>
           </div>
 
-          <div class="eyebrow" style="margin-bottom:10px">Desglose por método</div>
-          @for (d of cajaActual()!.details; track d.paymentMethodId) {
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bone);border-radius:6px;margin-bottom:8px">
-              <span style="font-size:13px">{{ d.paymentMethodName }}</span>
-              <span class="tnum serif" style="font-size:16px">{{ d.totalAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-            </div>
-          }
+          <!-- Desglose por método -->
+          <div class="eyebrow" style="margin-bottom:10px">Desglose por método de pago</div>
           @if (cajaActual()!.details.length === 0) {
-            <div style="color:var(--ink-4);font-size:13px;padding:10px 0">Sin ventas registradas aún en este turno</div>
+            <div style="color:var(--ink-4);font-size:13px;padding:16px 0;text-align:center">
+              Sin ventas registradas aún en este turno
+            </div>
+          } @else {
+            <div class="table-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Método</th>
+                    <th style="text-align:right">Total bruto</th>
+                    <th style="text-align:right">Deducciones</th>
+                    <th style="text-align:right">Neto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (d of cajaActual()!.details; track d.paymentMethodId) {
+                    <tr>
+                      <td style="font-weight:500">{{ d.paymentMethodName }}</td>
+                      <td class="tnum" style="text-align:right">
+                        {{ d.totalAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                      </td>
+                      <td class="tnum" style="text-align:right;color:var(--danger)">
+                        {{ d.totalDeductions > 0 ? (d.totalDeductions | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') : '—' }}
+                      </td>
+                      <td class="tnum" style="text-align:right;font-weight:500">
+                        {{ d.netAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+                <tfoot>
+                  <tr style="background:var(--bone);font-weight:600">
+                    <td style="font-size:12px;color:var(--ink-3)">Total</td>
+                    <td class="tnum" style="text-align:right">{{ totalVentasBruto | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                    <td class="tnum" style="text-align:right;color:var(--danger)">{{ totalDeduc | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                    <td class="tnum" style="text-align:right">{{ totalNeto | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           }
         </div>
       </div>
 
       <div class="card" style="padding:28px;position:sticky;top:28px;align-self:flex-start">
-        <div class="eyebrow">Cierre de caja</div>
-        <h3 class="serif" style="margin:4px 0 18px;font-size:22px;font-weight:400">Declarar efectivo</h3>
+        <div class="eyebrow" style="margin-bottom:4px">Cierre de caja</div>
+        <h3 class="serif" style="margin:0 0 10px;font-size:22px;font-weight:400">Cerrar turno</h3>
+        <div style="padding:14px;background:var(--bone);border-radius:6px;margin-bottom:18px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span style="color:var(--ink-3)">Efectivo en cajón esperado</span>
+            <span class="tnum serif" style="font-size:16px;font-weight:600">{{ expectedCash | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+          </div>
+          <div style="font-size:11px;color:var(--ink-4)">= apertura + ventas en efectivo</div>
+        </div>
         <button class="btn btn-accent btn-lg" style="width:100%" (click)="irACerrar()">
           <sp-icon name="x" [size]="14" /> Cerrar turno
         </button>

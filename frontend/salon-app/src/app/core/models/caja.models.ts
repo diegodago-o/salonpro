@@ -15,6 +15,8 @@ export interface CashRegister {
   status: CajaStatus;
   notes: string | null;
   details: CashRegisterDetail[];
+  /** Número de ventas válidas (no anuladas) del turno. Poblado por el backend. */
+  saleCount?: number;
 }
 
 export interface CashRegisterDetail {

@@ -21,4 +21,6 @@ public record CashRegisterDto(
     decimal? Difference,
     string Status,
     string? Notes,
-    List<CashRegisterDetailDto> Details);
+    List<CashRegisterDetailDto> Details,
+    /// <summary>Número de ventas válidas (no anuladas) en este turno. Disponible para cajas abiertas y cerradas.</summary>
+    int SaleCount = 0);
