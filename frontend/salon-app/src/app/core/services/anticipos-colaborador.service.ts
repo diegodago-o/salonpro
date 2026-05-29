@@ -53,7 +53,7 @@ export class AnticiposColaboradorService {
     return this.http.get<ApiResponse<AnticipoColaborador[]>>(`${this.api}/anticipos-colaborador${params}`);
   }
 
-  crearAnticipo(req: CreateAnticipoColaboradorRequest): Observable<ApiResponse<AnticipoColaborador>> {
+  crearAnticipo(req: CreateAnticipoColaboradorRequest, branchId?: number | null): Observable<ApiResponse<AnticipoColaborador>> {
     if (!environment.production) {
       const nuevo: AnticipoColaborador = {
         id: this.nextId++,
@@ -68,7 +68,8 @@ export class AnticiposColaboradorService {
       this.mockData.unshift(nuevo);
       return of({ success: true, data: nuevo, message: 'Anticipo registrado', errors: [] });
     }
-    return this.http.post<ApiResponse<AnticipoColaborador>>(`${this.api}/anticipos-colaborador`, req);
+    const qs = branchId ? `?branchId=${branchId}` : '';
+    return this.http.post<ApiResponse<AnticipoColaborador>>(`${this.api}/anticipos-colaborador${qs}`, req);
   }
 
   anularAnticipo(id: number): Observable<ApiResponse<void>> {

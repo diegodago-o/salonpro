@@ -111,7 +111,7 @@ export class AnticiposColaboradorComponent implements OnInit {
       notes:       v.notes || undefined
     };
 
-    this.service.crearAnticipo(req).subscribe({
+    this.service.crearAnticipo(req, this.branchSvc.currentBranchId).subscribe({
       next: () => {
         this.cargar();
         this.mostrarMsg('ok', 'Anticipo registrado correctamente.');
