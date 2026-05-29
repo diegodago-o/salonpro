@@ -16,6 +16,7 @@ const NAV_OWNER: NavItem[] = [
   { id:'historico',      label:'Carga histórica',    icon:'calendar', route:'/historico' },
   { id:'servicios',      label:'Servicios',          icon:'scissors', route:'/servicios' },
   { id:'inventario',     label:'Inventario',         icon:'box',      route:'/inventario', badge:'Stock bajo' },
+  { id:'anticipos-colaboradores', label:'Anticipos colabs.', icon:'wallet', route:'/anticipos-colaboradores' },
   { id:'liquidaciones',  label:'Liquidaciones',      icon:'wallet',   route:'/liquidaciones' },
   { id:'caja',           label:'Caja',               icon:'cash',     route:'/caja' },
   { id:'reportes',       label:'Reportes',           icon:'chart',    route:'/reportes' },

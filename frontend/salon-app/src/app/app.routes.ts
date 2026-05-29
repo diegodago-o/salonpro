@@ -50,6 +50,11 @@ export const routes: Routes = [
           import('./features/anticipos/anticipos.component').then(m => m.AnticiposComponent)
       },
       {
+        path: 'anticipos-colaboradores',
+        loadComponent: () =>
+          import('./features/anticipos-colaborador/anticipos-colaborador.component').then(m => m.AnticiposColaboradorComponent)
+      },
+      {
         path: 'liquidaciones',
         loadComponent: () =>
           import('./features/liquidaciones/liquidaciones.component').then(m => m.LiquidacionesComponent)

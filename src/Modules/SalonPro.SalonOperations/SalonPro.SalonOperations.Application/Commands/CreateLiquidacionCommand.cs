@@ -13,7 +13,7 @@ public record CreateLiquidacionCommand(int TenantId, int? BranchId, CreateLiquid
 public class CreateLiquidacionHandler(
     ILiquidacionRepository liquidacionRepo,
     ISaleRepository saleRepo,
-    IAnticipoRepository anticipoRepo)
+    IAnticipoColaboradorRepository anticipoColabRepo)
     : IRequestHandler<CreateLiquidacionCommand, LiquidacionResumenDto>
 {
     public async Task<LiquidacionResumenDto> Handle(CreateLiquidacionCommand cmd, CancellationToken ct)
@@ -25,11 +25,13 @@ public class CreateLiquidacionHandler(
         // Get sales for stylist in date range (filtered by branch if provided)
         var sales = (await saleRepo.GetByStylistAndDateRangeAsync(
             cmd.TenantId, req.StylistId, startDate, endDate, branchId: cmd.BranchId, ct: ct))
-            .Where(s => s.Status == SaleStatus.Active)
+            .Where(s => s.Status == SaleStatus.Active || s.Status == SaleStatus.Settled)
             .ToList();
 
-        // Anticipos applied = 0 for MVP (requires linking anticipo to stylist)
-        decimal anticiposAplicados = 0;
+        // Anticipos pendientes y libres (sin reserva) para este estilista
+        var anticiposPendientes = (await anticipoColabRepo.GetLibresPendientesByStylistAsync(
+            cmd.TenantId, req.StylistId, ct)).ToList();
+        decimal anticiposAplicados = anticiposPendientes.Sum(a => a.Amount);
 
         // Calculate totals from sales
         var grossServices       = sales.Sum(s => s.GrossServices);
@@ -115,7 +117,13 @@ public class CreateLiquidacionHandler(
             commServices, commProducts, totalNetTips, internalConsumption, anticiposAplicados, netoPeluquero);
 
         await liquidacionRepo.AddAsync(liquidacion, ct);
-        await liquidacionRepo.SaveChangesAsync(ct);
+        await liquidacionRepo.SaveChangesAsync(ct);  // liquidacion.Id ya está asignado por la BD
+
+        // Reservar los anticipos para esta liquidación (cruce único garantizado)
+        foreach (var anticipo in anticiposPendientes)
+            anticipo.Reserve(liquidacion.Id);
+        if (anticiposPendientes.Count > 0)
+            await anticipoColabRepo.SaveChangesAsync(ct);
 
         return new LiquidacionResumenDto(
             liquidacion.Id, liquidacion.StylistId, liquidacion.StylistName,

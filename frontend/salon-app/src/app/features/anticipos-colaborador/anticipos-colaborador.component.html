@@ -1,0 +1,162 @@
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Anticipos a colaboradores</h1>
+      <p class="page-subtitle">Registra anticipos sobre comisiones; se descuentan automáticamente en la liquidación.</p>
+    </div>
+    @if (vista() === 'lista') {
+      <button class="btn-primary" (click)="abrirNuevo()">+ Nuevo anticipo</button>
+    }
+  </div>
+
+  @if (msg()) {
+    <div class="alert" [class.alert-ok]="msg()!.type==='ok'" [class.alert-err]="msg()!.type==='err'">
+      {{ msg()!.text }}
+    </div>
+  }
+
+  <!-- ═══════════════════════════════ LISTA ═══════════════════════════════ -->
+  @if (vista() === 'lista') {
+
+    <!-- KPIs -->
+    @if (totalPendiente() > 0 || totalAplicado() > 0) {
+      <div class="kpi-strip">
+        <div class="kpi-item">
+          <span class="kpi-label">Pendiente de descontar</span>
+          <span class="kpi-value kpi-warn">{{ totalPendiente() | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+        </div>
+        <div class="kpi-item">
+          <span class="kpi-label">Ya descontado</span>
+          <span class="kpi-value kpi-ok">{{ totalAplicado() | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+        </div>
+      </div>
+    }
+
+    <div class="card">
+      <!-- Toolbar de filtros -->
+      <div class="toolbar">
+        <div class="filtro-tabs">
+          @for (f of [['todos','Todos'],['Pendiente','Pendientes'],['Aplicado','Aplicados'],['Anulado','Anulados']]; track f[0]) {
+            <button class="ftab" [class.active]="filtroStatus() === f[0]" (click)="filtroStatus.set($any(f[0]))">
+              {{ f[1] }}
+            </button>
+          }
+        </div>
+
+        <select class="field-input select-filtro" (change)="filtroStylist.set($any($event.target).value ? +$any($event.target).value : null)">
+          <option value="">Todos los colaboradores</option>
+          @for (p of peluqueros(); track p.id) {
+            <option [value]="p.id">{{ p.fullName }}</option>
+          }
+        </select>
+      </div>
+
+      @if (anticiposFiltrados().length === 0) {
+        <div class="empty">Sin anticipos en esta categoría.</div>
+      } @else {
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Colaborador</th>
+                <th class="text-right">Monto</th>
+                <th>Notas</th>
+                <th>Estado</th>
+                <th>Liquidación</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of anticiposFiltrados(); track a.id) {
+                <tr [class.row-applied]="a.status==='Aplicado'" [class.row-voided]="a.status==='Anulado'">
+                  <td>{{ a.date | date:'dd/MM/yyyy':'UTC' }}</td>
+                  <td class="name-cell">{{ a.stylistName }}</td>
+                  <td class="text-right price-cell">{{ a.amount | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                  <td class="notes-cell">{{ a.notes || '—' }}</td>
+                  <td>
+                    <span class="status-badge"
+                      [class.status-pendiente]="a.status==='Pendiente'"
+                      [class.status-aplicado]="a.status==='Aplicado'"
+                      [class.status-anulado]="a.status==='Anulado'">
+                      {{ labelStatus(a.status) }}
+                    </span>
+                  </td>
+                  <td class="liq-cell">
+                    @if (a.liquidacionId) {
+                      <span class="liq-ref">#{{ a.liquidacionId }}</span>
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  </td>
+                  <td>
+                    @if (a.status === 'Pendiente' && !a.liquidacionId) {
+                      <button class="btn-sm btn-sm-danger" (click)="anular(a)">Anular</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ═══════════════════════════════ FORMULARIO ══════════════════════════ -->
+  @if (vista() === 'nuevo') {
+    <div class="form-container">
+      <button class="btn-back" (click)="volver()">← Volver</button>
+      <div class="card form-card">
+        <h2 class="form-title">Registrar anticipo</h2>
+
+        <div [formGroup]="form" class="form-grid">
+
+          <div class="field-group full-width">
+            <label class="field-label">Colaborador *</label>
+            <select formControlName="stylistId" class="field-input">
+              <option [ngValue]="null">— Selecciona —</option>
+              @for (p of peluqueros(); track p.id) {
+                <option [value]="p.id">{{ p.fullName }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Monto *</label>
+            <div class="prefix-wrap">
+              <span class="prefix">$</span>
+              <input type="number" formControlName="amount" class="field-input" min="1000" step="1000" />
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Fecha del anticipo *</label>
+            <input type="date" formControlName="date" class="field-input" />
+          </div>
+
+          <div class="field-group full-width">
+            <label class="field-label">Notas <span class="opt">(opcional)</span></label>
+            <input type="text" formControlName="notes" class="field-input"
+              placeholder="Ej: Anticipo primera quincena de mayo" />
+          </div>
+
+        </div>
+
+        <p class="form-hint">
+          Este anticipo quedará <strong>pendiente</strong> hasta que se genere una liquidación para el colaborador;
+          en ese momento se descontará automáticamente del neto a pagar.
+        </p>
+
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="volver()">Cancelar</button>
+          <button class="btn-primary" (click)="guardar()" [disabled]="!formValido() || guardando()">
+            {{ guardando() ? 'Guardando...' : 'Registrar anticipo' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>
