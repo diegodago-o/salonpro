@@ -30,6 +30,7 @@ export class AnticiposColaboradorComponent implements OnInit {
   readonly filtroStatus   = signal<FiltroStatus>('todos');
   readonly filtroStylist  = signal<number | null>(null);
   readonly guardando      = signal(false);
+  readonly cargando       = signal(false);
   readonly msg            = signal<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   // ── Computed ─────────────────────────────────────────────────────────
@@ -76,9 +77,15 @@ export class AnticiposColaboradorComponent implements OnInit {
   }
 
   private cargar(): void {
+    this.cargando.set(true);
     const branchId = this.branchSvc.currentBranchId;
-    this.service.getAnticipos(undefined, undefined, branchId)
-      .subscribe(r => this.anticipos.set(r.data));
+    this.service.getAnticipos(undefined, undefined, branchId).subscribe({
+      next:  r  => { this.anticipos.set(r.data); this.cargando.set(false); },
+      error: () => {
+        this.cargando.set(false);
+        this.mostrarMsg('err', 'No se pudieron cargar los anticipos. Verifica que el servidor esté activo.');
+      }
+    });
   }
 
   abrirNuevo(): void {

@@ -52,7 +52,9 @@
         </select>
       </div>
 
-      @if (anticiposFiltrados().length === 0) {
+      @if (cargando()) {
+        <div class="empty">Cargando...</div>
+      } @else if (anticiposFiltrados().length === 0) {
         <div class="empty">Sin anticipos en esta categoría.</div>
       } @else {
         <div class="table-wrap">
