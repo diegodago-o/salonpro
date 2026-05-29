@@ -157,13 +157,12 @@
           <div class="field full">
             <span class="label">Categoría *</span>
             <select class="input select-cat"
-              [value]="catSeleccionada()"
               (change)="onCatSelectChange($any($event.target).value)">
-              <option value="" disabled>Selecciona una categoría…</option>
+              <option value="" disabled [selected]="catSeleccionada() === ''">Selecciona una categoría…</option>
               @for (c of categorias(); track c) {
-                <option [value]="c">{{ c }}</option>
+                <option [value]="c" [selected]="catSeleccionada() === c">{{ c }}</option>
               }
-              <option [value]="NUEVA_CAT">＋ Nueva categoría…</option>
+              <option [value]="NUEVA_CAT" [selected]="catSeleccionada() === NUEVA_CAT">＋ Nueva categoría…</option>
             </select>
           </div>
 
