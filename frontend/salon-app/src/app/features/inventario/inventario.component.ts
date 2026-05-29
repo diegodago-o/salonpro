@@ -57,7 +57,7 @@ export class InventarioComponent {
   });
 
   readonly categorias = computed(() =>
-    [...new Set(this.productos().map(p => p.category).filter(Boolean))]
+    [...new Set(this.productos().map(p => p.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'))
   );
 
   // ── Selector de categoría ────────────────────────────
@@ -80,6 +80,36 @@ export class InventarioComponent {
     if (t === 'internal') return all.filter(p => !p.isForSale);
     return all;
   });
+
+  // ── Acordeón por categoría ────────────────────────────
+  readonly porCategoria = computed(() => {
+    const groups = new Map<string, Producto[]>();
+    for (const p of this.lista()) {
+      const cat = p.category?.trim() || 'Sin categoría';
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat)!.push(p);
+    }
+    return [...groups.entries()]
+      .sort(([a], [b]) => a.localeCompare(b, 'es'))
+      .map(([cat, productos]) => ({
+        cat,
+        productos,
+        conBajo: productos.filter(p => p.stock <= LOW).length
+      }));
+  });
+
+  // Categorías colapsadas (vacío = todas abiertas)
+  readonly categoriasColapsadas = signal<Set<string>>(new Set<string>());
+
+  toggleCategoria(cat: string): void {
+    const s = new Set(this.categoriasColapsadas());
+    if (s.has(cat)) s.delete(cat); else s.add(cat);
+    this.categoriasColapsadas.set(s);
+  }
+
+  isCategoriaAbierta(cat: string): boolean {
+    return !this.categoriasColapsadas().has(cat);
+  }
 
   readonly conStockBajo = computed(() =>
     this.productos().filter(p => p.stock <= LOW).length
