@@ -16,20 +16,61 @@
   </div>
 
   <!-- Tabs -->
-  <div style="display:flex;gap:6px;margin-bottom:16px">
+  <div style="display:flex;gap:6px;margin-bottom:12px">
     <button [class]="'btn btn-sm ' + (tab() === 'all'      ? 'btn-primary' : 'btn-ghost')" (click)="tab.set('all')">Todos</button>
     <button [class]="'btn btn-sm ' + (tab() === 'sale'     ? 'btn-primary' : 'btn-ghost')" (click)="tab.set('sale')">Venta a cliente</button>
     <button [class]="'btn btn-sm ' + (tab() === 'internal' ? 'btn-primary' : 'btn-ghost')" (click)="tab.set('internal')">Consumo interno</button>
+  </div>
+
+  <!-- Barra de filtros -->
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <sp-icon name="search" [size]="14" class="search-icon" />
+      <input class="input search-input"
+        type="search"
+        [value]="busqueda()"
+        (input)="busqueda.set($any($event.target).value)"
+        placeholder="Buscar nombre, marca, código de barras…" />
+    </div>
+
+    <select class="input filter-select"
+      (change)="filtroCategoria.set($any($event.target).value)">
+      <option value="" [selected]="filtroCategoria() === ''">Todas las categorías</option>
+      @for (c of categorias(); track c) {
+        <option [value]="c" [selected]="filtroCategoria() === c">{{ c }}</option>
+      }
+    </select>
+
+    <select class="input filter-select"
+      (change)="filtroMarca.set($any($event.target).value)">
+      <option value="" [selected]="filtroMarca() === ''">Todas las marcas</option>
+      @for (m of marcas(); track m) {
+        <option [value]="m" [selected]="filtroMarca() === m">{{ m }}</option>
+      }
+    </select>
+
+    @if (hayFiltros()) {
+      <button class="btn btn-ghost btn-sm" (click)="limpiarFiltros()" title="Limpiar filtros">
+        <sp-icon name="x" [size]="12" /> Limpiar
+      </button>
+    }
   </div>
 
   @if (cargando()) {
     <div style="padding:40px;text-align:center;color:var(--ink-4)">Cargando productos…</div>
   } @else if (lista().length === 0) {
     <div class="card" style="padding:60px;text-align:center;color:var(--ink-4)">
-      <div style="font-size:14px;margin-top:12px">No hay productos en esta categoría</div>
-      <button class="btn btn-primary" style="margin-top:20px" (click)="abrirNuevo()">
-        <sp-icon name="plus" [size]="14" /> Crear primer producto
-      </button>
+      @if (hayFiltros()) {
+        <div style="font-size:14px;margin-top:12px">No hay productos que coincidan con los filtros</div>
+        <button class="btn btn-ghost" style="margin-top:16px" (click)="limpiarFiltros()">
+          <sp-icon name="x" [size]="12" /> Limpiar filtros
+        </button>
+      } @else {
+        <div style="font-size:14px;margin-top:12px">No hay productos en esta categoría</div>
+        <button class="btn btn-primary" style="margin-top:20px" (click)="abrirNuevo()">
+          <sp-icon name="plus" [size]="14" /> Crear primer producto
+        </button>
+      }
     </div>
   } @else {
 

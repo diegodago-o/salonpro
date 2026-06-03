@@ -7,6 +7,41 @@
   option[value=""] { color: var(--ink-4); }
 }
 
+/* ── Barra de filtros ─────────────────────────────── */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-4);
+    pointer-events: none;
+  }
+
+  .search-input {
+    padding-left: 32px;
+    width: 100%;
+  }
+}
+
+.filter-select {
+  min-width: 160px;
+  cursor: pointer;
+  appearance: auto;
+}
+
 /* ── Acordeón categorías ─────────────────────────── */
 .accordion {
   margin-bottom: 8px;

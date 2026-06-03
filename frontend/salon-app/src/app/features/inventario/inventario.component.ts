@@ -30,6 +30,25 @@ export class InventarioComponent {
   readonly errorMsg   = signal<string | null>(null);
   readonly tab        = signal<'all' | 'sale' | 'internal'>('all');
 
+  // ── Filtros ──────────────────────────────────────────
+  readonly busqueda        = signal('');
+  readonly filtroMarca     = signal('');
+  readonly filtroCategoria = signal('');
+
+  readonly marcas = computed(() =>
+    [...new Set(this.productos().map(p => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'))
+  );
+
+  readonly hayFiltros = computed(() =>
+    this.busqueda() !== '' || this.filtroMarca() !== '' || this.filtroCategoria() !== ''
+  );
+
+  limpiarFiltros(): void {
+    this.busqueda.set('');
+    this.filtroMarca.set('');
+    this.filtroCategoria.set('');
+  }
+
   // Modales
   readonly modalProducto  = signal(false);
   readonly modalEntrada   = signal(false);
@@ -74,10 +93,21 @@ export class InventarioComponent {
   }
 
   readonly lista = computed(() => {
-    const t = this.tab();
-    const all = this.productos();
-    if (t === 'sale')     return all.filter(p => p.isForSale);
-    if (t === 'internal') return all.filter(p => !p.isForSale);
+    const t  = this.tab();
+    const q  = this.busqueda().trim().toLowerCase();
+    const mb = this.filtroMarca();
+    const mc = this.filtroCategoria();
+
+    let all = this.productos();
+    if (t === 'sale')     all = all.filter(p => p.isForSale);
+    if (t === 'internal') all = all.filter(p => !p.isForSale);
+    if (mb) all = all.filter(p => p.brand === mb);
+    if (mc) all = all.filter(p => (p.category?.trim() || 'Sin categoría') === mc);
+    if (q)  all = all.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      (p.brand?.toLowerCase() ?? '').includes(q) ||
+      (p.barcode ?? '').toLowerCase().includes(q)
+    );
     return all;
   });
 
@@ -163,6 +193,20 @@ export class InventarioComponent {
 
   guardarProducto(): void {
     if (this.formProducto.invalid || this.guardando()) return;
+
+    // ── Validar código de barras único ────────────────
+    const barcode = (this.formProducto.get('barcode')?.value ?? '').trim();
+    if (barcode) {
+      const editId = this.editandoId();
+      const duplicado = this.productos().some(p =>
+        (p.barcode ?? '').trim() === barcode && p.id !== editId
+      );
+      if (duplicado) {
+        this.errorMsg.set('El código de barras ya está registrado en otro producto. Debe ser único.');
+        return;
+      }
+    }
+
     this.guardando.set(true);
     this.errorMsg.set(null);
     const v = this.formProducto.value;
