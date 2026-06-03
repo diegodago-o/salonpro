@@ -237,9 +237,9 @@ export class LiquidacionesComponent implements OnInit {
 
     // Desglose del recibo
     const commSvcLine  = d.commServices > 0 ? `
-      <tr><td style="color:#374151">Comisión servicios</td><td class="r">${fmt(d.commServices)}</td></tr>` : '';
+      <tr><td style="color:#374151">Participación servicios</td><td class="r">${fmt(d.commServices)}</td></tr>` : '';
     const commProdLine = d.commProducts > 0 ? `
-      <tr><td style="color:#374151">Comisión productos</td><td class="r">${fmt(d.commProducts)}</td></tr>` : '';
+      <tr><td style="color:#374151">Participación productos</td><td class="r">${fmt(d.commProducts)}</td></tr>` : '';
     const tipsLine     = d.totalTips > 0 ? `
       <tr><td style="color:#374151">Propinas (neto)</td><td class="r">${fmt(d.totalTips)}</td></tr>` : '';
     const intConsLine  = d.internalConsumption > 0 ? `
@@ -307,7 +307,7 @@ export class LiquidacionesComponent implements OnInit {
 <!-- Header -->
 <div class="hd">
   <div class="hd-left">
-    <h1>Liquidación de comisiones</h1>
+    <h1>Liquidación de participaciones</h1>
     <div class="sub">Período: ${periodStart} — ${periodEnd}</div>
   </div>
   <div class="hd-right">
@@ -333,7 +333,7 @@ export class LiquidacionesComponent implements OnInit {
     <div class="val">${fmt(d.grossServices + d.grossProducts)}</div>
   </div>
   <div class="kpi">
-    <div class="lbl">Comisión + propinas</div>
+    <div class="lbl">Participación + propinas</div>
     <div class="val">${fmt(d.commServices + d.commProducts + d.totalTips)}</div>
   </div>
   <div class="kpi dark">
@@ -348,7 +348,7 @@ export class LiquidacionesComponent implements OnInit {
     <tr><td style="color:#374151">Facturado en período</td><td class="r">${fmt(d.grossServices + d.grossProducts)}</td></tr>
     ${commSvcLine}${commProdLine}${tipsLine}
     <tr class="sep"><td colspan="2"></td></tr>
-    <tr><td style="color:#374151;font-weight:600">Total comisión + propinas</td><td class="r" style="font-weight:600">${fmt(d.commServices + d.commProducts + d.totalTips)}</td></tr>
+    <tr><td style="color:#374151;font-weight:600">Total participación + propinas</td><td class="r" style="font-weight:600">${fmt(d.commServices + d.commProducts + d.totalTips)}</td></tr>
     ${intConsLine}${anticLine}
     <tr class="total-row"><td>Neto a pagar</td><td class="r" style="color:#4338ca">${fmt(d.netoPeluquero)}</td></tr>
   </table>
@@ -364,7 +364,7 @@ export class LiquidacionesComponent implements OnInit {
       <th>Método pago</th>
       <th class="r">Total</th>
       <th class="r">Deducción</th>
-      <th class="r">Comisión</th>
+      <th class="r">Participación</th>
     </tr>
   </thead>
   <tbody>

@@ -130,7 +130,7 @@
         } @else {
           <table class="tbl">
             <thead>
-              <tr><th>Nombre</th><th>Rol</th><th>Sede</th><th>Comisión</th><th>Estado</th><th></th></tr>
+              <tr><th>Nombre</th><th>Rol</th><th>Sede</th><th>Participación</th><th>Estado</th><th></th></tr>
             </thead>
             <tbody>
               @for (u of users(); track u.id) {
@@ -235,7 +235,7 @@
                   </div>
                   @if (userForm().role === 'Stylist') {
                     <div style="display:flex;flex-direction:column;gap:6px">
-                      <label style="font-size:13px;font-weight:600;color:#374151">Comisión (%)</label>
+                      <label style="font-size:13px;font-weight:600;color:#374151">Participación (%)</label>
                       <input class="input" type="number" min="0" max="100" [value]="userForm().commissionPercent" (input)="updateForm('commissionPercent', +$any($event.target).value)" placeholder="40" />
                     </div>
                   }
@@ -318,10 +318,10 @@
                     style="text-transform:uppercase" placeholder="Ej. COL-001" />
                   <span style="font-size:11px;color:#9ca3af">Se mostrará en el Punto de Venta</span>
                 </div>
-                <!-- Comisión — solo para Estilista -->
+                <!-- Participación — solo para Estilista -->
                 @if (editUserForm().role === 'Stylist') {
                   <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:13px;font-weight:600;color:#374151">Comisión (%)</label>
+                    <label style="font-size:13px;font-weight:600;color:#374151">Participación (%)</label>
                     <input class="input" type="number" min="0" max="100"
                       [value]="editUserForm().commissionPercent"
                       (input)="updateEditForm('commissionPercent', +$any($event.target).value)"

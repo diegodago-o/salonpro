@@ -280,7 +280,7 @@
                       </div>
                     </div>
                     <div style="text-align:right">
-                      <div class="tile-meta">Comisión</div>
+                      <div class="tile-meta">Participación</div>
                       <div class="serif tnum" style="font-size:18px">{{ p.commissionPercent }}%</div>
                     </div>
                   </button>
@@ -629,11 +629,11 @@
                 }
               </div>
 
-              <!-- ── SECCIÓN 2: Detalle de comisiones ── -->
+              <!-- ── SECCIÓN 2: Detalle de participaciones ── -->
               @if (desgloseItems().length > 0) {
                 <div style="padding:14px 18px 16px;background:var(--surface-1);border-top:1px solid var(--border)">
                   <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:10px">
-                    Detalle de comisiones
+                    Detalle de participaciones
                   </div>
 
                   <!-- Encabezados de columna -->
@@ -651,7 +651,7 @@
                       <div>
                         <div style="font-size:13px;font-weight:500">{{ d.name }}</div>
                         <div style="font-size:11px;color:var(--ink-4);margin-top:1px">
-                          Comisión {{ d.stylistPct }}%
+                          Participación {{ d.stylistPct }}%
                           @if (d.hasFee) { · fee salón {{ d.feePct }}% }
                         </div>
                       </div>
@@ -733,7 +733,7 @@
                 <div class="eyebrow" style="margin-top:4px">Hair &amp; Beauty</div>
               </div>
               <div class="row"><span style="color:var(--ink-3)">Colaborador</span><span>{{ peluqueroSeleccionado()?.fullName }}</span></div>
-              <div class="row"><span style="color:var(--ink-3)">Comisión</span><span class="tnum">{{ peluqueroSeleccionado()?.commissionPercent }}%</span></div>
+              <div class="row"><span style="color:var(--ink-3)">Participación</span><span class="tnum">{{ peluqueroSeleccionado()?.commissionPercent }}%</span></div>
               @if (formCliente.get('fullName')!.value) {
                 <div class="row"><span style="color:var(--ink-3)">Cliente</span><span>{{ formCliente.get('fullName')!.value }}</span></div>
               }
@@ -785,7 +785,7 @@
               <!-- Desglose por ítem en el recibo -->
               @if (desgloseItems().length > 0) {
                 <hr class="hr-dotted" style="margin:8px 0" />
-                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-4);margin-bottom:4px">Desglose comisiones</div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-4);margin-bottom:4px">Desglose participaciones</div>
                 <div style="display:grid;grid-template-columns:1fr auto auto;gap:2px 10px;font-size:11px">
                   <span style="color:var(--ink-4)">Ítem</span>
                   <span style="color:var(--ink-4);text-align:right">Salón</span>
@@ -869,7 +869,7 @@
               <span style="font-size:13px">{{ peluqueroSeleccionado()?.fullName || '—' }}</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-              <span style="font-size:12px;color:var(--ink-5)">Comisión</span>
+              <span style="font-size:12px;color:var(--ink-5)">Participación</span>
               <span class="tnum" style="font-size:14px;font-weight:500">{{ peluqueroSeleccionado()?.commissionPercent ?? 0 }}%</span>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">

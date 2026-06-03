@@ -237,14 +237,14 @@
             <input class="input mono" type="number" formControlName="purchasePrice" min="0" />
           </label>
 
-          <!-- Fila: Precio venta | Comisión -->
+          <!-- Fila: Precio venta | Participación -->
           <label class="field">
             <span class="label">Precio venta (COP)</span>
             <input class="input mono" type="number" formControlName="salePrice" min="0"
               [attr.disabled]="!formProducto.get('isForSale')?.value ? true : null" />
           </label>
           <label class="field">
-            <span class="label">Comisión estilista (%)</span>
+            <span class="label">Participación estilista (%)</span>
             <input class="input mono" type="number" formControlName="stylistCommissionPercent"
               min="0" max="100" step="1" />
             <span style="font-size:11px;color:var(--ink-4)">% del precio neto (default 10%)</span>

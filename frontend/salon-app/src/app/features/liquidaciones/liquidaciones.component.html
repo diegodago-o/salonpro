@@ -1,7 +1,7 @@
 <div class="page fade-in">
   <div class="page-head">
     <div>
-      <div class="eyebrow">Comisiones</div>
+      <div class="eyebrow">Participaciones</div>
       <h1><span class="serif">Liquidación de</span> <span class="serif-italic">peluqueros</span></h1>
       <div class="deck">Genera y aprueba pagos por período</div>
     </div>
@@ -225,7 +225,7 @@
           </div>
         </div>
         <div style="padding:16px;background:var(--bone);border-radius:6px">
-          <div class="eyebrow">Comisión + propinas</div>
+          <div class="eyebrow">Participación + propinas</div>
           <div class="serif tnum" style="font-size:26px;margin-top:4px">
             {{ (detalle()!.commServices + detalle()!.commProducts + detalle()!.totalTips) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
           </div>
@@ -244,10 +244,10 @@
         <!-- Totales facturados -->
         <div class="row"><span style="color:var(--ink-3)">Facturado en período</span><span class="tnum">{{ (detalle()!.grossServices + detalle()!.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
 
-        <!-- Comisiones netas (excluyendo propina, ya descontadas deducciones bancarias) -->
-        <!-- Comisión servicios: cabecera solo si hay 2+ ítems -->
+        <!-- Participaciones netas (excluyendo propina, ya descontadas deducciones bancarias) -->
+        <!-- Participación servicios: cabecera solo si hay 2+ ítems -->
         @if (totalSvcItems(detalle()!.ventas) > 1) {
-          <div class="row"><span style="color:var(--ink-3)">Comisión servicios</span><span class="tnum">{{ detalle()!.commServices | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+          <div class="row"><span style="color:var(--ink-3)">Participación servicios</span><span class="tnum">{{ detalle()!.commServices | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
         }
         @for (v of detalle()!.ventas; track v.saleId) {
           @for (item of v.serviceCommItems; track item) {
@@ -264,9 +264,9 @@
           }
         }
         @if (detalle()!.commProducts > 0) {
-          <!-- Comisión productos: cabecera solo si hay 2+ ítems -->
+          <!-- Participación productos: cabecera solo si hay 2+ ítems -->
           @if (totalProdItems(detalle()!.ventas) > 1) {
-            <div class="row"><span style="color:var(--ink-3)">Comisión productos</span><span class="tnum">{{ detalle()!.commProducts | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+            <div class="row"><span style="color:var(--ink-3)">Participación productos</span><span class="tnum">{{ detalle()!.commProducts | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
           }
           @for (v of detalle()!.ventas; track v.saleId) {
             @for (item of v.productCommItems; track item) {
@@ -287,10 +287,10 @@
           <div class="row"><span style="color:var(--ink-3)">Propinas (neto)</span><span class="tnum">{{ detalle()!.totalTips | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
         }
 
-        <!-- Subtotal comisión total -->
+        <!-- Subtotal participación total -->
         <hr class="hr-dotted" style="margin:6px 0" />
         <div class="row" style="font-weight:600">
-          <span>Total comisión + propinas</span>
+          <span>Total participación + propinas</span>
           <span class="tnum">{{ (detalle()!.commServices + detalle()!.commProducts + detalle()!.totalTips) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
         </div>
 
@@ -316,10 +316,10 @@
         }
         <div class="row"><span style="color:var(--ink-3)">(−) Anticipos aplicados</span><span class="tnum" style="color:var(--danger)">−{{ detalle()!.anticiposAplicados | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
 
-        <!-- Deducciones bancarias: informativo (ya incluidas en las comisiones) -->
+        <!-- Deducciones bancarias: informativo (ya incluidas en las participaciones) -->
         @if ((detalle()!.deduccionesDetalle?.length ?? 0) > 0) {
           <div style="margin:6px 0 2px;font-size:10px;color:var(--ink-4);font-style:italic">
-            * Deducciones bancarias ya descontadas de las comisiones:
+            * Deducciones bancarias ya descontadas de las participaciones:
           </div>
           @for (d of detalle()!.deduccionesDetalle; track d.paymentMethodName) {
             <div style="display:flex;justify-content:space-between;font-size:11px;
@@ -359,7 +359,7 @@
                 <th>Fecha</th><th>Cliente</th><th>Método de pago</th>
                 <th style="text-align:right">Total</th>
                 <th style="text-align:right">Deducción</th>
-                <th style="text-align:right">Comisión (neto)</th>
+                <th style="text-align:right">Participación (neto)</th>
                 <th style="text-align:right">Propina (neto)</th>
                 <th style="text-align:right">Consumo interno</th>
               </tr>

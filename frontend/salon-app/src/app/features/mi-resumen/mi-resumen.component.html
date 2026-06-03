@@ -12,7 +12,7 @@
 
   <!-- Hero commission card -->
   <div class="card" style="padding:32px;background:var(--ink);color:var(--bone);margin-bottom:16px;position:relative;overflow:hidden">
-    <div class="eyebrow" style="color:var(--ink-5)">Comisión acumulada hoy</div>
+    <div class="eyebrow" style="color:var(--ink-5)">Participación acumulada hoy</div>
     <div class="ticker" style="font-size:72px;font-weight:200;margin:8px 0 4px;line-height:1">
       {{ comisionHoy() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
     </div>
@@ -32,7 +32,7 @@
       <div style="font-size:12px;color:var(--ink-4)">bruto generado</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Mi comisión hoy</div>
+      <div class="kpi-label">Mi participación hoy</div>
       <div class="kpi-value tnum" style="font-size:22px;color:var(--accent-deep)">{{ comisionHoy() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
       <div style="font-size:12px;color:var(--ink-4)">neto estimado</div>
     </div>

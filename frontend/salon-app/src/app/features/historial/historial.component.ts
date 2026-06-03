@@ -255,7 +255,7 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
       'Fecha':          new Date(v.saleDateTime).toLocaleString('es-CO'),
       'Sede':           v.branchName ?? '',
       'Estilista':      v.stylistName,
-      'Comisión %':     v.commissionPercent,
+      'Participación %':     v.commissionPercent,
       'Cliente':        v.clientName,
       'Documento':      v.clientDocument,
       'Tipo doc.':      v.clientDocumentType ?? '',

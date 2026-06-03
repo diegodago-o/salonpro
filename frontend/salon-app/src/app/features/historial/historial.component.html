@@ -315,7 +315,7 @@
             </span>
             <div>
               <div style="font-size:14px;font-weight:600">{{ ventaDetalle()!.stylistName }}</div>
-              <div style="font-size:12px;color:var(--ink-4)">Comisión: {{ ventaDetalle()!.commissionPercent }}%</div>
+              <div style="font-size:12px;color:var(--ink-4)">Participación: {{ ventaDetalle()!.commissionPercent }}%</div>
             </div>
           </div>
         </div>
@@ -434,11 +434,11 @@
               }
             </div>
 
-            <!-- ── SECCIÓN: Desglose comisiones ── -->
+            <!-- ── SECCIÓN: Desglose participaciones ── -->
             @if (desgloseDetalle().length > 0) {
               <div style="padding:14px 18px 16px;background:var(--surface-1);border-top:1px solid var(--border)">
                 <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:10px">
-                  Desglose comisiones
+                  Desglose participaciones
                 </div>
 
                 <!-- Cabeceras -->

@@ -269,7 +269,7 @@
                       <div class="tile-meta" style="margin-top:4px;font-weight:600;letter-spacing:0.05em">{{ p.employeeCode ?? '—' }}</div>
                     </div>
                     <div style="text-align:right">
-                      <div class="tile-meta">Comisión</div>
+                      <div class="tile-meta">Participación</div>
                       <div class="serif tnum" style="font-size:18px">{{ p.commissionPercent }}%</div>
                     </div>
                   </button>
@@ -507,7 +507,7 @@
               </div>
               <div class="row"><span style="color:var(--ink-3)">Fecha</span><span><strong>{{ fechaFormateada() }}</strong></span></div>
               <div class="row"><span style="color:var(--ink-3)">Colaborador</span><span>{{ peluqueroSeleccionado()?.fullName }}</span></div>
-              <div class="row"><span style="color:var(--ink-3)">Comisión</span><span class="tnum">{{ peluqueroSeleccionado()?.commissionPercent }}%</span></div>
+              <div class="row"><span style="color:var(--ink-3)">Participación</span><span class="tnum">{{ peluqueroSeleccionado()?.commissionPercent }}%</span></div>
               @if (formCliente.get('fullName')!.value) {
                 <div class="row"><span style="color:var(--ink-3)">Cliente</span><span>{{ formCliente.get('fullName')!.value }}</span></div>
               }
@@ -602,7 +602,7 @@
               <span style="font-size:13px">{{ peluqueroSeleccionado()?.fullName || '—' }}</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-              <span style="font-size:12px;color:var(--ink-5)">Comisión</span>
+              <span style="font-size:12px;color:var(--ink-5)">Participación</span>
               <span class="tnum" style="font-size:14px;font-weight:500">{{ peluqueroSeleccionado()?.commissionPercent ?? 0 }}%</span>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
