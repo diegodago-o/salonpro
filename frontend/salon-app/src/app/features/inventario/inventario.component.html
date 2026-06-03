@@ -23,38 +23,49 @@
   </div>
 
   <!-- Barra de filtros -->
-  <div class="filter-bar">
-    <div class="search-wrap">
-      <sp-icon name="search" [size]="14" class="search-icon" />
-      <input class="input search-input"
-        type="search"
-        [value]="busqueda()"
-        (input)="busqueda.set($any($event.target).value)"
-        placeholder="Buscar nombre, marca, código de barras…" />
+  <div class="filter-grid">
+    <div class="filter-field">
+      <span class="filter-label">Nombre de producto</span>
+      <div class="search-wrap">
+        <sp-icon name="search" [size]="13" class="search-icon" />
+        <input class="input search-input"
+          type="search"
+          [value]="busqueda()"
+          (input)="busqueda.set($any($event.target).value)"
+          placeholder="Buscar por nombre…" />
+      </div>
     </div>
 
-    <select class="input filter-select"
-      (change)="filtroCategoria.set($any($event.target).value)">
-      <option value="" [selected]="filtroCategoria() === ''">Todas las categorías</option>
-      @for (c of categorias(); track c) {
-        <option [value]="c" [selected]="filtroCategoria() === c">{{ c }}</option>
-      }
-    </select>
+    <div class="filter-field">
+      <span class="filter-label">Categoría</span>
+      <select class="input filter-select"
+        (change)="filtroCategoria.set($any($event.target).value)">
+        <option value="" [selected]="filtroCategoria() === ''">Todas las categorías</option>
+        @for (c of categorias(); track c) {
+          <option [value]="c" [selected]="filtroCategoria() === c">{{ c }}</option>
+        }
+      </select>
+    </div>
 
-    <select class="input filter-select"
-      (change)="filtroMarca.set($any($event.target).value)">
-      <option value="" [selected]="filtroMarca() === ''">Todas las marcas</option>
-      @for (m of marcas(); track m) {
-        <option [value]="m" [selected]="filtroMarca() === m">{{ m }}</option>
-      }
-    </select>
-
-    @if (hayFiltros()) {
-      <button class="btn btn-ghost btn-sm" (click)="limpiarFiltros()" title="Limpiar filtros">
-        <sp-icon name="x" [size]="12" /> Limpiar
-      </button>
-    }
+    <div class="filter-field">
+      <span class="filter-label">Marca</span>
+      <select class="input filter-select"
+        (change)="filtroMarca.set($any($event.target).value)">
+        <option value="" [selected]="filtroMarca() === ''">Todas las marcas</option>
+        @for (m of marcas(); track m) {
+          <option [value]="m" [selected]="filtroMarca() === m">{{ m }}</option>
+        }
+      </select>
+    </div>
   </div>
+
+  @if (hayFiltros()) {
+    <div style="margin-bottom:12px">
+      <button class="btn btn-ghost btn-sm" (click)="limpiarFiltros()">
+        <sp-icon name="x" [size]="12" /> Limpiar filtros
+      </button>
+    </div>
+  }
 
   @if (cargando()) {
     <div style="padding:40px;text-align:center;color:var(--ink-4)">Cargando productos…</div>
