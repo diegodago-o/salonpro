@@ -88,10 +88,9 @@ export class CajaComponent {
         }
         this.cargarHistorial();
       },
-      error: (err: any) => {
+      error: () => {
         this.vista.set('sin-caja');
-        const msg = err?.error?.message ?? err?.message ?? JSON.stringify(err);
-        this.errorMsg.set(`[DEBUG] ${msg}`);
+        this.errorMsg.set('Error al conectar con el servidor. Intenta recargar.');
       },
     });
   }

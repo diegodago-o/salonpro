@@ -247,6 +247,9 @@ public class CreateTicketHandler(
         client.RecordVisit(ticketGrossTotal);
         await saleRepo.SaveChangesAsync(ct);
 
+        // 8. Vincular Sales con Ticket via raw SQL (TicketId ignorado por EF Core model)
+        await saleRepo.LinkToTicketAsync(sales.Select(s => s.Id), ticket.Id, ct);
+
         return new TicketDto(ticket.Id, ticket.ClientName, ticket.SaleDateTime,
             ticket.GrossTotal, ticket.TipAmount, ticket.Status,
             sales.Select(s => s.Id).ToList());

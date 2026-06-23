@@ -21,9 +21,6 @@ public class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         b.HasIndex(t => t.TenantId);
         b.HasIndex(t => new { t.TenantId, t.SaleDateTime });
 
-        b.HasMany(t => t.Sales)
-         .WithOne()
-         .HasForeignKey(s => s.TicketId)
-         .OnDelete(DeleteBehavior.ClientSetNull);
+        b.Ignore(t => t.Sales); // TicketId en Sales no está en EF Core model (Ignore en SaleConfiguration)
     }
 }

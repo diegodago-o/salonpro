@@ -34,6 +34,7 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
         builder.Property(s => s.VoidedReason).HasMaxLength(500);
         builder.Property(s => s.Notes).HasMaxLength(500);
         builder.Property(s => s.SaleDateTime).HasDefaultValueSql("GETUTCDATE()");
+        builder.Ignore(s => s.TicketId);
 
         builder.HasMany(s => s.Items)
             .WithOne(i => i.Sale)

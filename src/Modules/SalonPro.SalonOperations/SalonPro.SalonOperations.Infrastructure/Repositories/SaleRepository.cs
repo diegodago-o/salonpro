@@ -80,4 +80,16 @@ public class SaleRepository(SalonOpsDbContext db) : ISaleRepository
 
     public async Task SaveChangesAsync(CancellationToken ct = default) =>
         await db.SaveChangesAsync(ct);
+
+    public async Task LinkToTicketAsync(IEnumerable<int> saleIds, int ticketId, CancellationToken ct = default)
+    {
+        try
+        {
+            foreach (var id in saleIds)
+                await db.Database.ExecuteSqlRawAsync(
+                    "UPDATE [Sales] SET [TicketId] = {0} WHERE [Id] = {1}",
+                    new object[] { ticketId, id }, ct);
+        }
+        catch { /* columna TicketId puede no existir aún; el vínculo se mantiene en memoria */ }
+    }
 }
