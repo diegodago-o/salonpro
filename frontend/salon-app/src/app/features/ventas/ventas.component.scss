@@ -1002,6 +1002,128 @@
   margin-bottom: 6px;
 }
 
+/* ── Picker de servicios/productos en cards ── */
+.items-picker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.item-card {
+  border: 1.5px solid var(--hair-2);
+  border-radius: 7px;
+  background: var(--bone);
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: all .12s;
+  &:hover { border-color: var(--ink-3); background: var(--surface); }
+  &:active { transform: scale(.97); }
+}
+
+.item-card-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-card-price {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-3);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.item-card-badge {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--ink-4);
+  margin-top: 2px;
+}
+
+.precio-personalizado {
+  padding: 10px 12px;
+  background: var(--bone);
+  border-radius: 8px;
+  border: 1px solid var(--hair-2);
+  margin-top: 6px;
+}
+
+/* ── Desglose interno ── */
+.desglose-box {
+  margin: 12px 0 0;
+  border: 1px solid var(--hair-2);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.desglose-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--ink-4);
+  padding: 7px 12px;
+  background: var(--bone);
+  border-bottom: 1px solid var(--hair-2);
+}
+
+.desglose-grupo {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--hair-1);
+  &:last-of-type { border-bottom: none; }
+}
+
+.desglose-grupo-nombre {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 4px;
+}
+
+.desglose-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+  color: var(--ink-3);
+}
+
+.desglose-deduccion { color: var(--warn); }
+
+.desglose-salon {
+  color: var(--ink);
+  font-weight: 600;
+  border-top: 1px solid var(--hair-1);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.desglose-colaborador {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.desglose-totales {
+  padding: 8px 12px;
+  background: var(--bone);
+  border-top: 1.5px solid var(--hair-2);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* ── Sugerencias cliente ── */
 .sugerencias {
   position: absolute;
   top: 100%;

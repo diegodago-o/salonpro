@@ -12,10 +12,11 @@ import { environment } from '../../../environments/environment';
 import { Cliente } from '../../core/models/clientes.models';
 import {
   ClientOption, PaymentEntry, PaymentMethodOption, ProductOption,
-  SaleItem, SaleProductItem, SaleServiceItem,
+  SaleCalculation, SaleItem, SaleProductItem, SaleServiceItem,
   ServiceOption, StylistOption, Sale
 } from '../../core/models/ventas.models';
 import { SaleGroup } from '../../core/models/ticket.models';
+import { calculateSale } from '../../core/utils/sale-calculator';
 import { colombiaEndOfDay, colombiaStartOfDay, todayColombia } from '../../core/utils/colombia-time';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
@@ -287,8 +288,52 @@ export class VentasComponent implements OnInit {
     this.pasoGrupo.set('servicios');
   }
 
+  // ── Desglose financiero (pre-factura interna) ─────────
+  readonly desglose = computed(() => {
+    const totalPagado = this.totalPagado();
+    const totalBruto  = this.totalConPropina();
+    const deduccionTotal = totalBruto > 0
+      ? this.pagos()
+          .filter(p => p.paymentMethodId && p.amount > 0)
+          .reduce((s, p) => {
+            const method = this.metodosPago().find(m => m.id === p.paymentMethodId);
+            return s + (method?.hasDeduction ? Math.round(p.amount * method.deductionPercent / 100) : 0);
+          }, 0)
+      : 0;
+
+    const grupos = this.grupos().map((g, idx) => {
+      if (!g.stylist || g.items.length === 0) return null;
+      const isFirst = idx === 0;
+      const calc = calculateSale({
+        items: g.items,
+        tipAmount: isFirst ? this.tipAmount() : 0,
+        deductionAmount: totalBruto > 0
+          ? Math.round(deduccionTotal * (g.items.reduce((s, i) => s + i.price, 0) + (isFirst ? this.tipAmount() : 0)) / totalBruto)
+          : 0,
+        stylistCommPct: g.stylist.commissionPercent,
+      });
+      return { stylist: g.stylist, calc };
+    }).filter((x): x is { stylist: StylistOption; calc: SaleCalculation } => x !== null);
+
+    return {
+      grupos,
+      deduccionTotal,
+      totalSalon:       grupos.reduce((s, g) => s + g.calc.salonTotal, 0),
+      totalColaborador: grupos.reduce((s, g) => s + g.calc.stylistTotal, 0),
+    };
+  });
+
   // Servicios del grupo
-  agregarServicio(): void {
+  quickAgregarServicio(svc: ServiceOption): void {
+    const nuevo: SaleServiceItem = {
+      type: 'Service', serviceId: svc.id, name: svc.name,
+      price: svc.price, quantity: 1,
+      hasSalonFee: svc.hasSalonFee, salonFeePercent: svc.salonFeePercent
+    };
+    this.serviciosTemp.update(s => [...s, nuevo]);
+  }
+
+  agregarServicioConPrecio(): void {
     const svc = this.pickerServ();
     if (!svc) return;
     const precio = this.precioServ() > 0 ? this.precioServ() : svc.price;
@@ -302,17 +347,28 @@ export class VentasComponent implements OnInit {
     this.precioServ.set(0);
   }
 
+  abrirPrecioPersonalizado(svc: ServiceOption): void {
+    this.pickerServ.set(svc);
+    this.precioServ.set(svc.price);
+  }
+
   quitarServicio(i: number): void {
     this.serviciosTemp.update(s => s.filter((_, idx) => idx !== i));
   }
 
-  onPickerServChange(id: number): void {
-    const svc = this.servicios().find(s => s.id === +id);
-    if (svc) { this.pickerServ.set(svc); this.precioServ.set(svc.price); }
+  // Productos del grupo
+  quickAgregarProducto(prod: ProductOption, tipo: 'venta' | 'interno'): void {
+    const precio = tipo === 'venta' ? prod.salePrice : prod.purchasePrice;
+    const nuevo: SaleProductItem = {
+      type: tipo === 'venta' ? 'ProductSale' : 'ProductInternal',
+      productId: prod.id, name: prod.name,
+      price: precio, quantity: 1,
+      stylistCommissionPercent: prod.stylistCommissionPercent
+    };
+    this.productosTemp.update(p => [...p, nuevo]);
   }
 
-  // Productos del grupo
-  agregarProducto(): void {
+  agregarProductoConPrecio(): void {
     const prod = this.pickerProd();
     if (!prod) return;
     const precio = this.tipoProd() === 'venta'
@@ -329,13 +385,13 @@ export class VentasComponent implements OnInit {
     this.precioProd.set(0);
   }
 
-  quitarProducto(i: number): void {
-    this.productosTemp.update(p => p.filter((_, idx) => idx !== i));
+  abrirPrecioProd(prod: ProductOption): void {
+    this.pickerProd.set(prod);
+    this.precioProd.set(prod.salePrice);
   }
 
-  onPickerProdChange(id: number): void {
-    const prod = this.productos().find(p => p.id === +id);
-    if (prod) { this.pickerProd.set(prod); this.precioProd.set(prod.salePrice); }
+  quitarProducto(i: number): void {
+    this.productosTemp.update(p => p.filter((_, idx) => idx !== i));
   }
 
   // ── Pago ──────────────────────────────────────────────

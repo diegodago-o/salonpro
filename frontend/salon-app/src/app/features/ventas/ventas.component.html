@@ -217,6 +217,9 @@
                         <button class="stylist-btn"
                           [class.active]="estilistaTemp()?.id === s.id"
                           (click)="seleccionarEstilista(s)">
+                          @if (s.employeeCode) {
+                            <div style="font-size:10px;color:var(--ink-4);margin-bottom:2px">{{ s.employeeCode }}</div>
+                          }
                           <div style="font-weight:600;font-size:13px">{{ s.fullName }}</div>
                           <div style="font-size:11px;color:var(--ink-4)">{{ s.commissionPercent }}% participación</div>
                         </button>
@@ -244,29 +247,35 @@
                       </div>
                     }
 
-                    <div class="picker-row">
-                      <input class="input" placeholder="Buscar servicio…"
-                        [value]="filtroServ()"
-                        (input)="filtroServ.set($any($event.target).value)"
-                        style="flex:1" />
-                    </div>
-                    <div class="picker-row">
-                      <select class="input" style="flex:1"
-                        (change)="onPickerServChange(+$any($event.target).value)">
-                        <option value="0">— Selecciona servicio —</option>
-                        @for (s of serviciosFiltrados(); track s.id) {
-                          <option [value]="s.id">{{ s.name }} — {{ s.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</option>
-                        }
-                      </select>
-                    </div>
-                    @if (pickerServ()) {
-                      <div class="picker-row">
-                        <input class="input mono" type="number" [value]="precioServ()"
-                          (input)="precioServ.set(+$any($event.target).value)"
-                          style="width:130px" placeholder="Precio" />
-                        <button class="btn btn-primary btn-sm" (click)="agregarServicio()">
-                          <sp-icon name="plus" [size]="13" /> Agregar
+                    <input class="input" placeholder="Buscar servicio…"
+                      [value]="filtroServ()"
+                      (input)="filtroServ.set($any($event.target).value)"
+                      style="margin-bottom:8px" />
+
+                    <div class="items-picker-grid">
+                      @for (s of serviciosFiltrados(); track s.id) {
+                        <button class="item-card" (click)="quickAgregarServicio(s)" title="Clic para agregar">
+                          <div class="item-card-name">{{ s.name }}</div>
+                          <div class="item-card-price">{{ s.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+                          @if (s.hasSalonFee) {
+                            <div class="item-card-badge">Fee salón {{ s.salonFeePercent }}%</div>
+                          }
                         </button>
+                      }
+                    </div>
+
+                    @if (pickerServ()) {
+                      <div class="precio-personalizado">
+                        <span style="font-size:12px;color:var(--ink-3)">Precio personalizado para <strong>{{ pickerServ()!.name }}</strong></span>
+                        <div class="picker-row" style="margin-top:4px">
+                          <input class="input mono" type="number" [value]="precioServ()"
+                            (input)="precioServ.set(+$any($event.target).value)"
+                            style="width:130px" placeholder="Precio" />
+                          <button class="btn btn-primary btn-sm" (click)="agregarServicioConPrecio()">
+                            <sp-icon name="check" [size]="13" /> Confirmar
+                          </button>
+                          <button class="btn btn-ghost btn-sm" (click)="pickerServ.set(null)">Cancelar</button>
+                        </div>
                       </div>
                     }
                   </div>
@@ -289,32 +298,40 @@
                       </div>
                     }
 
-                    <div class="picker-row">
+                    <div style="display:flex;gap:6px;margin-bottom:8px">
                       <button class="btn btn-sm" [class.btn-primary]="filtroProd()==='venta'" [class.btn-ghost]="filtroProd()!=='venta'" (click)="filtroProd.set('venta')">Venta</button>
                       <button class="btn btn-sm" [class.btn-primary]="filtroProd()==='interno'" [class.btn-ghost]="filtroProd()!=='interno'" (click)="filtroProd.set('interno')">Consumo interno</button>
                     </div>
-                    <div class="picker-row">
-                      <select class="input" style="flex:1"
-                        (change)="onPickerProdChange(+$any($event.target).value)">
-                        <option value="0">— Selecciona producto —</option>
-                        @for (p of productosFiltrados(); track p.id) {
-                          <option [value]="p.id">{{ p.name }} ({{ p.brand }}) — {{ (filtroProd()==='venta' ? p.salePrice : p.purchasePrice) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</option>
-                        }
-                      </select>
-                    </div>
-                    @if (pickerProd()) {
-                      <div class="picker-row">
-                        <select class="input" style="width:120px"
-                          (change)="tipoProd.set($any($event.target).value)">
-                          <option value="venta">Venta</option>
-                          <option value="interno">Interno</option>
-                        </select>
-                        <input class="input mono" type="number" [value]="precioProd()"
-                          (input)="precioProd.set(+$any($event.target).value)"
-                          style="width:120px" placeholder="Precio" />
-                        <button class="btn btn-primary btn-sm" (click)="agregarProducto()">
-                          <sp-icon name="plus" [size]="13" /> Agregar
+
+                    <div class="items-picker-grid">
+                      @for (p of productosFiltrados(); track p.id) {
+                        <button class="item-card" (click)="quickAgregarProducto(p, filtroProd())" title="Clic para agregar">
+                          <div class="item-card-name">{{ p.name }}</div>
+                          @if (p.brand) { <div style="font-size:10px;color:var(--ink-4)">{{ p.brand }}</div> }
+                          <div class="item-card-price">
+                            {{ (filtroProd()==='venta' ? p.salePrice : p.purchasePrice) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                          </div>
                         </button>
+                      }
+                    </div>
+
+                    @if (pickerProd()) {
+                      <div class="precio-personalizado">
+                        <span style="font-size:12px;color:var(--ink-3)">Precio personalizado para <strong>{{ pickerProd()!.name }}</strong></span>
+                        <div class="picker-row" style="margin-top:4px">
+                          <select class="input" style="width:110px"
+                            (change)="tipoProd.set($any($event.target).value)">
+                            <option value="venta">Venta</option>
+                            <option value="interno">Interno</option>
+                          </select>
+                          <input class="input mono" type="number" [value]="precioProd()"
+                            (input)="precioProd.set(+$any($event.target).value)"
+                            style="width:110px" placeholder="Precio" />
+                          <button class="btn btn-primary btn-sm" (click)="agregarProductoConPrecio()">
+                            <sp-icon name="check" [size]="13" /> Confirmar
+                          </button>
+                          <button class="btn btn-ghost btn-sm" (click)="pickerProd.set(null)">Cancelar</button>
+                        </div>
                       </div>
                     }
                   </div>
@@ -367,6 +384,62 @@
             <span>TOTAL</span>
             <span class="tnum">{{ totalConPropina() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
           </div>
+
+          <!-- Desglose interno -->
+          @if (desglose().grupos.length > 0) {
+            <div class="desglose-box">
+              <div class="desglose-title">Desglose interno</div>
+              @for (g of desglose().grupos; track g.stylist.id) {
+                <div class="desglose-grupo">
+                  <div class="desglose-grupo-nombre">{{ g.stylist.fullName }}</div>
+                  @if (g.calc.grossServices > 0) {
+                    <div class="desglose-row">
+                      <span>Servicios</span>
+                      <span class="tnum">{{ g.calc.grossServices | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                    </div>
+                  }
+                  @if (g.calc.grossProducts > 0) {
+                    <div class="desglose-row">
+                      <span>Productos</span>
+                      <span class="tnum">{{ g.calc.grossProducts | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                    </div>
+                  }
+                  @if (g.calc.grossTip > 0) {
+                    <div class="desglose-row">
+                      <span>Propina</span>
+                      <span class="tnum">{{ g.calc.grossTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                    </div>
+                  }
+                  @if (g.calc.totalDeductions > 0) {
+                    <div class="desglose-row desglose-deduccion">
+                      <span>Deducciones</span>
+                      <span class="tnum">−{{ g.calc.totalDeductions | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                    </div>
+                  }
+                  <div class="desglose-row desglose-salon">
+                    <span>Salón ({{ 100 - g.stylist.commissionPercent }}%)</span>
+                    <span class="tnum">{{ g.calc.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                  <div class="desglose-row desglose-colaborador">
+                    <span>{{ g.stylist.fullName.split(' ')[0] }} ({{ g.stylist.commissionPercent }}%)</span>
+                    <span class="tnum">{{ g.calc.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                </div>
+              }
+              @if (desglose().grupos.length > 1) {
+                <div class="desglose-totales">
+                  <div class="desglose-row">
+                    <span>Total salón</span>
+                    <span class="tnum">{{ desglose().totalSalon | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                  <div class="desglose-row">
+                    <span>Total colaboradores</span>
+                    <span class="tnum">{{ desglose().totalColaborador | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          }
 
           <!-- Métodos de pago -->
           <div class="section-label" style="margin-top:16px">Pago</div>
