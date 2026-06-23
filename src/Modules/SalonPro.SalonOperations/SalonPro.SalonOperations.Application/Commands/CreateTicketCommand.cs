@@ -3,6 +3,7 @@ using SalonPro.SalonOperations.Application.DTOs;
 using SalonPro.SalonOperations.Domain.Entities;
 using SalonPro.SalonOperations.Domain.Enums;
 using SalonPro.SalonOperations.Domain.Interfaces;
+using SalonPro.Shared.Common;
 using SalonPro.Shared.Exceptions;
 
 namespace SalonPro.SalonOperations.Application.Commands;

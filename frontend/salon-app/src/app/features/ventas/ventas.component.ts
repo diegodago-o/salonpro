@@ -13,10 +13,9 @@ import { Cliente } from '../../core/models/clientes.models';
 import {
   ClientOption, PaymentEntry, PaymentMethodOption, ProductOption,
   SaleItem, SaleProductItem, SaleServiceItem,
-  ServiceOption, StylistOption, Sale, SaleCalculation
+  ServiceOption, StylistOption, Sale
 } from '../../core/models/ventas.models';
 import { SaleGroup } from '../../core/models/ticket.models';
-import { calculateSale } from '../../core/utils/sale-calculator';
 import { colombiaEndOfDay, colombiaStartOfDay, todayColombia } from '../../core/utils/colombia-time';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
@@ -151,7 +150,7 @@ export class VentasComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.clientesService.getClientes(this.branchService.currentBranchId)
+    this.clientesService.getClientes()
       .subscribe(r => this.clientesDisponibles.set(r.data ?? []));
     if (environment.production) {
       this.http.get<{ logoUrl?: string }>('/api/v1/tenant-profile')
@@ -169,16 +168,16 @@ export class VentasComponent implements OnInit {
       this.metodosPago.set(r.data ?? []);
       this.cargando.set(false);
     });
-    this.cajaService.getEstadoCaja(bid).subscribe(r => this.cajaAbierta.set(r.data?.isOpen ?? false));
+    this.cajaService.getCajaActual(bid).subscribe(r => this.cajaAbierta.set(r.data?.status === 'Open'));
     this.cargarVentas();
   }
 
-  private cargarVentas(): void {
+  cargarVentas(): void {
     this.cargandoVentas.set(true);
     const bid = this.branchService.currentBranchId;
     const bname = this.branchService.selectedBranch()?.name;
     this.ventasService.getVentas(
-      this.fechaDesde().toISOString(), this.fechaHasta().toISOString(), bid, bname
+      this.fechaDesde(), this.fechaHasta(), bid, bname
     ).subscribe({
       next: r => { this.ventas.set(r.data ?? []); this.cargandoVentas.set(false); },
       error: () => this.cargandoVentas.set(false)
