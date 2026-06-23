@@ -5,73 +5,84 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace SalonPro.SalonOperations.Infrastructure.Migrations
 {
-    /// <inheritdoc />
     [Microsoft.EntityFrameworkCore.Migrations.Migration("20260622000000_AddTickets")]
     public partial class AddTickets : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "Tickets",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId     = table.Column<int>(type: "int", nullable: false),
-                    BranchId     = table.Column<int>(type: "int", nullable: true),
-                    BranchName   = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ClientId     = table.Column<int>(type: "int", nullable: true),
-                    ClientName   = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    SaleDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    GrossTotal   = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    TipAmount    = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Status       = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Notes        = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CreatedAt    = table.Column<DateTime>(type: "datetime2", nullable: false),
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Tickets", x => x.Id);
-                });
+            // Usar SQL condicional para que la migración sea idempotente
+            // (segura si ya fue aplicada parcialmente o completa)
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Tickets' AND schema_id = SCHEMA_ID('dbo'))
+BEGIN
+    CREATE TABLE [dbo].[Tickets] (
+        [Id]          INT            NOT NULL IDENTITY(1,1),
+        [TenantId]    INT            NOT NULL,
+        [BranchId]    INT            NULL,
+        [BranchName]  NVARCHAR(200)  NULL,
+        [ClientId]    INT            NULL,
+        [ClientName]  NVARCHAR(200)  NOT NULL,
+        [SaleDateTime] DATETIME2     NOT NULL,
+        [GrossTotal]  DECIMAL(18,2)  NOT NULL,
+        [TipAmount]   DECIMAL(18,2)  NOT NULL,
+        [Status]      NVARCHAR(20)   NOT NULL,
+        [Notes]       NVARCHAR(500)  NULL,
+        [CreatedAt]   DATETIME2      NOT NULL,
+        CONSTRAINT [PK_Tickets] PRIMARY KEY ([Id])
+    );
+END");
 
-            migrationBuilder.AddColumn<int>(
-                name: "TicketId",
-                table: "Sales",
-                type: "int",
-                nullable: true);
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[dbo].[Sales]') AND name = N'TicketId'
+)
+BEGIN
+    ALTER TABLE [dbo].[Sales] ADD [TicketId] INT NULL;
+END");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Tickets_TenantId",
-                table: "Tickets",
-                column: "TenantId");
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tickets_TenantId' AND object_id = OBJECT_ID('Tickets'))
+    CREATE INDEX [IX_Tickets_TenantId] ON [Tickets] ([TenantId]);");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Tickets_TenantId_SaleDateTime",
-                table: "Tickets",
-                columns: new[] { "TenantId", "SaleDateTime" });
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tickets_TenantId_SaleDateTime' AND object_id = OBJECT_ID('Tickets'))
+    CREATE INDEX [IX_Tickets_TenantId_SaleDateTime] ON [Tickets] ([TenantId], [SaleDateTime]);");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Sales_TicketId",
-                table: "Sales",
-                column: "TicketId");
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Sales_TicketId' AND object_id = OBJECT_ID('Sales'))
+    CREATE INDEX [IX_Sales_TicketId] ON [Sales] ([TicketId]);");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Sales_Tickets_TicketId",
-                table: "Sales",
-                column: "TicketId",
-                principalTable: "Tickets",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (
+    SELECT 1 FROM sys.foreign_keys
+    WHERE name = 'FK_Sales_Tickets_TicketId'
+)
+BEGIN
+    ALTER TABLE [dbo].[Sales]
+    ADD CONSTRAINT [FK_Sales_Tickets_TicketId]
+    FOREIGN KEY ([TicketId]) REFERENCES [dbo].[Tickets] ([Id])
+    ON DELETE SET NULL;
+END");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey("FK_Sales_Tickets_TicketId", "Sales");
-            migrationBuilder.DropIndex("IX_Sales_TicketId", "Sales");
-            migrationBuilder.DropColumn("TicketId", "Sales");
-            migrationBuilder.DropTable("Tickets");
+            migrationBuilder.Sql(@"
+IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Sales_Tickets_TicketId')
+    ALTER TABLE [dbo].[Sales] DROP CONSTRAINT [FK_Sales_Tickets_TicketId];");
+
+            migrationBuilder.Sql(@"
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Sales_TicketId' AND object_id = OBJECT_ID('Sales'))
+    DROP INDEX [IX_Sales_TicketId] ON [Sales];");
+
+            migrationBuilder.Sql(@"
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Sales]') AND name = N'TicketId')
+    ALTER TABLE [dbo].[Sales] DROP COLUMN [TicketId];");
+
+            migrationBuilder.Sql(@"
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Tickets')
+    DROP TABLE [dbo].[Tickets];");
         }
     }
 }
