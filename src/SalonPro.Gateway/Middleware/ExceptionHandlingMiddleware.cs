@@ -31,7 +31,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
             ForbiddenException fe => (StatusCodes.Status403Forbidden, fe.Message),
             BadRequestException bre => (StatusCodes.Status400BadRequest, bre.Message),
             FluentValidation.ValidationException ve => (StatusCodes.Status400BadRequest, "Datos inválidos."),
-            _ => (StatusCodes.Status500InternalServerError, $"[D] {ex.InnerException?.InnerException?.Message ?? ex.InnerException?.Message ?? ex.Message}")
+            _ => (StatusCodes.Status500InternalServerError, "Error interno del servidor.")
         };
 
         if (statusCode == 500)
