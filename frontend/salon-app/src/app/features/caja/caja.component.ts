@@ -78,14 +78,21 @@ export class CajaComponent {
   private cargarEstado(): void {
     const branchId = this.branchService.currentBranchId;
     this.vista.set('loading');
-    this.cajaService.getCajaActual(branchId).subscribe(res => {
-      if (res.success && res.data) {
-        this.cajaActual.set(res.data);
-        this.vista.set('caja-abierta');
-      } else {
+    this.cajaService.getCajaActual(branchId).subscribe({
+      next: res => {
+        if (res.success && res.data) {
+          this.cajaActual.set(res.data);
+          this.vista.set('caja-abierta');
+        } else {
+          this.vista.set('sin-caja');
+        }
+        this.cargarHistorial();
+      },
+      error: () => {
+        // Si el API falla, mostrar sin-caja para que el usuario pueda abrir
         this.vista.set('sin-caja');
-      }
-      this.cargarHistorial();
+        this.errorMsg.set('Error al conectar con el servidor. Si el problema persiste, recarga la página.');
+      },
     });
   }
 
