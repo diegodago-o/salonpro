@@ -165,17 +165,34 @@ export class VentasComponent implements OnInit {
     }
   }
 
+  readonly errorCatalogos = signal<string | null>(null);
+
+  recargarCatalogos(): void { this.cargarCatalogos(); }
+
   private cargarCatalogos(): void {
     this.cargando.set(true);
+    this.errorCatalogos.set(null);
     const bid = this.branchService.currentBranchId;
-    this.ventasService.getServicios(bid).subscribe(r => this.servicios.set(r.data ?? []));
-    this.ventasService.getProductos(bid).subscribe(r => this.productos.set(r.data ?? []));
-    this.ventasService.getPeluqueros(bid).subscribe(r => this.peluqueros.set(r.data ?? []));
-    this.ventasService.getMetodosPago().subscribe(r => {
-      this.metodosPago.set(r.data ?? []);
-      this.cargando.set(false);
+    this.ventasService.getServicios(bid).subscribe({
+      next: r => this.servicios.set(r.data ?? []),
+      error: () => this.errorCatalogos.set('No se pudieron cargar los servicios. Recarga la página.'),
     });
-    this.cajaService.getCajaActual(bid).subscribe(r => this.cajaAbierta.set(r.data?.status === 'Open'));
+    this.ventasService.getProductos(bid).subscribe({
+      next: r => this.productos.set(r.data ?? []),
+      error: () => this.errorCatalogos.set('No se pudieron cargar los productos. Recarga la página.'),
+    });
+    this.ventasService.getPeluqueros(bid).subscribe({
+      next: r => this.peluqueros.set(r.data ?? []),
+      error: () => this.errorCatalogos.set('No se pudieron cargar los colaboradores. Recarga la página.'),
+    });
+    this.ventasService.getMetodosPago().subscribe({
+      next: r => { this.metodosPago.set(r.data ?? []); this.cargando.set(false); },
+      error: () => { this.cargando.set(false); this.errorCatalogos.set('Error al cargar métodos de pago. Recarga la página.'); },
+    });
+    this.cajaService.getCajaActual(bid).subscribe({
+      next: r => this.cajaAbierta.set(r.data?.status === 'Open'),
+      error: () => {},
+    });
     this.cargarVentas();
   }
 
