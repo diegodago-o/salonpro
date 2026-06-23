@@ -24,6 +24,6 @@ public class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         b.HasMany(t => t.Sales)
          .WithOne()
          .HasForeignKey(s => s.TicketId)
-         .OnDelete(DeleteBehavior.SetNull);
+         .OnDelete(DeleteBehavior.ClientSetNull);
     }
 }

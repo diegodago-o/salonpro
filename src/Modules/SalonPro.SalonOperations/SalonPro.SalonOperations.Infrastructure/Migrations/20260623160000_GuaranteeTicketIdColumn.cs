@@ -4,12 +4,18 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace SalonPro.SalonOperations.Infrastructure.Migrations
 {
-    [Microsoft.EntityFrameworkCore.Migrations.Migration("20260623120000_EnsureTicketSchema")]
-    public partial class EnsureTicketSchema : Migration
+    [Microsoft.EntityFrameworkCore.Migrations.Migration("20260623160000_GuaranteeTicketIdColumn")]
+    public partial class GuaranteeTicketIdColumn : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Garantiza la existencia de la tabla Tickets sin importar el estado previo
+            // Elimina el FK si fue creado por migraciones anteriores (el FK con ON DELETE SET NULL
+            // puede fallar en algunos entornos SQL Server; lo manejamos a nivel de aplicación)
+            migrationBuilder.Sql(@"
+IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Sales_Tickets_TicketId')
+    ALTER TABLE [dbo].[Sales] DROP CONSTRAINT [FK_Sales_Tickets_TicketId];");
+
+            // Garantiza la tabla Tickets
             migrationBuilder.Sql(@"
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Tickets' AND schema_id = SCHEMA_ID('dbo'))
 BEGIN
@@ -30,7 +36,7 @@ BEGIN
     );
 END");
 
-            // Garantiza la columna TicketId en Sales
+            // Garantiza la columna TicketId en Sales (sin FK)
             migrationBuilder.Sql(@"
 IF NOT EXISTS (
     SELECT 1 FROM sys.columns
@@ -40,7 +46,7 @@ BEGIN
     ALTER TABLE [dbo].[Sales] ADD [TicketId] INT NULL;
 END");
 
-            // Garantiza los índices
+            // Índices
             migrationBuilder.Sql(@"
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tickets_TenantId' AND object_id = OBJECT_ID('Tickets'))
     CREATE INDEX [IX_Tickets_TenantId] ON [Tickets] ([TenantId]);");
@@ -52,8 +58,6 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tickets_TenantId_SaleD
             migrationBuilder.Sql(@"
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Sales_TicketId' AND object_id = OBJECT_ID('Sales'))
     CREATE INDEX [IX_Sales_TicketId] ON [Sales] ([TicketId]);");
-
-            // FK omitido — solo se garantiza la columna nullable
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

@@ -53,25 +53,11 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tickets_TenantId_SaleD
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Sales_TicketId' AND object_id = OBJECT_ID('Sales'))
     CREATE INDEX [IX_Sales_TicketId] ON [Sales] ([TicketId]);");
 
-            migrationBuilder.Sql(@"
-IF NOT EXISTS (
-    SELECT 1 FROM sys.foreign_keys
-    WHERE name = 'FK_Sales_Tickets_TicketId'
-)
-BEGIN
-    ALTER TABLE [dbo].[Sales]
-    ADD CONSTRAINT [FK_Sales_Tickets_TicketId]
-    FOREIGN KEY ([TicketId]) REFERENCES [dbo].[Tickets] ([Id])
-    ON DELETE SET NULL;
-END");
+            // FK omitido — solo se agrega la columna nullable; integridad referencial manejada en app layer
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(@"
-IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Sales_Tickets_TicketId')
-    ALTER TABLE [dbo].[Sales] DROP CONSTRAINT [FK_Sales_Tickets_TicketId];");
-
             migrationBuilder.Sql(@"
 IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Sales_TicketId' AND object_id = OBJECT_ID('Sales'))
     DROP INDEX [IX_Sales_TicketId] ON [Sales];");
