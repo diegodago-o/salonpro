@@ -1,9 +1,10 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { VentasService } from '../../core/services/ventas.service';
+import { TicketService } from '../../core/services/ticket.service';
 import { CajaService } from '../../core/services/caja.service';
 import { BranchService } from '../../core/services/branch.service';
 import { ClientesService } from '../../core/services/clientes.service';
@@ -11,67 +12,67 @@ import { environment } from '../../../environments/environment';
 import { Cliente } from '../../core/models/clientes.models';
 import {
   ClientOption, PaymentEntry, PaymentMethodOption, ProductOption,
-  SaleCalculation, SaleItem, SaleProductItem, SaleServiceItem,
-  ServiceOption, StylistOption, Sale
+  SaleItem, SaleProductItem, SaleServiceItem,
+  ServiceOption, StylistOption, Sale, SaleCalculation
 } from '../../core/models/ventas.models';
+import { SaleGroup } from '../../core/models/ticket.models';
 import { calculateSale } from '../../core/utils/sale-calculator';
 import { colombiaEndOfDay, colombiaStartOfDay, todayColombia } from '../../core/utils/colombia-time';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
 type Vista = 'lista' | 'nueva-venta' | 'anular';
-
-interface VentaExitosaData {
-  total: number;
-  stylistTotal: number;
-  salonTotal: number;
-  stylistName: string;
-  clientName: string;
-  clientDocumentType: string;
-  clientDocumentNumber: string;
-  branchName: string;
-  logoUrl: string;
-  fecha: Date;
-  itemsRecibo: { name: string; price: number; quantity: number }[];
-  pagosRecibo: { method: string; amount: number }[];
-}
+type PasoGrupo = 'estilista' | 'servicios' | 'productos' | 'listo';
 
 @Component({
   selector: 'app-ventas',
-  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, IconComponent],
+  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, DecimalPipe, IconComponent],
   templateUrl: './ventas.component.html',
   styleUrl: './ventas.component.scss'
 })
 export class VentasComponent implements OnInit {
-  private readonly fb = inject(FormBuilder);
-  private readonly ventasService = inject(VentasService);
-  private readonly cajaService = inject(CajaService);
-  private readonly branchService = inject(BranchService);
+  private readonly fb             = inject(FormBuilder);
+  private readonly ventasService  = inject(VentasService);
+  private readonly ticketService  = inject(TicketService);
+  private readonly cajaService    = inject(CajaService);
+  private readonly branchService  = inject(BranchService);
   private readonly clientesService = inject(ClientesService);
-  private readonly http = inject(HttpClient);
+  private readonly http           = inject(HttpClient);
 
   readonly logoSalon = signal('');
-
-  readonly vista = signal<Vista>('nueva-venta');  // arranca directo en el wizard
+  readonly vista     = signal<Vista>('lista');
   readonly guardando = signal(false);
-  readonly errorMsg = signal<string | null>(null);
-  readonly successMsg = signal<string | null>(null);
+  readonly errorMsg  = signal<string | null>(null);
+  readonly Math      = Math;
 
-  // ── Catálogos ─────────────────────────────────────────
-  readonly servicios = signal<ServiceOption[]>([]);
-  readonly productos = signal<ProductOption[]>([]);
-  readonly peluqueros = signal<StylistOption[]>([]);
-  readonly metodosPago = signal<PaymentMethodOption[]>([]);
+  // ── Catálogos ──────────────────────────────────────────
+  readonly servicios    = signal<ServiceOption[]>([]);
+  readonly productos    = signal<ProductOption[]>([]);
+  readonly peluqueros   = signal<StylistOption[]>([]);
+  readonly metodosPago  = signal<PaymentMethodOption[]>([]);
+  readonly cajaAbierta  = signal(false);
+  readonly cargando     = signal(true);
 
-  readonly ventas = signal<Sale[]>([]);
-  readonly ventaAnular = signal<Sale | null>(null);
+  // ── Lista de ventas (consulta) ─────────────────────────
+  readonly ventas       = signal<Sale[]>([]);
+  readonly ventaAnular  = signal<Sale | null>(null);
+  readonly ventaDetalle = signal<Sale | null>(null);
+  readonly fechaDesde   = signal(colombiaStartOfDay(todayColombia()));
+  readonly fechaHasta   = signal(colombiaEndOfDay(todayColombia()));
+  readonly cargandoVentas = signal(false);
 
-  readonly clienteEncontrado = signal<ClientOption | null>(null);
-  readonly buscandoCliente = signal(false);
-
-  // ── Buscador de clientes existentes ───────────────────
+  // ── Cliente ────────────────────────────────────────────
   readonly clientesDisponibles = signal<Cliente[]>([]);
-  readonly busquedaCliente = signal('');
-  readonly mostrarSugerencias = signal(false);
+  readonly busquedaCliente     = signal('');
+  readonly mostrarSugerencias  = signal(false);
+  readonly clienteSeleccionado = signal<ClientOption | null>(null);
+  readonly formCliente = this.fb.group({
+    documentType:   ['CC', Validators.required],
+    documentNumber: ['', Validators.required],
+    fullName:       ['', Validators.required],
+    email:          [''],
+    phone:          [''],
+  });
+
   readonly clientesSugeridos = computed(() => {
     const q = this.busquedaCliente().toLowerCase().trim();
     if (q.length < 2) return [];
@@ -83,704 +84,390 @@ export class VentasComponent implements OnInit {
       )
       .slice(0, 7);
   });
-  readonly items = signal<SaleItem[]>([]);
-  readonly peluqueroSeleccionado = signal<StylistOption | null>(null);
-  readonly cajaAbierta = signal(false);
-  readonly cargandoCatalogos = signal(true);
-  readonly Math = Math;
 
-  /** Propina como signal reactiva — sincronizada con formVenta.tipAmount */
-  readonly tipAmountSig = signal(0);
+  // ── Carrito multi-estilista ────────────────────────────
+  readonly grupos = signal<SaleGroup[]>([]);
 
-  readonly wizardSteps = [
-    { n: '01', t: 'Colaborador', sub: 'Selecciona el colaborador que prestará el servicio' },
-    { n: '02', t: 'Servicios',  sub: 'Agrega los servicios a facturar' },
-    { n: '03', t: 'Productos',  sub: 'Venta a cliente o consumo interno' },
-    { n: '04', t: 'Pago',       sub: 'Método y desglose' },
-    { n: '05', t: 'Confirmar',  sub: 'Revisa antes de registrar' },
-  ];
+  // Índice del grupo que está editándose ahora
+  readonly grupoEditandoIdx = signal<number | null>(null);
+  readonly pasoGrupo        = signal<PasoGrupo>('estilista');
 
-  // Signals que reflejan la validez de los reactive forms (computed no detecta cambios en .valid)
-  // El cliente es completamente opcional → inicia en true
-  readonly formClienteValido = signal(true);
-  readonly formVentaValido   = signal(false);
+  // Selecciones temporales para el grupo activo
+  readonly estilistaTemp   = signal<StylistOption | null>(null);
+  readonly serviciosTemp   = signal<SaleServiceItem[]>([]);
+  readonly productosTemp   = signal<SaleProductItem[]>([]);
 
-  // ── Pago mixto ────────────────────────────────────────
-  readonly pagos = signal<PaymentEntry[]>([{ paymentMethodId: null, amount: 0 }]);
+  // Selección de servicio/producto en el picker
+  readonly pickerServ  = signal<ServiceOption | null>(null);
+  readonly precioServ  = signal(0);
+  readonly pickerProd  = signal<ProductOption | null>(null);
+  readonly precioProd  = signal(0);
+  readonly tipoProd    = signal<'venta' | 'interno'>('venta');
+  readonly filtroProd  = signal<'venta' | 'interno'>('venta');
+  readonly filtroServ  = signal('');
 
-  // ── Filtros ───────────────────────────────────────────
-  readonly filtroServicio = signal('');
-  readonly categoriaServicio = signal('Todos');
-  readonly filtroProductoVenta = signal('');
-  readonly filtroProductoInterno = signal('');
+  // ── Pago ──────────────────────────────────────────────
+  readonly tipAmount   = signal(0);
+  readonly pagos       = signal<PaymentEntry[]>([{ paymentMethodId: null, amount: 0 }]);
+  readonly notas       = signal('');
 
-  // ── Formularios ───────────────────────────────────────
-  readonly formCliente = this.fb.group({
-    documentType: ['CC'],
-    documentNumber: [''],
-    fullName: [''],
-    email: ['', [Validators.email]],
-    phone: [''],
-  });
-
-  readonly formVenta = this.fb.group({
-    stylistId: [null as number | null, Validators.required],
-    tipAmount: [0, [Validators.min(0)]],
-    notes: [''],
-  });
-
-  readonly formAnular = this.fb.group({ reason: ['', Validators.required] });
-
-  // ── Deducción bancaria (monto fijo, no porcentaje ponderado) ──
-  // Suma de (valor_pago × % del método). Aplica SOLO a servicios+productos, nunca a propina.
-  readonly deductionTotalAmount = computed(() =>
-    Math.round(this.pagos().reduce((sum, p) => {
-      const m = this.metodosPago().find(m => m.id === p.paymentMethodId);
-      return sum + (p.amount || 0) * (m?.deductionPercent ?? 0) / 100;
-    }, 0))
+  readonly totalGrupos = computed(() =>
+    this.grupos().reduce((s, g) =>
+      s + g.items.reduce((si, item) => si + item.price * item.quantity, 0), 0)
   );
+  readonly totalConPropina = computed(() => this.totalGrupos() + this.tipAmount());
 
-  /** Hay efectivo en algún método → propina se bloquea (el efectivo no pasa por el sistema) */
-  readonly hasCashPayment = computed(() =>
-    this.pagos().some(p => {
-      const m = this.metodosPago().find(m => m.id === p.paymentMethodId);
-      return m?.name.toLowerCase().includes('efectivo') ?? false;
-    })
-  );
-
-  // ── Cálculo en tiempo real ────────────────────────────
-  readonly calculo = computed<SaleCalculation>(() =>
-    calculateSale({
-      items: this.items(),
-      tipAmount: this.tipAmountSig(),
-      deductionAmount: this.deductionTotalAmount(),
-      stylistCommPct: this.peluqueroSeleccionado()?.commissionPercent ?? 0,
-    })
-  );
-
-  // ── Totales de pago ───────────────────────────────────
-  readonly totalACobrar = computed(() =>
-    this.calculo().grossServices + this.calculo().grossProducts + this.calculo().grossTip
-  );
-
-  readonly totalRecibido = computed(() =>
+  readonly totalPagado = computed(() =>
     this.pagos().reduce((s, p) => s + (p.amount || 0), 0)
   );
-
-  readonly diferenciaPago = computed(() => this.totalACobrar() - this.totalRecibido());
-
-  readonly pagosValidos = computed(() => {
-    const pagos = this.pagos();
-    return pagos.length > 0
-      && pagos.every(p => p.paymentMethodId !== null && p.amount > 0)
-      && Math.abs(this.diferenciaPago()) === 0;
-  });
-
-  readonly hayServicios  = computed(() => this.items().some(i => i.type === 'Service'));
-  readonly hayProductos  = computed(() => this.items().some(i => i.type === 'ProductSale' || i.type === 'ProductInternal'));
-  readonly cantProdVenta    = computed(() => this.items().filter(i => i.type === 'ProductSale').length);
-  readonly cantProdInterno  = computed(() => this.items().filter(i => i.type === 'ProductInternal').length);
-
-  /** Desglose de deducciones por método de pago, solo los que tienen deducción > 0 */
-  readonly deduccionesPorPago = computed(() =>
-    this.pagos()
-      .filter(p => p.paymentMethodId !== null && p.amount > 0)
-      .map(p => {
-        const m = this.metodosPago().find(m => m.id === p.paymentMethodId);
-        if (!m || !m.hasDeduction || m.deductionPercent === 0) return null;
-        return { name: m.name, pct: m.deductionPercent, amount: Math.round(p.amount * m.deductionPercent / 100) };
-      })
-      .filter((d): d is { name: string; pct: number; amount: number } => d !== null)
-  );
-
-  /** Total bruto - deducciones = base a repartir */
-  readonly baseNeta = computed(() => this.totalACobrar() - this.calculo().totalDeductions);
-
-  /** Desglose por ítem: cuánto va al estilista y al salón de cada servicio/producto */
-  readonly desgloseItems = computed(() => {
-    const totalDed  = this.deductionTotalAmount();
-    const grossItems = this.items()
-      .filter(i => i.type !== 'ProductInternal')
-      .reduce((s, i) => s + i.price * i.quantity, 0);
-    // grossAll incluye la propina: la deducción se distribuye sobre el total de transacción
-    const grossAll = grossItems + this.calculo().grossTip;
-    const sPct = (this.peluqueroSeleccionado()?.commissionPercent ?? 0) / 100;
-
-    return this.items()
-      .filter(i => i.type !== 'ProductInternal')
-      .map(item => {
-        const subtotal = item.price * item.quantity;
-        // Deducción proporcional al peso del ítem sobre el total (servicios+productos+propina)
-        const frac    = grossAll > 0 ? subtotal / grossAll : 0;
-        const netBase = Math.round(subtotal - totalDed * frac);
-
-        if (item.type === 'Service') {
-          const svc = item as SaleServiceItem;
-          let stylistAmt: number, salonAmt: number, feeAmt = 0;
-          if (svc.hasSalonFee && svc.salonFeePercent > 0) {
-            feeAmt     = Math.round(netBase * svc.salonFeePercent / 100);
-            const rem  = netBase - feeAmt;
-            stylistAmt = Math.round(rem * sPct);
-            salonAmt   = Math.round(rem * (1 - sPct)) + feeAmt;
-          } else {
-            stylistAmt = Math.round(netBase * sPct);
-            salonAmt   = Math.round(netBase * (1 - sPct));
-          }
-          return { name: item.name, type: 'Servicio', subtotal, netBase,
-            stylistPct: this.peluqueroSeleccionado()?.commissionPercent ?? 0,
-            stylistAmt, salonAmt, hasFee: svc.hasSalonFee && svc.salonFeePercent > 0,
-            feeAmt, feePct: svc.salonFeePercent };
-        } else {
-          const prod     = item as SaleProductItem;
-          const prodSPct = (prod.stylistCommissionPercent ?? 10) / 100;
-          const stylistAmt = Math.round(netBase * prodSPct);
-          const salonAmt   = Math.round(netBase * (1 - prodSPct));
-          return { name: item.name, type: 'Producto', subtotal, netBase,
-            stylistPct: prod.stylistCommissionPercent ?? 10,
-            stylistAmt, salonAmt, hasFee: false, feeAmt: 0, feePct: 0 };
-        }
-      });
-  });
-
-  // ── Step wizard ───────────────────────────────────────
-  readonly step = signal(0);
-  readonly ventaExitosa = signal(false);
-  readonly folioVenta = signal('');
-  readonly ventaExitosaData = signal<VentaExitosaData | null>(null);
-  readonly mostrarRecibo = signal(false);
+  readonly diferencia = computed(() => this.totalConPropina() - this.totalPagado());
 
   readonly puedeRegistrar = computed(() =>
-    this.formVentaValido()
-    && this.hayServicios()
-    && this.pagosValidos()
-    && !this.guardando()
+    this.grupos().length > 0 &&
+    this.grupos().every(g => g.stylist !== null && g.items.length > 0) &&
+    Math.abs(this.diferencia()) < 1 &&
+    !this.guardando()
   );
 
-  // ── Catálogos filtrados ───────────────────────────────
-  readonly categoriasServicio = computed(() => {
-    const cats = [...new Set(this.servicios().map(s => s.category))];
-    return ['Todos', ...cats];
-  });
+  // ── Resumen éxito ──────────────────────────────────────
+  readonly ventaExitosa = signal(false);
 
+  // ── Servicios filtrados ────────────────────────────────
   readonly serviciosFiltrados = computed(() => {
-    const f = this.filtroServicio().toLowerCase();
-    const cat = this.categoriaServicio();
+    const q = this.filtroServ().toLowerCase().trim();
+    if (!q) return this.servicios();
     return this.servicios().filter(s =>
-      (cat === 'Todos' || s.category === cat) && (!f || s.name.toLowerCase().includes(f))
-    );
+      s.name.toLowerCase().includes(q) || s.category.toLowerCase().includes(q));
   });
-
-  readonly productosVentaFiltrados = computed(() => {
-    const f = this.filtroProductoVenta().toLowerCase();
-    return this.productos().filter(p => p.isForSale && (!f || p.name.toLowerCase().includes(f)));
+  readonly productosFiltrados = computed(() => {
+    const t = this.filtroProd();
+    return this.productos().filter(p => t === 'venta' ? p.isForSale : !p.isForSale);
   });
-
-  readonly productosInternosFiltrados = computed(() => {
-    const f = this.filtroProductoInterno().toLowerCase();
-    return this.productos().filter(p => !f || p.name.toLowerCase().includes(f));
-  });
-
-  // ── Métodos disponibles para pago mixto (excluye ya usados) ──
-  metodosPagoDisponibles(indexActual: number): PaymentMethodOption[] {
-    const usados = this.pagos()
-      .map((p, i) => i !== indexActual ? p.paymentMethodId : null)
-      .filter(id => id !== null);
-    return this.metodosPago().filter(m => !usados.includes(m.id));
-  }
 
   constructor() {
-    // Recargar catálogos y ventas cuando cambia la sede
     toObservable(this.branchService.selectedBranch)
       .pipe(takeUntilDestroyed())
-      .subscribe(() => {
-        this.cargarCatalogos();
-        this.cargarVentas();
-      });
-
-    // Bloquear propina automáticamente cuando hay pago en efectivo
-    toObservable(this.hasCashPayment)
-      .pipe(takeUntilDestroyed())
-      .subscribe(hasCash => {
-        const ctrl = this.formVenta.get('tipAmount')!;
-        if (hasCash) {
-          ctrl.setValue(0, { emitEvent: false });
-          ctrl.disable({ emitEvent: false });
-          this.tipAmountSig.set(0);
-          this.sincronizarPagoConTotal();
-        } else {
-          ctrl.enable({ emitEvent: false });
-        }
-      });
-  }
-
-  /** Normaliza la URL del logo para evitar mixed-content (http→https, ruta→URL completa). */
-  private resolveLogo(url: string | null | undefined): string {
-    if (!url) return '';
-    if (url.startsWith('/')) return `${environment.apiUrl.replace(/\/api\/v\d+$/, '')}${url}`;
-    if (url.startsWith('http://')) return url.replace('http://', 'https://');
-    return url;
+      .subscribe(() => this.cargarCatalogos());
   }
 
   ngOnInit(): void {
-    this.verificarCaja();
-    // Cargar logo del salón para el recibo
-    this.http.get<any>(`${environment.apiUrl}/tenants/profile`).subscribe({
-      next: r => {
-        if (r?.data?.logoUrl) this.logoSalon.set(this.resolveLogo(r.data.logoUrl));
-      },
-      error: () => {}
-    });
-
-    // Sincronizar validez de forms como signals para que puedeRegistrar() reaccione
-    this.formCliente.statusChanges.subscribe(s => this.formClienteValido.set(s === 'VALID'));
-    this.formVenta.statusChanges.subscribe(s => this.formVentaValido.set(s === 'VALID'));
-
-    this.formVenta.get('stylistId')!.valueChanges.subscribe(id => {
-      this.peluqueroSeleccionado.set(this.peluqueros().find(p => p.id === id) ?? null);
-    });
-
-    // Propina: sincronizar con signal para que calculo() y totalACobrar() reaccionen
-    this.formVenta.get('tipAmount')!.valueChanges.subscribe(v => {
-      this.tipAmountSig.set(typeof v === 'number' ? Math.max(0, v) : 0);
-      // Auto-actualizar monto del pago si es un solo método
-      this.sincronizarPagoConTotal();
-    });
+    this.clientesService.getClientes(this.branchService.currentBranchId)
+      .subscribe(r => this.clientesDisponibles.set(r.data ?? []));
+    if (environment.production) {
+      this.http.get<{ logoUrl?: string }>('/api/v1/tenant-profile')
+        .subscribe({ next: r => this.logoSalon.set(r.logoUrl ?? ''), error: () => {} });
+    }
   }
 
   private cargarCatalogos(): void {
-    const branchId = this.branchService.currentBranchId;
-    this.ventasService.getServicios(branchId).subscribe({
-      next: r => this.servicios.set(r.data),
-      error: () => {}
+    this.cargando.set(true);
+    const bid = this.branchService.currentBranchId;
+    this.ventasService.getServicios(bid).subscribe(r => this.servicios.set(r.data ?? []));
+    this.ventasService.getProductos(bid).subscribe(r => this.productos.set(r.data ?? []));
+    this.ventasService.getPeluqueros(bid).subscribe(r => this.peluqueros.set(r.data ?? []));
+    this.ventasService.getMetodosPago().subscribe(r => {
+      this.metodosPago.set(r.data ?? []);
+      this.cargando.set(false);
     });
-    this.ventasService.getProductos(branchId).subscribe({
-      next: r => this.productos.set(r.data),
-      error: () => {}
-    });
-    this.ventasService.getPeluqueros(branchId).subscribe({
-      next: r => { this.peluqueros.set(r.data); this.cargandoCatalogos.set(false); },
-      error: () => this.cargandoCatalogos.set(false)
-    });
-    this.ventasService.getMetodosPago().subscribe({
-      next: r => this.metodosPago.set(r.data),
-      error: () => {}
-    });
-    this.clientesService.getClientes().subscribe({
-      next: r => { if (r.success) this.clientesDisponibles.set(r.data); },
-      error: () => {}
-    });
+    this.cajaService.getEstadoCaja(bid).subscribe(r => this.cajaAbierta.set(r.data?.isOpen ?? false));
+    this.cargarVentas();
   }
 
   private cargarVentas(): void {
-    const branch = this.branchService.selectedBranch();
-    const hoy  = todayColombia();
-    const from = colombiaStartOfDay(hoy);
-    const to   = colombiaEndOfDay(hoy);
-    this.ventasService.getVentas(from, to, branch?.id, branch?.name).subscribe(r => this.ventas.set(r.data));
-  }
-
-  private verificarCaja(): void {
-    const branchId = this.branchService.selectedBranch()?.id;
-    this.cajaService.getCajaActual(branchId).subscribe({
-      next:  r => this.cajaAbierta.set(!!r.data),
-      error: () => this.cajaAbierta.set(false)
+    this.cargandoVentas.set(true);
+    const bid = this.branchService.currentBranchId;
+    const bname = this.branchService.selectedBranch()?.name;
+    this.ventasService.getVentas(
+      this.fechaDesde().toISOString(), this.fechaHasta().toISOString(), bid, bname
+    ).subscribe({
+      next: r => { this.ventas.set(r.data ?? []); this.cargandoVentas.set(false); },
+      error: () => this.cargandoVentas.set(false)
     });
   }
 
-  nuevaVenta(): void {
-    this.verificarCaja();  // refrescar estado async — el botón se deshabilita si no hay caja
-    this.resetFormulario();
-    this.step.set(0);
-    this.ventaExitosa.set(false);
-    this.vista.set('nueva-venta');
+  // ── Navegación ────────────────────────────────────────
+  abrirNuevaVenta(): void {
+    this.grupos.set([]);
+    this.clienteSeleccionado.set(null);
+    this.busquedaCliente.set('');
+    this.formCliente.reset({ documentType: 'CC', documentNumber: '', fullName: '', email: '', phone: '' });
+    this.tipAmount.set(0);
+    this.pagos.set([{ paymentMethodId: null, amount: 0 }]);
+    this.notas.set('');
     this.errorMsg.set(null);
+    this.ventaExitosa.set(false);
+    this.grupoEditandoIdx.set(null);
+    this.vista.set('nueva-venta');
+    this.agregarGrupo();
   }
 
   volverALista(): void {
     this.vista.set('lista');
-    this.errorMsg.set(null);
+    this.cargarVentas();
   }
 
-  buscarCliente(): void {
-    const doc = this.formCliente.get('documentNumber')!.value;
-    if (!doc) return;
-    this.buscandoCliente.set(true);
-    this.ventasService.buscarCliente(doc).subscribe(r => {
-      if (r.data) {
-        this.clienteEncontrado.set(r.data);
-        this.formCliente.patchValue(r.data);
-      } else {
-        this.clienteEncontrado.set(null);
-        this.formCliente.patchValue({ fullName: '', email: '', phone: '' });
-      }
-      this.buscandoCliente.set(false);
+  // ── Cliente ────────────────────────────────────────────
+  seleccionarClienteSugerido(c: Cliente): void {
+    this.clienteSeleccionado.set({
+      id: c.id, documentType: c.documentType, documentNumber: c.documentNumber,
+      fullName: c.fullName, email: c.email ?? '', phone: c.phone ?? ''
     });
-  }
-
-  seleccionarClienteExistente(c: Cliente): void {
     this.formCliente.patchValue({
-      documentType:   c.documentType,
-      documentNumber: c.documentNumber,
-      fullName:       c.fullName,
-      email:          c.email ?? '',
-      phone:          c.phone,
+      documentType: c.documentType, documentNumber: c.documentNumber,
+      fullName: c.fullName, email: c.email ?? '', phone: c.phone ?? ''
     });
-    this.busquedaCliente.set('');
+    this.busquedaCliente.set(c.fullName);
     this.mostrarSugerencias.set(false);
   }
 
-  onBusquedaBlur(): void {
-    // Pequeño delay para que el mousedown en la sugerencia se procese antes de cerrar
-    setTimeout(() => this.mostrarSugerencias.set(false), 160);
+  onBusquedaClienteInput(val: string): void {
+    this.busquedaCliente.set(val);
+    this.mostrarSugerencias.set(val.length >= 2);
+    if (!val) { this.clienteSeleccionado.set(null); this.formCliente.reset({ documentType: 'CC' }); }
   }
 
-  // ── Items ─────────────────────────────────────────────
-  agregarServicio(servicio: ServiceOption): void {
-    const existente = this.items().find(
-      i => i.type === 'Service' && (i as SaleServiceItem).serviceId === servicio.id
-    ) as SaleServiceItem | undefined;
-    if (existente) {
-      this.items.update(l => l.map(i => i === existente ? { ...existente, quantity: existente.quantity + 1 } : i));
+  // ── Grupos ────────────────────────────────────────────
+  agregarGrupo(): void {
+    const nuevo: SaleGroup = { stylist: null, items: [], abierto: true };
+    const idx = this.grupos().length;
+    this.grupos.update(gs => [...gs, nuevo]);
+    this.abrirEditorGrupo(idx);
+  }
+
+  abrirEditorGrupo(idx: number): void {
+    const g = this.grupos()[idx];
+    this.estilistaTemp.set(g.stylist);
+    this.serviciosTemp.set(g.items.filter(i => i.type === 'Service') as SaleServiceItem[]);
+    this.productosTemp.set(g.items.filter(i => i.type !== 'Service') as SaleProductItem[]);
+    this.grupoEditandoIdx.set(idx);
+    this.pasoGrupo.set(g.stylist ? 'servicios' : 'estilista');
+    this.pickerServ.set(null);
+    this.pickerProd.set(null);
+    this.filtroServ.set('');
+  }
+
+  cerrarEditorGrupo(): void {
+    const idx = this.grupoEditandoIdx();
+    if (idx === null) return;
+    const stylist = this.estilistaTemp();
+    const items: SaleItem[] = [
+      ...this.serviciosTemp(),
+      ...this.productosTemp(),
+    ];
+    if (!stylist && items.length === 0) {
+      this.grupos.update(gs => gs.filter((_, i) => i !== idx));
     } else {
-      this.items.update(l => [...l, { type: 'Service', serviceId: servicio.id, name: servicio.name, price: servicio.price, quantity: 1, hasSalonFee: servicio.hasSalonFee, salonFeePercent: servicio.salonFeePercent } as SaleServiceItem]);
+      this.grupos.update(gs => gs.map((g, i) =>
+        i === idx ? { ...g, stylist, items, abierto: false } : g
+      ));
     }
-    this.sincronizarPagoConTotal();
+    this.grupoEditandoIdx.set(null);
   }
 
-  agregarProductoVenta(producto: ProductOption): void {
-    const existente = this.items().find(i => i.type === 'ProductSale' && (i as SaleProductItem).productId === producto.id) as SaleProductItem | undefined;
-    if (existente) {
-      // Toggle: segundo click quita el producto
-      this.items.update(l => l.filter(i => i !== existente));
-    } else {
-      this.items.update(l => [...l, { type: 'ProductSale', productId: producto.id, name: producto.name, price: producto.salePrice, quantity: 1, stylistCommissionPercent: producto.stylistCommissionPercent ?? 10 } as SaleProductItem]);
-    }
-    this.sincronizarPagoConTotal();
+  eliminarGrupo(idx: number): void {
+    if (this.grupoEditandoIdx() === idx) this.grupoEditandoIdx.set(null);
+    this.grupos.update(gs => gs.filter((_, i) => i !== idx));
   }
 
-  agregarProductoInterno(producto: ProductOption): void {
-    const existente = this.items().find(i => i.type === 'ProductInternal' && (i as SaleProductItem).productId === producto.id) as SaleProductItem | undefined;
-    if (existente) {
-      // Toggle: segundo click quita el producto
-      this.items.update(l => l.filter(i => i !== existente));
-    } else {
-      this.items.update(l => [...l, { type: 'ProductInternal', productId: producto.id, name: producto.name, price: producto.purchasePrice, quantity: 1, stylistCommissionPercent: 0 } as SaleProductItem]);
-    }
-  }
-
-  actualizarCantidad(item: SaleItem, qty: number): void {
-    const q = Math.max(1, Math.floor(qty) || 1);
-    this.items.update(l => l.map(i => i === item ? { ...i, quantity: q } : i));
-    this.sincronizarPagoConTotal();
-  }
-
-  actualizarPrecio(item: SaleItem, precio: number): void {
-    this.items.update(l => l.map(i => i === item ? { ...i, price: Math.max(0, precio || 0) } : i));
-    this.sincronizarPagoConTotal();
-  }
-
-  quitarItem(item: SaleItem): void {
-    this.items.update(l => l.filter(i => i !== item));
-    this.sincronizarPagoConTotal();
-  }
-
-  // ── Pago mixto ────────────────────────────────────────
-  agregarPago(): void {
-    this.pagos.update(l => [...l, { paymentMethodId: null, amount: 0 }]);
-  }
-
-  quitarPago(index: number): void {
-    if (this.pagos().length === 1) return;
-    this.pagos.update(l => l.filter((_, i) => i !== index));
-    this.redistribuirPagos();
-  }
-
-  actualizarPagoMetodo(index: number, methodId: number): void {
-    this.pagos.update(l => l.map((p, i) => i === index ? { ...p, paymentMethodId: methodId } : p));
-  }
-
-  actualizarPagoMonto(index: number, amount: number): void {
-    this.pagos.update(l => l.map((p, i) => i === index ? { ...p, amount: Math.max(0, amount || 0) } : p));
-  }
-
-  completarConDiferencia(index: number): void {
-    const diff = this.diferenciaPago();
-    if (diff === 0) return;
-    const pago = this.pagos()[index];
-    this.pagos.update(l => l.map((p, i) => i === index ? { ...p, amount: Math.max(0, pago.amount + diff) } : p));
-  }
-
-  private sincronizarPagoConTotal(): void {
-    // Si solo hay un pago, autocompletar con el total
-    if (this.pagos().length === 1) {
-      const total = this.calcularTotalBruto();
-      this.pagos.update(l => [{ ...l[0], amount: total }]);
-    }
-  }
-
-  private redistribuirPagos(): void {
-    if (this.pagos().length === 1) {
-      this.sincronizarPagoConTotal();
-    }
-  }
-
-  private calcularTotalBruto(): number {
-    const items = this.items();
-    return items.reduce((s, i) => i.type !== 'ProductInternal' ? s + i.price * i.quantity : s, 0)
-      + this.tipAmountSig();
-  }
-
-  nombreMetodoPago(id: number | null): string {
-    if (!id) return '';
-    return this.metodosPago().find(m => m.id === id)?.name ?? '';
-  }
-
-  // ── Guardar venta ─────────────────────────────────────
-  guardarVenta(): void {
-    if (!this.puedeRegistrar()) return;
-    // Guardia final — verifica caja antes de enviar (captura estado obsoleto en memoria)
-    if (!this.cajaAbierta()) {
-      this.errorMsg.set('No hay caja abierta. Ve a Caja → Abrir turno e intenta de nuevo.');
+  seleccionarEstilista(s: StylistOption): void {
+    // Verificar que no esté ya en otro grupo (fusionar si repite)
+    const idx = this.grupoEditandoIdx()!;
+    const yaExiste = this.grupos().findIndex((g, i) => i !== idx && g.stylist?.id === s.id);
+    if (yaExiste >= 0) {
+      // Fusionar: mover todo al grupo existente
+      const itemsTemp: SaleItem[] = [...this.serviciosTemp(), ...this.productosTemp()];
+      this.grupos.update(gs => gs.map((g, i) => {
+        if (i === yaExiste) return { ...g, items: [...g.items, ...itemsTemp] };
+        return g;
+      }));
+      this.grupos.update(gs => gs.filter((_, i) => i !== idx));
+      this.grupoEditandoIdx.set(null);
       return;
     }
-    this.guardando.set(true);
+    this.estilistaTemp.set(s);
+    this.pasoGrupo.set('servicios');
+  }
+
+  // Servicios del grupo
+  agregarServicio(): void {
+    const svc = this.pickerServ();
+    if (!svc) return;
+    const precio = this.precioServ() > 0 ? this.precioServ() : svc.price;
+    const nuevo: SaleServiceItem = {
+      type: 'Service', serviceId: svc.id, name: svc.name,
+      price: precio, quantity: 1,
+      hasSalonFee: svc.hasSalonFee, salonFeePercent: svc.salonFeePercent
+    };
+    this.serviciosTemp.update(s => [...s, nuevo]);
+    this.pickerServ.set(null);
+    this.precioServ.set(0);
+  }
+
+  quitarServicio(i: number): void {
+    this.serviciosTemp.update(s => s.filter((_, idx) => idx !== i));
+  }
+
+  onPickerServChange(id: number): void {
+    const svc = this.servicios().find(s => s.id === +id);
+    if (svc) { this.pickerServ.set(svc); this.precioServ.set(svc.price); }
+  }
+
+  // Productos del grupo
+  agregarProducto(): void {
+    const prod = this.pickerProd();
+    if (!prod) return;
+    const precio = this.tipoProd() === 'venta'
+      ? (this.precioProd() > 0 ? this.precioProd() : prod.salePrice)
+      : prod.purchasePrice;
+    const tipo = this.tipoProd() === 'venta' ? 'ProductSale' : 'ProductInternal';
+    const nuevo: SaleProductItem = {
+      type: tipo, productId: prod.id, name: prod.name,
+      price: precio, quantity: 1,
+      stylistCommissionPercent: prod.stylistCommissionPercent
+    };
+    this.productosTemp.update(p => [...p, nuevo]);
+    this.pickerProd.set(null);
+    this.precioProd.set(0);
+  }
+
+  quitarProducto(i: number): void {
+    this.productosTemp.update(p => p.filter((_, idx) => idx !== i));
+  }
+
+  onPickerProdChange(id: number): void {
+    const prod = this.productos().find(p => p.id === +id);
+    if (prod) { this.pickerProd.set(prod); this.precioProd.set(prod.salePrice); }
+  }
+
+  // ── Pago ──────────────────────────────────────────────
+  setMetodoPago(idx: number, id: number): void {
+    this.pagos.update(ps => ps.map((p, i) => i === idx ? { ...p, paymentMethodId: +id } : p));
+    this.syncPagoUnico();
+  }
+
+  setMontoPago(idx: number, val: number): void {
+    this.pagos.update(ps => ps.map((p, i) => i === idx ? { ...p, amount: val } : p));
+  }
+
+  agregarPago(): void {
+    this.pagos.update(ps => [...ps, { paymentMethodId: null, amount: 0 }]);
+  }
+
+  quitarPago(idx: number): void {
+    if (this.pagos().length <= 1) return;
+    this.pagos.update(ps => ps.filter((_, i) => i !== idx));
+  }
+
+  private syncPagoUnico(): void {
+    if (this.pagos().length === 1) {
+      this.pagos.update(ps => [{ ...ps[0], amount: this.totalConPropina() }]);
+    }
+  }
+
+  onTipChange(val: number): void {
+    this.tipAmount.set(val || 0);
+    this.syncPagoUnico();
+  }
+
+  // ── Registrar ─────────────────────────────────────────
+  registrarVenta(): void {
+    if (!this.puedeRegistrar()) return;
     this.errorMsg.set(null);
+    this.guardando.set(true);
 
-    const cv = this.formCliente.value;
-    const vv = this.formVenta.value;
-
-    const expandir = <T>(type: string, mapper: (i: SaleItem) => T): T[] =>
-      this.items().filter(i => i.type === type).flatMap(i =>
-        Array.from({ length: i.quantity }, () => mapper(i))
-      );
-
-    // Clientes anónimos (sin documento) reciben un id único para evitar colisiones en BD
-    const docNumber = cv.documentNumber?.trim() || `WALK-${Date.now()}`;
-    const fullName  = cv.fullName?.trim()       || 'Consumidor final';
-    const phone     = cv.phone?.trim()          || '';
+    const fc    = this.formCliente.value;
+    const branch = this.branchService.selectedBranch();
+    const docType   = fc.documentType || 'CC';
+    const docNumber = fc.documentNumber || 'SIN_DOCUMENTO';
+    const fullName  = fc.fullName || 'Consumidor Final';
 
     const request = {
-      stylistId: vv.stylistId!,
-      stylistName: this.peluqueroSeleccionado()?.fullName ?? '',
-      commissionPercent: this.peluqueroSeleccionado()?.commissionPercent ?? 0,
-      branchId: this.branchService.selectedBranch()?.id ?? undefined,
-      branchName: this.branchService.selectedBranch()?.name ?? undefined,
-      clientDocumentType: cv.documentType || 'CC',
+      clientDocumentType:   docType,
       clientDocumentNumber: docNumber,
-      clientFullName: fullName,
-      clientEmail: cv.email || undefined,
-      clientPhone: phone || undefined,
-      payments: this.pagos().filter(p => p.paymentMethodId && p.amount > 0).map(p => ({ paymentMethodId: p.paymentMethodId!, amount: p.amount })),
-      tipAmount: vv.tipAmount ?? 0,
-      notes: vv.notes ?? undefined,
-      services: expandir('Service', i => ({ serviceId: (i as SaleServiceItem).serviceId, price: i.price })),
-      productsSold: expandir('ProductSale', i => ({ productId: (i as SaleProductItem).productId, price: i.price })),
-      productsInternal: expandir('ProductInternal', i => ({ productId: (i as SaleProductItem).productId, price: i.price })),
+      clientFullName:       fullName,
+      clientEmail:          fc.email || undefined,
+      clientPhone:          fc.phone || undefined,
+      branchId:   branch?.id,
+      branchName: branch?.name,
+      payments:   this.pagos()
+        .filter(p => p.paymentMethodId && p.amount > 0)
+        .map(p => ({ paymentMethodId: p.paymentMethodId!, amount: p.amount })),
+      tipAmount: this.tipAmount(),
+      notes:     this.notas() || undefined,
+      groups:    this.grupos().map(g => ({
+        stylistId:         g.stylist!.id,
+        stylistName:       g.stylist!.fullName,
+        commissionPercent: g.stylist!.commissionPercent,
+        services: g.items
+          .filter(i => i.type === 'Service')
+          .map(i => ({ serviceId: (i as SaleServiceItem).serviceId, price: i.price })),
+        productsSold: g.items
+          .filter(i => i.type === 'ProductSale')
+          .map(i => ({ productId: (i as SaleProductItem).productId, price: i.price })),
+        productsInternal: g.items
+          .filter(i => i.type === 'ProductInternal')
+          .map(i => ({ productId: (i as SaleProductItem).productId, price: i.price })),
+      })),
     };
 
-    this.ventasService.crearVenta(request).subscribe({
-      next: (r: any) => {
-        // Capturar datos del recibo antes de resetear el formulario
-        const itemsRecibo = this.items()
-          .filter(i => i.type !== 'ProductInternal')
-          .map(i => ({ name: i.name, price: i.price, quantity: i.quantity }));
-        const pagosRecibo = this.pagos()
-          .filter(p => p.paymentMethodId && p.amount > 0)
-          .map(p => ({ method: this.nombreMetodoPago(p.paymentMethodId), amount: p.amount }));
-
-        this.ventaExitosaData.set({
-          total: this.totalACobrar(),
-          stylistTotal: this.calculo().stylistTotal,
-          salonTotal: this.calculo().salonTotal,
-          stylistName: this.peluqueroSeleccionado()?.fullName ?? '',
-          clientName: cv.fullName?.trim() || 'Consumidor final',
-          clientDocumentType: cv.documentType || 'CC',
-          clientDocumentNumber: cv.documentNumber?.trim() || '',
-          branchName: this.branchService.selectedBranch()?.name ?? 'Sede Principal',
-          logoUrl: this.logoSalon(),
-          fecha: new Date(),
-          itemsRecibo,
-          pagosRecibo,
-        });
-        this.cargarVentas();
-        this.folioVenta.set('V-' + Date.now());
-        this.ventaExitosa.set(true);
+    this.ticketService.crearTicket(request).subscribe({
+      next: () => {
         this.guardando.set(false);
+        this.ventaExitosa.set(true);
       },
-      error: (err: any) => {
-        // El middleware devuelve { success: false, message: "..." } con camelCase
-        const msg: string = err?.error?.message || err?.error?.title
-          || 'Error al guardar la venta. Intenta de nuevo.';
+      error: (e) => {
+        const msg = e?.error?.message || e?.error?.errors?.[0] || 'Error al registrar la venta.';
         this.errorMsg.set(msg);
-        // Si el backend rechazó por caja, sincronizar el estado local
-        if (msg.toLowerCase().includes('caja')) {
-          this.cajaAbierta.set(false);
-          this.vista.set('lista');  // volver a la lista para que el aviso sea visible
-        }
         this.guardando.set(false);
       }
     });
+  }
+
+  nuevaVentaTrasSalida(): void {
+    this.abrirNuevaVenta();
   }
 
   // ── Anular ────────────────────────────────────────────
-  iniciarAnulacion(venta: Sale): void {
-    this.ventaAnular.set(venta);
-    this.formAnular.reset();
-    this.vista.set('anular');
-  }
+  abrirAnular(v: Sale): void { this.ventaAnular.set(v); this.vista.set('anular'); }
+  cancelarAnular(): void    { this.ventaAnular.set(null); this.vista.set('lista'); }
 
-  confirmarAnulacion(): void {
-    if (this.formAnular.invalid || !this.ventaAnular()) return;
+  readonly formAnular = this.fb.group({ reason: ['', Validators.required] });
+
+  confirmarAnular(): void {
+    if (this.formAnular.invalid) return;
+    const v = this.ventaAnular();
+    if (!v) return;
     this.guardando.set(true);
-    this.ventasService.anularVenta(this.ventaAnular()!.id, this.formAnular.value.reason!).subscribe({
-      next: () => {
-        this.cargarVentas();
-        this.successMsg.set('Venta anulada correctamente');
-        this.vista.set('lista');
-        this.guardando.set(false);
-        setTimeout(() => this.successMsg.set(null), 4000);
-      },
-      error: () => { this.errorMsg.set('Error al anular.'); this.guardando.set(false); }
+    this.ventasService.anularVenta(v.id, this.formAnular.value.reason!).subscribe({
+      next: () => { this.guardando.set(false); this.cancelarAnular(); },
+      error: () => { this.guardando.set(false); }
     });
   }
 
-  cancelarAnulacion(): void {
-    this.ventaAnular.set(null);
-    this.vista.set('lista');
+  // ── Detalle de venta ──────────────────────────────────
+  abrirDetalle(v: Sale): void {
+    this.ventasService.getSaleDetail(v.id).subscribe(r => this.ventaDetalle.set(r.data));
+  }
+  cerrarDetalle(): void { this.ventaDetalle.set(null); }
+
+  // ── Cálculo de participación ──────────────────────────
+  grupoSubtotal(g: SaleGroup): number {
+    return g.items.reduce((s, i) => s + i.price * i.quantity, 0);
   }
 
-  // ── Step navigation ───────────────────────────────────
-  canNext(): boolean {
-    if (this.step() === 0) return !!this.peluqueroSeleccionado();
-    if (this.step() === 1) return this.hayServicios();
-    if (this.step() === 3) return this.pagosValidos();
-    return true;
+  grupoParticipacion(g: SaleGroup): number {
+    if (!g.stylist) return 0;
+    const items = g.items;
+    const grossServices = items.filter(i => i.type === 'Service').reduce((s, i) => s + i.price, 0);
+    const grossProducts = items.filter(i => i.type === 'ProductSale').reduce((s, i) => s + i.price, 0);
+    const pct = g.stylist.commissionPercent / 100;
+    return Math.round((grossServices + grossProducts) * pct);
   }
 
-  nextStep(): void { if (this.canNext()) this.step.update(s => Math.min(4, s + 1)); }
-  prevStep(): void { this.step.update(s => Math.max(0, s - 1)); }
-
-  seleccionarPeluquero(p: StylistOption): void {
-    this.peluqueroSeleccionado.set(p);
-    this.formVenta.get('stylistId')!.setValue(p.id);
+  // Utilidades de vista
+  tieneItemsEnGrupo(idx: number): boolean {
+    return (this.grupos()[idx]?.items.length ?? 0) > 0;
   }
 
-  nuevaVentaDesdeExito(): void {
-    this.resetFormulario();
-    this.step.set(0);
-    this.ventaExitosa.set(false);
-    this.ventaExitosaData.set(null);
-    this.mostrarRecibo.set(false);
-  }
-
-  imprimirRecibo(): void {
-    const d = this.ventaExitosaData();
-    if (!d) return;
-
-    const fmt = (n: number) =>
-      new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
-    const fecha = d.fecha.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const hora  = d.fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-    const esAnonimo = !d.clientDocumentNumber || d.clientDocumentNumber.startsWith('WALK-');
-
-    const rows = d.itemsRecibo.map(i => `
-      <tr>
-        <td>${i.name}${i.quantity > 1 ? ' x' + i.quantity : ''}</td>
-        <td style="text-align:right">${fmt(i.price * i.quantity)}</td>
-      </tr>`).join('');
-
-    const pagos = d.pagosRecibo.map(p => `
-      <tr>
-        <td style="color:#555">${p.method}</td>
-        <td style="text-align:right;color:#555">${fmt(p.amount)}</td>
-      </tr>`).join('');
-
-    const logoHtml = d.logoUrl
-      ? `<img src="${d.logoUrl}" alt="logo"
-           style="width:70px;height:70px;object-fit:contain;margin:0 auto 6px;display:block" />`
-      : '';
-
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recibo</title>
-    <style>
-      * { margin:0; padding:0; box-sizing:border-box; }
-      body { font-family:'Courier New',monospace; font-size:12px; padding:16px; max-width:300px; margin:0 auto; color:#111; }
-      .center { text-align:center; }
-      .salon { font-size:15px; font-weight:bold; letter-spacing:0.05em; text-transform:uppercase; }
-      .divider { border:none; border-top:1px dashed #aaa; margin:8px 0; }
-      table { width:100%; border-collapse:collapse; }
-      td { padding:2px 0; }
-      .total td { font-weight:bold; font-size:14px; border-top:1px dashed #aaa; padding-top:6px; }
-      .label { font-size:9px; text-transform:uppercase; letter-spacing:0.06em; color:#777; margin-bottom:1px; }
-      .footer { text-align:center; font-size:10px; color:#777; margin-top:10px; }
-    </style></head><body>
-    <div class="center">
-      ${logoHtml}
-      <div class="salon">${d.branchName}</div>
-      <div style="font-size:10px;margin-top:3px">${fecha} · ${hora}</div>
-    </div>
-    <hr class="divider">
-    <div class="label">Cliente</div>
-    <div>${d.clientName}</div>
-    ${!esAnonimo ? `<div style="font-size:10px;color:#555">${d.clientDocumentType} ${d.clientDocumentNumber}</div>` : ''}
-    <hr class="divider">
-    <div class="label">Detalle</div>
-    <table>${rows}</table>
-    <table class="total">
-      <tr><td>TOTAL</td><td style="text-align:right">${fmt(d.total)}</td></tr>
-    </table>
-    <hr class="divider">
-    <div class="label">Pago</div>
-    <table>${pagos}</table>
-    <div class="footer">¡Gracias por tu visita!</div>
-    </body></html>`;
-
-    const w = window.open('', '_blank', 'width=380,height=620,toolbar=0,menubar=0');
-    if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); }
-  }
-
-  // ── Helpers ───────────────────────────────────────────
-  private resetFormulario(): void {
-    this.formCliente.reset({ documentType: 'CC' });
-    this.formVenta.reset({ tipAmount: 0 });
-    this.formClienteValido.set(true);   // cliente es opcional → siempre válido al resetear
-    this.formVentaValido.set(false);
-    this.items.set([]);
-    this.pagos.set([{ paymentMethodId: null, amount: 0 }]);
-    this.clienteEncontrado.set(null);
-    this.busquedaCliente.set('');
-    this.mostrarSugerencias.set(false);
-    this.peluqueroSeleccionado.set(null);
-    this.filtroServicio.set('');
-    this.categoriaServicio.set('Todos');
-    this.filtroProductoVenta.set('');
-    this.ventaExitosa.set(false);
-    this.ventaExitosaData.set(null);
-    this.folioVenta.set('');
-  }
-
-  itemsServicio()        { return this.items().filter(i => i.type === 'Service') as SaleServiceItem[]; }
-  itemsProductoVenta()   { return this.items().filter(i => i.type === 'ProductSale') as SaleProductItem[]; }
-  itemsProductoInterno() { return this.items().filter(i => i.type === 'ProductInternal') as SaleProductItem[]; }
-  subtotalItem(item: SaleItem): number { return item.price * item.quantity; }
-
-  servicioYaAgregado(id: number)       { return this.items().some(i => i.type === 'Service' && (i as SaleServiceItem).serviceId === id); }
-  productoVentaYaAgregado(id: number)  { return this.items().some(i => i.type === 'ProductSale' && (i as SaleProductItem).productId === id); }
-  productoInternoYaAgregado(id: number){ return this.items().some(i => i.type === 'ProductInternal' && (i as SaleProductItem).productId === id); }
-
-  trackItem(_: number, item: SaleItem) {
-    return item.type === 'Service' ? `S-${(item as SaleServiceItem).serviceId}` : `P-${item.type}-${(item as SaleProductItem).productId}`;
-  }
-  trackPago(index: number) { return index; }
-
-  razonBotonDeshabilitado(): string {
-    const pendientes: string[] = [];
-    if (!this.hayServicios())                          pendientes.push('agrega al menos un servicio');
-    if (!this.formVentaValido() || !this.formVenta.get('stylistId')!.value) pendientes.push('selecciona un peluquero');
-    if (this.pagos().some(p => !p.paymentMethodId))    pendientes.push('selecciona el método de pago');
-    if (this.diferenciaPago() > 0)  pendientes.push(`falta ${this.diferenciaPago().toLocaleString('es-CO')} por asignar`);
-    if (this.diferenciaPago() < 0)  pendientes.push(`excede el total en ${Math.abs(this.diferenciaPago()).toLocaleString('es-CO')}`);
-    if (pendientes.length === 0) return '';
-    const primero = pendientes[0].charAt(0).toUpperCase() + pendientes[0].slice(1);
-    return pendientes.length === 1 ? primero : `${primero} (+${pendientes.length - 1} más)`;
-  }
+  itemsGrupo(g: SaleGroup): SaleItem[] { return g.items; }
 }

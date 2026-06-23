@@ -1,924 +1,484 @@
+<!-- ══════════════════════════════════════════════════════════
+     VISTA: LISTA DE VENTAS
+══════════════════════════════════════════════════════════ -->
 @if (vista() === 'lista') {
-  <div class="page fade-in">
-    <div class="page-head">
-      <div>
-        <div class="eyebrow">Registrar ventas</div>
-        <h1><span class="serif">Ventas de</span> <span class="serif-italic">hoy</span></h1>
-        @if (ventas().length > 0) { <div class="deck">{{ ventas().length }} transacciones registradas</div> }
-      </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        @if (!cajaAbierta()) {
-          <div style="padding:8px 14px;background:var(--warn-soft);border-radius:6px;font-size:12px;color:var(--warn)">
-            <sp-icon name="alert" [size]="13" /> Sin caja abierta
-          </div>
+<div class="page fade-in">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Punto de venta</div>
+      <h1><span class="serif">Consultar </span><span class="serif-italic">ventas</span></h1>
+      <div class="deck">{{ ventas().length }} ventas registradas</div>
+    </div>
+    <button class="btn btn-primary" (click)="abrirNuevaVenta()">
+      <sp-icon name="plus" [size]="14" /> Registrar venta
+    </button>
+  </div>
+
+  <!-- Filtro de fechas -->
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+    <label class="field" style="flex:1;min-width:160px">
+      <span class="label">Desde</span>
+      <input class="input" type="datetime-local"
+        [value]="fechaDesde() | date:'yyyy-MM-ddTHH:mm'"
+        (change)="fechaDesde.set($any($event.target).valueAsDate ?? fechaDesde())" />
+    </label>
+    <label class="field" style="flex:1;min-width:160px">
+      <span class="label">Hasta</span>
+      <input class="input" type="datetime-local"
+        [value]="fechaHasta() | date:'yyyy-MM-ddTHH:mm'"
+        (change)="fechaHasta.set($any($event.target).valueAsDate ?? fechaHasta())" />
+    </label>
+    <button class="btn btn-ghost" style="align-self:flex-end" (click)="cargarVentas()">
+      <sp-icon name="search" [size]="13" /> Buscar
+    </button>
+  </div>
+
+  @if (cargandoVentas()) {
+    <div style="padding:40px;text-align:center;color:var(--ink-4)">Cargando ventas…</div>
+  } @else if (ventas().length === 0) {
+    <div class="card" style="padding:60px;text-align:center;color:var(--ink-4)">
+      <div style="font-size:14px;margin-top:12px">No hay ventas en el período seleccionado</div>
+      <button class="btn btn-primary" style="margin-top:20px" (click)="abrirNuevaVenta()">
+        <sp-icon name="plus" [size]="14" /> Registrar primera venta
+      </button>
+    </div>
+  } @else {
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Cliente</th><th>Colaborador</th>
+          <th style="text-align:right">Total</th><th>Estado</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (v of ventas(); track v.id) {
+          <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'">
+            <td class="tnum" style="font-size:12px">{{ v.saleDateTime | date:'dd/MM HH:mm':'':'es-CO' }}</td>
+            <td>
+              <div style="font-weight:500">{{ v.clientName }}</div>
+              <div style="font-size:11px;color:var(--ink-4)">{{ v.clientDocument }}</div>
+            </td>
+            <td>{{ v.stylistName }}</td>
+            <td class="tnum" style="text-align:right">
+              {{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+            </td>
+            <td>
+              @if (v.status === 'Active') { <span class="pill pill-accent">Activa</span> }
+              @else if (v.status === 'Voided') { <span class="pill pill-warn">Anulada</span> }
+              @else if (v.status === 'Settled') { <span class="pill">Liquidada</span> }
+            </td>
+            <td>
+              <div style="display:flex;gap:4px;justify-content:flex-end">
+                <button class="btn btn-icon btn-ghost" title="Ver detalle" (click)="abrirDetalle(v)">
+                  <sp-icon name="eye" [size]="14" />
+                </button>
+                @if (v.status === 'Active') {
+                  <button class="btn btn-icon btn-ghost" title="Anular" (click)="abrirAnular(v)">
+                    <sp-icon name="x" [size]="14" />
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
         }
-        <button class="btn btn-primary" (click)="nuevaVenta()"
-          [disabled]="!cajaAbierta() || cargandoCatalogos()">
-          @if (cargandoCatalogos()) {
-            <span style="display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite"></span>
-            Cargando…
-          } @else {
-            <sp-icon name="plus" [size]="14" /> Nueva venta
-          }
+      </tbody>
+    </table>
+  }
+</div>
+}
+
+<!-- ══════════════════════════════════════════════════════════
+     VISTA: NUEVA VENTA (carrito multi-estilista)
+══════════════════════════════════════════════════════════ -->
+@if (vista() === 'nueva-venta') {
+<div class="page fade-in">
+
+  @if (ventaExitosa()) {
+    <!-- ── Pantalla éxito ── -->
+    <div style="max-width:480px;margin:80px auto;text-align:center">
+      <div style="font-size:40px;margin-bottom:16px">✓</div>
+      <h2 class="serif" style="font-size:28px;font-weight:400;margin-bottom:8px">Venta registrada</h2>
+      <p style="color:var(--ink-3);margin-bottom:32px">La venta fue guardada exitosamente.</p>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button class="btn btn-ghost" (click)="volverALista()">Ver ventas</button>
+        <button class="btn btn-primary" (click)="nuevaVentaTrasSalida()">
+          <sp-icon name="plus" [size]="14" /> Nueva venta
         </button>
       </div>
     </div>
-    @if (successMsg()) { <div class="toast" style="position:static;transform:none;margin-bottom:16px;display:inline-flex"><sp-icon name="check" [size]="14" /> {{ successMsg() }}</div> }
+  } @else {
 
-    @if (ventas().length === 0) {
-      <div class="card" style="padding:60px;text-align:center">
-        <div class="eyebrow" style="margin-bottom:8px">Sin ventas</div>
-        <div style="color:var(--ink-4);font-size:14px">No hay ventas registradas hoy.</div>
-        <button class="btn btn-primary btn-lg" style="margin-top:20px" (click)="nuevaVenta()"
-          [disabled]="!cajaAbierta() || cargandoCatalogos()">
-          <sp-icon name="plus" [size]="14" /> Registrar primera venta
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Punto de venta</div>
+        <h1><span class="serif">Registrar </span><span class="serif-italic">venta</span></h1>
+      </div>
+      <button class="btn btn-ghost" (click)="volverALista()">
+        <sp-icon name="chevron-left" [size]="14" /> Volver
+      </button>
+    </div>
+
+    <div class="carrito-layout">
+
+      <!-- ── Columna principal ── -->
+      <div class="carrito-main">
+
+        <!-- Cliente -->
+        <div class="section-card">
+          <div class="section-label">Cliente (opcional)</div>
+          <div style="position:relative">
+            <input class="input" placeholder="Buscar por nombre, cédula o teléfono…"
+              [value]="busquedaCliente()"
+              (input)="onBusquedaClienteInput($any($event.target).value)"
+              (blur)="mostrarSugerencias.set(false)" />
+            @if (mostrarSugerencias() && clientesSugeridos().length > 0) {
+              <div class="sugerencias">
+                @for (c of clientesSugeridos(); track c.id) {
+                  <div class="sugerencia-item" (mousedown)="seleccionarClienteSugerido(c)">
+                    <div style="font-weight:500">{{ c.fullName }}</div>
+                    <div style="font-size:11px;color:var(--ink-4)">{{ c.documentType }} {{ c.documentNumber }}</div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+          @if (!clienteSeleccionado()) {
+            <div class="mini-form" [formGroup]="formCliente">
+              <div style="display:grid;grid-template-columns:100px 1fr;gap:8px">
+                <select class="input" formControlName="documentType">
+                  <option value="CC">CC</option>
+                  <option value="CE">CE</option>
+                  <option value="NIT">NIT</option>
+                  <option value="PAS">Pasaporte</option>
+                </select>
+                <input class="input mono" formControlName="documentNumber" placeholder="Número documento" />
+              </div>
+              <input class="input" formControlName="fullName" placeholder="Nombre completo *" />
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <input class="input" formControlName="email" placeholder="Email" />
+                <input class="input" formControlName="phone" placeholder="Teléfono" />
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Grupos de estilistas -->
+        @for (grupo of grupos(); track $index; let idx = $index) {
+          <div class="group-card" [class.group-editing]="grupoEditandoIdx() === idx">
+
+            <!-- Cabecera del grupo -->
+            <div class="group-header">
+              <div class="group-header-left">
+                <div class="group-dot" [style.background]="'hsl(' + (idx * 60) + ',45%,50%)'"></div>
+                <span class="group-stylist-name">
+                  {{ grupo.stylist?.fullName ?? 'Selecciona colaborador' }}
+                </span>
+                @if (grupo.items.length > 0) {
+                  <span class="acc-count">{{ grupo.items.length }}</span>
+                }
+              </div>
+              <div style="display:flex;gap:4px;align-items:center">
+                @if (grupo.stylist && grupo.items.length > 0) {
+                  <span class="tnum" style="font-size:13px;font-weight:600;color:var(--ink-3)">
+                    {{ grupoSubtotal(grupo) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                  </span>
+                }
+                <button class="btn btn-icon btn-ghost" (click)="abrirEditorGrupo(idx)" title="Editar">
+                  <sp-icon name="edit" [size]="13" />
+                </button>
+                <button class="btn btn-icon btn-ghost" (click)="eliminarGrupo(idx)" title="Eliminar">
+                  <sp-icon name="x" [size]="13" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Items del grupo (resumen cuando no está editando) -->
+            @if (grupoEditandoIdx() !== idx && grupo.items.length > 0) {
+              <div class="group-items-summary">
+                @for (item of grupo.items; track $index) {
+                  <div class="item-summary-row">
+                    <span>{{ item.name }}</span>
+                    <span class="tnum">{{ item.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Editor del grupo (cuando está activo) -->
+            @if (grupoEditandoIdx() === idx) {
+              <div class="group-editor">
+
+                <!-- PASO: Seleccionar estilista -->
+                @if (pasoGrupo() === 'estilista') {
+                  <div class="editor-section">
+                    <div class="editor-label">Selecciona el colaborador</div>
+                    <div class="stylist-grid">
+                      @for (s of peluqueros(); track s.id) {
+                        <button class="stylist-btn"
+                          [class.active]="estilistaTemp()?.id === s.id"
+                          (click)="seleccionarEstilista(s)">
+                          <div style="font-weight:600;font-size:13px">{{ s.fullName }}</div>
+                          <div style="font-size:11px;color:var(--ink-4)">{{ s.commissionPercent }}% participación</div>
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
+
+                <!-- PASO: Servicios -->
+                @if (pasoGrupo() === 'servicios' || pasoGrupo() === 'listo') {
+                  <div class="editor-section">
+                    <div class="editor-label">Servicios</div>
+
+                    @if (serviciosTemp().length > 0) {
+                      <div class="items-list">
+                        @for (s of serviciosTemp(); track $index; let i = $index) {
+                          <div class="item-row-edit">
+                            <span class="item-name-edit">{{ s.name }}</span>
+                            <span class="tnum item-price-edit">{{ s.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                            <button class="btn btn-icon btn-ghost" (click)="quitarServicio(i)">
+                              <sp-icon name="x" [size]="11" />
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    <div class="picker-row">
+                      <input class="input" placeholder="Buscar servicio…"
+                        [value]="filtroServ()"
+                        (input)="filtroServ.set($any($event.target).value)"
+                        style="flex:1" />
+                    </div>
+                    <div class="picker-row">
+                      <select class="input" style="flex:1"
+                        (change)="onPickerServChange(+$any($event.target).value)">
+                        <option value="0">— Selecciona servicio —</option>
+                        @for (s of serviciosFiltrados(); track s.id) {
+                          <option [value]="s.id">{{ s.name }} — {{ s.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</option>
+                        }
+                      </select>
+                    </div>
+                    @if (pickerServ()) {
+                      <div class="picker-row">
+                        <input class="input mono" type="number" [value]="precioServ()"
+                          (input)="precioServ.set(+$any($event.target).value)"
+                          style="width:130px" placeholder="Precio" />
+                        <button class="btn btn-primary btn-sm" (click)="agregarServicio()">
+                          <sp-icon name="plus" [size]="13" /> Agregar
+                        </button>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Pasar a productos -->
+                  <div class="editor-section">
+                    <div class="editor-label">Productos</div>
+
+                    @if (productosTemp().length > 0) {
+                      <div class="items-list">
+                        @for (p of productosTemp(); track $index; let i = $index) {
+                          <div class="item-row-edit">
+                            <span class="item-name-edit">{{ p.name }}</span>
+                            <span class="tnum item-price-edit">{{ p.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                            <button class="btn btn-icon btn-ghost" (click)="quitarProducto(i)">
+                              <sp-icon name="x" [size]="11" />
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    <div class="picker-row">
+                      <button class="btn btn-sm" [class.btn-primary]="filtroProd()==='venta'" [class.btn-ghost]="filtroProd()!=='venta'" (click)="filtroProd.set('venta')">Venta</button>
+                      <button class="btn btn-sm" [class.btn-primary]="filtroProd()==='interno'" [class.btn-ghost]="filtroProd()!=='interno'" (click)="filtroProd.set('interno')">Consumo interno</button>
+                    </div>
+                    <div class="picker-row">
+                      <select class="input" style="flex:1"
+                        (change)="onPickerProdChange(+$any($event.target).value)">
+                        <option value="0">— Selecciona producto —</option>
+                        @for (p of productosFiltrados(); track p.id) {
+                          <option [value]="p.id">{{ p.name }} ({{ p.brand }}) — {{ (filtroProd()==='venta' ? p.salePrice : p.purchasePrice) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</option>
+                        }
+                      </select>
+                    </div>
+                    @if (pickerProd()) {
+                      <div class="picker-row">
+                        <select class="input" style="width:120px"
+                          (change)="tipoProd.set($any($event.target).value)">
+                          <option value="venta">Venta</option>
+                          <option value="interno">Interno</option>
+                        </select>
+                        <input class="input mono" type="number" [value]="precioProd()"
+                          (input)="precioProd.set(+$any($event.target).value)"
+                          style="width:120px" placeholder="Precio" />
+                        <button class="btn btn-primary btn-sm" (click)="agregarProducto()">
+                          <sp-icon name="plus" [size]="13" /> Agregar
+                        </button>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Botón confirmar grupo -->
+                  <div style="padding:12px 16px;border-top:1px solid var(--hair-2)">
+                    <button class="btn btn-primary" style="width:100%" (click)="cerrarEditorGrupo()">
+                      <sp-icon name="check" [size]="13" /> Listo con {{ estilistaTemp()?.fullName }}
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <button class="add-group-btn" (click)="agregarGrupo()">
+          <sp-icon name="plus" [size]="14" /> Agregar otro colaborador
         </button>
       </div>
-    } @else {
-      <div class="card" style="overflow:hidden">
-        <div class="table-wrap">
-          <table class="tbl">
-            <thead><tr><th>#</th><th>Hora</th><th>Cliente</th><th>Colaborador</th><th>Método</th><th style="text-align:right">Total</th><th style="text-align:right">Com. colaborador</th><th>Estado</th><th></th></tr></thead>
+
+      <!-- ── Columna lateral: Resumen + Pago ── -->
+      <div class="carrito-side">
+        <div class="section-card sticky-side">
+          <div class="section-label">Resumen de la venta</div>
+
+          @for (g of grupos(); track $index) {
+            @if (g.stylist && g.items.length > 0) {
+              <div class="resumen-grupo">
+                <div class="resumen-stylist">{{ g.stylist.fullName }}</div>
+                <div class="resumen-amount tnum">
+                  {{ grupoSubtotal(g) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                </div>
+              </div>
+            }
+          }
+
+          <div class="resumen-row">
+            <span style="color:var(--ink-3)">Propina</span>
+            <div style="display:flex;align-items:center;gap:4px">
+              <span style="font-size:12px;color:var(--ink-4)">$</span>
+              <input class="input mono" type="number" min="0"
+                [value]="tipAmount()"
+                (input)="onTipChange(+$any($event.target).value)"
+                style="width:90px;padding:4px 6px;font-size:13px" />
+            </div>
+          </div>
+
+          <div class="resumen-total">
+            <span>TOTAL</span>
+            <span class="tnum">{{ totalConPropina() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+          </div>
+
+          <!-- Métodos de pago -->
+          <div class="section-label" style="margin-top:16px">Pago</div>
+          @for (pago of pagos(); track $index; let i = $index) {
+            <div class="pago-row">
+              <select class="input" style="flex:1"
+                (change)="setMetodoPago(i, +$any($event.target).value)">
+                <option value="0">— Método —</option>
+                @for (m of metodosPago(); track m.id) {
+                  <option [value]="m.id" [selected]="pago.paymentMethodId === m.id">{{ m.name }}</option>
+                }
+              </select>
+              <input class="input mono" type="number" min="0"
+                [value]="pago.amount"
+                (input)="setMontoPago(i, +$any($event.target).value)"
+                style="width:110px;text-align:right" />
+              @if (pagos().length > 1) {
+                <button class="btn btn-icon btn-ghost" (click)="quitarPago(i)">
+                  <sp-icon name="x" [size]="12" />
+                </button>
+              }
+            </div>
+          }
+          <button class="btn btn-ghost btn-sm" style="margin-top:4px" (click)="agregarPago()">
+            <sp-icon name="plus" [size]="12" /> Pago mixto
+          </button>
+
+          @if (diferencia() !== 0 && totalConPropina() > 0) {
+            <div [style.color]="diferencia() > 0 ? 'var(--warn)' : 'var(--success)'"
+              style="font-size:12px;margin-top:8px;text-align:right">
+              {{ diferencia() > 0 ? 'Falta: ' : 'Cambio: ' }}
+              {{ Math.abs(diferencia()) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+            </div>
+          }
+
+          @if (errorMsg()) {
+            <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-top:12px">
+              {{ errorMsg() }}
+            </div>
+          }
+
+          <button class="btn btn-primary" style="width:100%;margin-top:16px"
+            [disabled]="!puedeRegistrar()"
+            (click)="registrarVenta()">
+            @if (guardando()) { Guardando… }
+            @else { <sp-icon name="check" [size]="14" /> Registrar venta }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+}
+
+<!-- ══════════════════════════════════════════════════════════
+     VISTA: ANULAR
+══════════════════════════════════════════════════════════ -->
+@if (vista() === 'anular') {
+<div class="page fade-in">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Ventas</div>
+      <h1 class="serif" style="font-size:28px;font-weight:400">Anular venta</h1>
+    </div>
+  </div>
+  @if (ventaAnular()) {
+    <div class="card" style="max-width:500px;padding:24px" [formGroup]="formAnular">
+      <p style="margin-bottom:16px;color:var(--ink-3);font-size:13px">
+        Venta de <strong>{{ ventaAnular()!.clientName }}</strong> ·
+        {{ ventaAnular()!.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+      </p>
+      <label class="field" style="margin-bottom:16px">
+        <span class="label">Motivo de anulación *</span>
+        <input class="input" formControlName="reason" placeholder="Describe el motivo…" />
+      </label>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-ghost" (click)="cancelarAnular()">Cancelar</button>
+        <button class="btn btn-danger" [disabled]="formAnular.invalid || guardando()" (click)="confirmarAnular()">
+          @if (guardando()) { Anulando… } @else { Anular venta }
+        </button>
+      </div>
+    </div>
+  }
+</div>
+}
+
+<!-- Modal detalle de venta -->
+@if (ventaDetalle()) {
+  <div class="modal-back" (click)="cerrarDetalle()">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width:520px">
+      <div style="padding:28px">
+        <div class="eyebrow">Detalle</div>
+        <h3 class="serif" style="font-size:22px;font-weight:400;margin:4px 0 16px">
+          {{ ventaDetalle()!.stylistName }} · {{ ventaDetalle()!.clientName }}
+        </h3>
+        @if (ventaDetalle()!.items?.length) {
+          <table class="tbl" style="margin-bottom:16px">
+            <thead><tr><th>Ítem</th><th style="text-align:right">Precio</th></tr></thead>
             <tbody>
-              @for (v of ventas(); track v.id) {
-                <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'">
-                  <td class="mono" style="font-size:11px">{{ v.id }}</td>
-                  <td>{{ v.saleDateTime | date:'HH:mm':'America/Bogota' }}</td>
-                  <td style="font-weight:500">{{ v.clientName }}</td>
-                  <td>{{ v.stylistName }}</td>
-                  <td>{{ v.paymentMethodName }}</td>
-                  <td class="tnum serif" style="text-align:right;font-size:16px">{{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
-                  <td class="tnum" style="text-align:right;color:var(--accent-deep)">{{ v.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
-                  <td>
-                    @if (v.status === 'Active') {
-                      <span class="pill pill-success"><span class="pill-dot"></span>Activa</span>
-                    } @else {
-                      <span class="pill pill-danger"><span class="pill-dot"></span>Anulada</span>
-                    }
-                  </td>
-                  <td>
-                    @if (v.status === 'Active') {
-                      <button class="btn btn-icon btn-ghost" (click)="iniciarAnulacion(v)" style="color:var(--danger)">
-                        <sp-icon name="x" [size]="14" />
-                      </button>
-                    }
-                  </td>
+              @for (item of ventaDetalle()!.items!; track item.id) {
+                <tr>
+                  <td>{{ item.name }}</td>
+                  <td class="tnum" style="text-align:right">{{ item.unitPrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
                 </tr>
               }
             </tbody>
           </table>
-        </div>
-      </div>
-    }
-  </div>
-} @else if (vista() === 'anular' && ventaAnular()) {
-  <div class="page fade-in">
-    <div class="page-head">
-      <div>
-        <div class="eyebrow">Anular</div>
-        <h1><span class="serif">Anular</span> <span class="serif-italic">venta</span></h1>
-      </div>
-    </div>
-    <div class="card" style="padding:28px;max-width:480px">
-      <div class="eyebrow" style="margin-bottom:4px">Venta #{{ ventaAnular()!.id }}</div>
-      <div style="font-size:15px;margin-bottom:8px">Cliente: <strong>{{ ventaAnular()!.clientName }}</strong></div>
-      <div style="font-size:13px;color:var(--ink-3);margin-bottom:20px">Total: {{ ventaAnular()!.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-      <div [formGroup]="formAnular">
-        <label class="field" style="margin-bottom:16px">
-          <span class="label">Motivo de anulación *</span>
-          <input class="input" formControlName="reason" placeholder="Ej: Error en el precio, cliente canceló…" />
-        </label>
-      </div>
-      @if (errorMsg()) { <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-bottom:12px">{{ errorMsg() }}</div> }
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" (click)="cancelarAnulacion()">Cancelar</button>
-        <button class="btn btn-accent btn-lg" style="flex:1" (click)="confirmarAnulacion()" [disabled]="formAnular.invalid || guardando()">
-          <sp-icon name="check" [size]="14" /> {{ guardando() ? 'Anulando…' : 'Confirmar anulación' }}
-        </button>
-      </div>
-    </div>
-  </div>
-} @else if (vista() === 'nueva-venta') {
-
-  <!-- SUCCESS SCREEN -->
-  @if (ventaExitosa() && ventaExitosaData()) {
-    <div class="pos-stage" style="display:flex;align-items:center;justify-content:center;min-height:80vh">
-      <div class="card fade-in" style="padding:56px;text-align:center;max-width:520px">
-        <div style="width:72px;height:72px;border-radius:999px;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;margin:0 auto 24px">
-          <sp-icon name="check" [size]="32" />
-        </div>
-        <div class="eyebrow">Venta registrada</div>
-        <h2 class="serif" style="font-size:40px;font-weight:300;margin:8px 0 4px;letter-spacing:-0.025em">
-          {{ ventaExitosaData()!.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
-        </h2>
-        <div style="color:var(--ink-3);font-size:13px">{{ folioVenta() }} · {{ ventaExitosaData()!.stylistName }}</div>
-        <hr class="hr-dotted" style="margin:24px 0" />
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
-          <div>
-            <div class="eyebrow" style="margin-bottom:4px">Salón</div>
-            <div class="serif tnum" style="font-size:22px">{{ ventaExitosaData()!.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-          </div>
-          <div>
-            <div class="eyebrow" style="margin-bottom:4px;color:var(--accent-deep)">Colaborador</div>
-            <div class="serif tnum" style="font-size:22px;color:var(--accent-deep)">{{ ventaExitosaData()!.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:10px;justify-content:center;margin-top:28px">
-          <button class="btn btn-ghost" (click)="volverALista()"><sp-icon name="arrow-left" [size]="14" /> Volver</button>
-          <button class="btn btn-ghost" (click)="mostrarRecibo.set(true)"><sp-icon name="bag" [size]="14" /> Ver recibo</button>
-          <button class="btn btn-primary btn-lg" (click)="nuevaVentaDesdeExito()"><sp-icon name="plus" [size]="14" /> Nueva venta</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal Recibo cliente -->
-    @if (mostrarRecibo() && ventaExitosaData()) {
-      <div class="modal-back" (click)="mostrarRecibo.set(false)">
-        <div class="modal" style="max-width:360px;font-family:'Courier New',monospace"
-          (click)="$event.stopPropagation()">
-          <div style="padding:28px">
-
-            <!-- Cabecera -->
-            <div style="text-align:center;margin-bottom:16px">
-              @if (ventaExitosaData()!.logoUrl) {
-                <img [src]="ventaExitosaData()!.logoUrl" alt="logo"
-                  style="width:64px;height:64px;object-fit:contain;margin:0 auto 10px;display:block;border-radius:6px" />
-              }
-              <div style="font-size:15px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase">
-                {{ ventaExitosaData()!.branchName }}
-              </div>
-              <div style="font-size:11px;color:var(--ink-4);margin-top:3px">
-                {{ ventaExitosaData()!.fecha | date:'dd/MM/yyyy · HH:mm':'America/Bogota' }}
-              </div>
-            </div>
-
-            <div style="border-top:1px dashed var(--hair-2);margin-bottom:12px"></div>
-
-            <!-- Cliente -->
-            <div style="margin-bottom:12px">
-              <div class="eyebrow" style="font-size:9px;margin-bottom:2px">Cliente</div>
-              <div style="font-size:13px;font-weight:600">{{ ventaExitosaData()!.clientName }}</div>
-              @if (ventaExitosaData()!.clientDocumentNumber && !ventaExitosaData()!.clientDocumentNumber.startsWith('WALK-')) {
-                <div style="font-size:11px;color:var(--ink-4)">
-                  {{ ventaExitosaData()!.clientDocumentType }} {{ ventaExitosaData()!.clientDocumentNumber }}
-                </div>
-              }
-            </div>
-
-            <div style="border-top:1px dashed var(--hair-2);margin-bottom:12px"></div>
-
-            <!-- Ítems -->
-            <div class="eyebrow" style="font-size:9px;margin-bottom:6px">Detalle</div>
-            @for (item of ventaExitosaData()!.itemsRecibo; track item.name) {
-              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-                <span>{{ item.name }}{{ item.quantity > 1 ? ' ×' + item.quantity : '' }}</span>
-                <span class="tnum">{{ item.price * item.quantity | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-              </div>
-            }
-
-            <!-- Total -->
-            <div style="border-top:1px dashed var(--hair-2);margin:10px 0 8px"></div>
-            <div style="display:flex;justify-content:space-between;font-weight:700;font-size:15px">
-              <span>TOTAL</span>
-              <span class="tnum serif">{{ ventaExitosaData()!.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-            </div>
-
-            <!-- Pagos -->
-            <div style="border-top:1px dashed var(--hair-2);margin:10px 0 8px"></div>
-            <div class="eyebrow" style="font-size:9px;margin-bottom:6px">Forma de pago</div>
-            @for (pago of ventaExitosaData()!.pagosRecibo; track pago.method) {
-              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3);margin-bottom:3px">
-                <span>{{ pago.method }}</span>
-                <span class="tnum">{{ pago.amount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-              </div>
-            }
-
-            <div style="border-top:1px dashed var(--hair-2);margin:14px 0 10px"></div>
-            <div style="text-align:center;font-size:10px;color:var(--ink-4)">¡Gracias por tu visita!</div>
-
-            <!-- Acciones -->
-            <div style="display:flex;gap:8px;margin-top:20px;font-family:var(--font-sans,sans-serif)">
-              <button class="btn btn-ghost" style="flex:1" (click)="mostrarRecibo.set(false)">Cerrar</button>
-              <button class="btn btn-primary" style="flex:1" (click)="imprimirRecibo()">
-                <sp-icon name="download" [size]="14" /> Imprimir
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    }
-  }
-
-  <!-- POS WIZARD -->
-  @if (!ventaExitosa()) {
-    <div class="pos-stage fade-in">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px">
-        <div>
-          <div class="eyebrow">Registrar ventas</div>
-          <h1 class="serif" style="font-size:40px;font-weight:300;margin:6px 0 0;letter-spacing:-0.025em">
-            Nueva <span class="serif-italic" style="color:var(--accent)">venta</span>
-          </h1>
-        </div>
-        <div style="display:flex;gap:10px;align-items:center">
-          <button class="btn btn-ghost" (click)="volverALista()"><sp-icon name="arrow-left" [size]="14" /> Cancelar</button>
-        </div>
-      </div>
-
-      <!-- Step trail -->
-      <div class="step-trail" style="margin-bottom:28px">
-        @for (s of wizardSteps; track s.n; let i = $index) {
-          <div style="display:flex;align-items:center;gap:10px">
-            <div [class]="'step-dot' + (step() === i ? ' active' : step() > i ? ' done' : '')">
-              @if (step() > i) { <sp-icon name="check" [size]="12" /> } @else { {{ s.n }} }
-            </div>
-            <div style="min-width:60px">
-              <div style="font-size:12px;font-weight:500" [style.color]="step() >= i ? 'var(--ink)' : 'var(--ink-4)'">{{ s.t }}</div>
-            </div>
-          </div>
-          @if (i < 4) { <div class="step-line"></div> }
         }
-      </div>
-
-      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:28px;align-items:start">
-        <!-- LEFT: step content -->
-        <div class="card" style="padding:32px;min-height:400px">
-          <div style="margin-bottom:24px">
-            <div class="eyebrow">Paso {{ wizardSteps[step()].n }}</div>
-            <h2 class="serif" style="font-size:30px;font-weight:400;margin:4px 0;letter-spacing:-0.02em">
-              {{ wizardSteps[step()].t }}
-            </h2>
-            <div style="color:var(--ink-3);font-size:13px">
-              {{ wizardSteps[step()].sub }}
-            </div>
-          </div>
-
-          <!-- STEP 0: Colaborador -->
-          @if (step() === 0) {
-            @if (cargandoCatalogos()) {
-              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
-                @for (s of [1,2,3,4]; track s) {
-                  <div style="height:88px;background:var(--bone);border-radius:8px;border:1px solid var(--hair-2);animation:pulse 1.4s ease-in-out infinite"></div>
-                }
-              </div>
-              <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--ink-4)">Cargando equipo…</div>
-            } @else if (peluqueros().length === 0) {
-              <div style="padding:32px;text-align:center;color:var(--ink-4)">
-                <div style="font-size:14px">No hay colaboradores registrados.</div>
-                <div style="font-size:12px;margin-top:6px">Agrégalos en Configuración → Usuarios.</div>
-              </div>
-            } @else {
-              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
-                @for (p of peluqueros(); track p.id) {
-                  <button [class]="'tile' + (peluqueroSeleccionado()?.id === p.id ? ' selected' : '')"
-                    (click)="seleccionarPeluquero(p)"
-                    style="display:flex;align-items:center;gap:14px;padding:18px">
-                    <span class="avatar avatar-lg">{{ p.fullName.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() }}</span>
-                    <div style="flex:1">
-                      <div class="serif" style="font-size:18px;line-height:1.1">{{ p.fullName }}</div>
-                      <div class="tile-meta" style="margin-top:4px;font-weight:600;letter-spacing:0.05em">
-                        {{ p.employeeCode ?? '—' }}
-                      </div>
-                    </div>
-                    <div style="text-align:right">
-                      <div class="tile-meta">Participación</div>
-                      <div class="serif tnum" style="font-size:18px">{{ p.commissionPercent }}%</div>
-                    </div>
-                  </button>
-                }
-              </div>
-            }
-          }
-
-          <!-- STEP 1: Servicios -->
-          @if (step() === 1) {
-            <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
-              @for (cat of categoriasServicio(); track cat) {
-                <button [class]="'btn btn-sm ' + (categoriaServicio() === cat ? 'btn-primary' : 'btn-ghost')"
-                  (click)="categoriaServicio.set(cat)">{{ cat }}</button>
-              }
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-              @for (s of serviciosFiltrados(); track s.id) {
-                <button [class]="'tile' + (servicioYaAgregado(s.id) ? ' selected' : '')" (click)="agregarServicio(s)">
-                  <div style="display:flex;justify-content:space-between;align-items:flex-start">
-                    <div>
-                      <div style="font-weight:500;font-size:14px">{{ s.name }}</div>
-                      <div class="tile-meta" style="margin-top:2px">{{ s.category }}</div>
-                    </div>
-                    <div class="serif tnum" style="font-size:17px">{{ s.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-                  </div>
-                </button>
-              }
-            </div>
-            @if (itemsServicio().length > 0) {
-              <div style="margin-top:20px;padding:16px;background:var(--bone);border-radius:6px">
-                <div class="eyebrow" style="margin-bottom:10px">Editar cantidades</div>
-                @for (item of itemsServicio(); track trackItem($index, item)) {
-                  <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
-                    <span style="flex:1;font-size:13px">{{ item.name }}</span>
-                    <input class="input mono" type="number" [value]="item.quantity" min="1" style="width:60px;text-align:center"
-                      (change)="actualizarCantidad(item, $any($event.target).valueAsNumber)" />
-                    <span style="color:var(--ink-4);font-size:11px">×</span>
-                    <input class="input mono" type="number" [value]="item.price" min="0" style="width:110px"
-                      (change)="actualizarPrecio(item, $any($event.target).valueAsNumber)" />
-                    <button class="btn btn-icon btn-ghost" (click)="quitarItem(item)"><sp-icon name="x" [size]="12" /></button>
-                  </div>
-                }
-              </div>
-            }
-          }
-
-          <!-- STEP 2: Productos -->
-          @if (step() === 2) {
-            <!-- Sub-tabs con contadores -->
-            <div style="display:flex;gap:6px;margin-bottom:18px;padding:3px;background:var(--bone);border-radius:7px;width:fit-content">
-              <button [class]="'btn btn-sm ' + (filtroProductoVenta() !== '__internal__' ? 'btn-primary' : 'btn-ghost')"
-                (click)="filtroProductoVenta.set('')">
-                <sp-icon name="bag" [size]="12" />
-                Venta a cliente
-                @if (cantProdVenta() > 0) {
-                  <span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:white;color:var(--accent-deep);font-size:10px;font-weight:700;margin-left:4px">{{ cantProdVenta() }}</span>
-                }
-              </button>
-              <button [class]="'btn btn-sm ' + (filtroProductoVenta() === '__internal__' ? 'btn-primary' : 'btn-ghost')"
-                (click)="filtroProductoVenta.set('__internal__')">
-                <sp-icon name="sparkle" [size]="12" />
-                Consumo interno
-                @if (cantProdInterno() > 0) {
-                  <span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:white;color:var(--accent-deep);font-size:10px;font-weight:700;margin-left:4px">{{ cantProdInterno() }}</span>
-                }
-              </button>
-            </div>
-
-            <!-- Catálogo: Venta a cliente -->
-            @if (filtroProductoVenta() !== '__internal__') {
-              <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Productos que el cliente se lleva. Toca de nuevo para quitar.</div>
-              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-                @for (p of productosVentaFiltrados(); track p.id) {
-                  <button [class]="'tile' + (productoVentaYaAgregado(p.id) ? ' selected' : '')" (click)="agregarProductoVenta(p)">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start">
-                      <div>
-                        <div style="font-weight:500;font-size:14px">{{ p.name }}</div>
-                        <div class="tile-meta" style="margin-top:2px">{{ p.brand }}</div>
-                      </div>
-                      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-                        <div class="serif tnum" style="font-size:16px">{{ p.salePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-                        @if (productoVentaYaAgregado(p.id)) {
-                          <sp-icon name="check" [size]="12" style="color:var(--accent)" />
-                        }
-                      </div>
-                    </div>
-                  </button>
-                }
-              </div>
-              @if (productosVentaFiltrados().length === 0) {
-                <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Opcional · sin productos para venta</div>
-              }
-
-            <!-- Catálogo: Consumo interno -->
-            } @else {
-              <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Productos usados durante el servicio. Toca de nuevo para quitar.</div>
-              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-                @for (p of productosInternosFiltrados(); track p.id) {
-                  <button [class]="'tile' + (productoInternoYaAgregado(p.id) ? ' selected' : '')" (click)="agregarProductoInterno(p)">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start">
-                      <div>
-                        <div style="font-weight:500;font-size:14px">{{ p.name }}</div>
-                        <div class="tile-meta" style="margin-top:2px">{{ p.brand }}</div>
-                      </div>
-                      @if (productoInternoYaAgregado(p.id)) {
-                        <sp-icon name="check" [size]="12" style="color:var(--accent)" />
-                      }
-                    </div>
-                  </button>
-                }
-              </div>
-              @if (productosInternosFiltrados().length === 0) {
-                <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Opcional · sin consumos internos</div>
-              }
-            }
-
-            <!-- Panel unificado de edición (siempre visible si hay algún producto) -->
-            @if (hayProductos()) {
-              <div style="margin-top:22px;padding:16px;background:var(--bone);border-radius:6px">
-                <div class="eyebrow" style="margin-bottom:10px">Editar cantidades y precios</div>
-
-                <!-- Productos de venta -->
-                @for (item of itemsProductoVenta(); track trackItem($index, item)) {
-                  <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--hair-2)">
-                    <sp-icon name="bag" [size]="12" style="color:var(--accent);flex-shrink:0" />
-                    <span style="flex:1;font-size:13px;font-weight:500">{{ item.name }}</span>
-                    <input class="input mono" type="number" [value]="item.quantity" min="1" style="width:60px;text-align:center"
-                      (change)="actualizarCantidad(item, $any($event.target).valueAsNumber)" />
-                    <span style="color:var(--ink-4);font-size:11px">×</span>
-                    <input class="input mono" type="number" [value]="item.price" min="0" style="width:110px"
-                      (change)="actualizarPrecio(item, $any($event.target).valueAsNumber)" />
-                    <button class="btn btn-icon btn-ghost" (click)="quitarItem(item)" title="Quitar">
-                      <sp-icon name="x" [size]="12" />
-                    </button>
-                  </div>
-                }
-
-                <!-- Productos de consumo interno -->
-                @for (item of itemsProductoInterno(); track trackItem($index, item)) {
-                  <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--hair-2)">
-                    <sp-icon name="sparkle" [size]="12" style="color:var(--ink-3);flex-shrink:0" />
-                    <span style="flex:1;font-size:13px;font-weight:500">{{ item.name }}</span>
-                    <span style="font-size:10px;color:var(--ink-4);white-space:nowrap;background:var(--hair-2);padding:2px 6px;border-radius:4px">Interno</span>
-                    <input class="input mono" type="number" [value]="item.quantity" min="1" style="width:60px;text-align:center"
-                      (change)="actualizarCantidad(item, $any($event.target).valueAsNumber)" />
-                    <span style="color:var(--ink-4);font-size:11px">×</span>
-                    <input class="input mono" type="number" [value]="item.price" min="0" style="width:110px"
-                      (change)="actualizarPrecio(item, $any($event.target).valueAsNumber)" />
-                    <button class="btn btn-icon btn-ghost" (click)="quitarItem(item)" title="Quitar">
-                      <sp-icon name="x" [size]="12" />
-                    </button>
-                  </div>
-                }
-              </div>
-            }
-          }
-
-          <!-- STEP 3: Pago -->
-          @if (step() === 3) {
-            <div [formGroup]="formCliente">
-              <div class="eyebrow" style="margin-bottom:10px">Cliente (opcional)</div>
-
-              <!-- ── Buscador autocomplete ─────────────────────── -->
-              <div style="position:relative;margin-bottom:16px">
-                <div style="position:relative">
-                  <sp-icon name="search" [size]="14"
-                    style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-4);pointer-events:none" />
-                  <input class="input" style="padding-left:36px"
-                    placeholder="Buscar cliente por nombre, documento o teléfono…"
-                    [value]="busquedaCliente()"
-                    (input)="busquedaCliente.set($any($event.target).value); mostrarSugerencias.set(true)"
-                    (focus)="mostrarSugerencias.set(true)"
-                    (blur)="onBusquedaBlur()" />
-                  @if (busquedaCliente()) {
-                    <button type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--ink-4);padding:2px"
-                      (mousedown)="busquedaCliente.set(''); mostrarSugerencias.set(false); formCliente.reset({documentType:'CC'})">
-                      <sp-icon name="x" [size]="12" />
-                    </button>
-                  }
-                </div>
-
-                <!-- Sugerencias -->
-                @if (mostrarSugerencias() && clientesSugeridos().length > 0) {
-                  <div style="position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:200;
-                    background:white;border:1px solid var(--hair-2);border-radius:10px;
-                    box-shadow:0 8px 24px rgba(0,0,0,0.10);overflow:hidden">
-                    @for (c of clientesSugeridos(); track c.id) {
-                      <button type="button"
-                        style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;
-                          padding:10px 14px;border:none;background:none;cursor:pointer;
-                          border-bottom:1px solid var(--bone)"
-                        (mousedown)="seleccionarClienteExistente(c)">
-                        <div style="width:32px;height:32px;border-radius:999px;background:var(--accent-soft);
-                          color:var(--accent-deep);display:flex;align-items:center;justify-content:center;
-                          font-size:12px;font-weight:600;flex-shrink:0">
-                          {{ c.fullName.split(' ')[0][0] }}{{ (c.fullName.split(' ')[1] || '')[0] || '' }}
-                        </div>
-                        <div style="flex:1;min-width:0">
-                          <div style="font-weight:500;font-size:13px">{{ c.fullName }}</div>
-                          <div style="font-size:11px;color:var(--ink-4)">
-                            {{ c.documentType }} {{ c.documentNumber }}
-                            @if (c.phone) { · {{ c.phone }} }
-                          </div>
-                        </div>
-                        @if (c.totalVisits > 0) {
-                          <div style="font-size:11px;color:var(--ink-4);text-align:right;flex-shrink:0">
-                            {{ c.totalVisits }} visita{{ c.totalVisits !== 1 ? 's' : '' }}
-                          </div>
-                        }
-                      </button>
-                    }
-                  </div>
-                }
-
-                @if (mostrarSugerencias() && busquedaCliente().length >= 2 && clientesSugeridos().length === 0) {
-                  <div style="position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:200;
-                    background:white;border:1px solid var(--hair-2);border-radius:10px;
-                    box-shadow:0 8px 24px rgba(0,0,0,0.10);padding:14px;
-                    font-size:13px;color:var(--ink-4);text-align:center">
-                    Sin resultados — puedes ingresar los datos manualmente
-                  </div>
-                }
-              </div>
-
-              <!-- ── Campos del cliente ────────────────────────── -->
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
-                <label class="field">
-                  <span class="label">Nombre completo</span>
-                  <input class="input" formControlName="fullName" placeholder="Nombre del cliente" />
-                </label>
-                <label class="field">
-                  <span class="label">Teléfono</span>
-                  <input class="input" formControlName="phone" placeholder="3001234567" />
-                </label>
-                <label class="field">
-                  <span class="label">Correo (opcional)</span>
-                  <input class="input" type="email" formControlName="email" placeholder="correo@email.com" />
-                </label>
-                <div style="display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:end">
-                  <label class="field" style="margin-bottom:0">
-                    <span class="label">Tipo</span>
-                    <select class="select" formControlName="documentType">
-                      <option value="CC">CC</option><option value="CE">CE</option>
-                      <option value="NIT">NIT</option><option value="PP">PP</option>
-                    </select>
-                  </label>
-                  <label class="field" style="margin-bottom:0">
-                    <span class="label">Documento</span>
-                    <input class="input mono" formControlName="documentNumber" placeholder="Número" (keyup.enter)="buscarCliente()" />
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div class="eyebrow" style="margin-bottom:8px">Método de pago</div>
-            @for (pago of pagos(); track trackPago($index)) {
-              <div style="display:flex;gap:10px;margin-bottom:10px;align-items:center">
-                <select class="select" style="flex:1"
-                  (change)="actualizarPagoMetodo($index, +$any($event.target).value)">
-                  <option value="">— Selecciona —</option>
-                  @for (m of metodosPagoDisponibles($index); track m.id) {
-                    <option [value]="m.id" [selected]="pago.paymentMethodId === m.id">{{ m.name }}</option>
-                  }
-                </select>
-                <input class="input mono" type="number" [value]="pago.amount" min="0" style="width:160px"
-                  (change)="actualizarPagoMonto($index, $any($event.target).valueAsNumber)" />
-                @if (pagos().length > 1) {
-                  <button class="btn btn-icon btn-ghost" (click)="quitarPago($index)"><sp-icon name="x" [size]="12" /></button>
-                }
-              </div>
-            }
-            @if (pagos().length < metodosPago().length) {
-              <button class="btn btn-ghost btn-sm" (click)="agregarPago()" style="margin-top:4px">
-                <sp-icon name="plus" [size]="12" /> Pago mixto
-              </button>
-            }
-
-            <!-- Propina -->
-            <div [formGroup]="formVenta" style="margin-top:16px">
-              <label class="field" style="max-width:200px">
-                <span class="label" style="display:flex;align-items:center;gap:6px">
-                  Propina (opcional)
-                  @if (hasCashPayment()) {
-                    <span style="font-size:10px;background:var(--warn-soft);color:var(--warn);padding:1px 6px;border-radius:4px;font-weight:600;letter-spacing:.04em">BLOQUEADA</span>
-                  }
-                </span>
-                <input class="input mono" type="number" formControlName="tipAmount" min="0" placeholder="0"
-                  [style.opacity]="hasCashPayment() ? '0.45' : '1'"
-                  [style.cursor]="hasCashPayment() ? 'not-allowed' : 'auto'" />
-              </label>
-              @if (hasCashPayment()) {
-                <div style="font-size:11px;color:var(--ink-4);margin-top:3px;display:flex;align-items:center;gap:4px">
-                  <sp-icon name="info" [size]="11" />
-                  La propina en efectivo no se registra en el sistema
-                </div>
-              }
-            </div>
-
-            <!-- ═══════════════════════════════════════════
-                 Liquidación de venta
-            ════════════════════════════════════════════ -->
-            <div style="margin-top:20px;border-radius:10px;overflow:hidden;border:1px solid var(--border)">
-
-              <!-- ── SECCIÓN 1: Resumen de venta ── -->
-              <div style="padding:14px 18px 16px;background:var(--surface-2)">
-                <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:10px">
-                  Resumen de venta
-                </div>
-
-                <!-- Desglose por tipo si hay propina -->
-                @if (calculo().grossTip > 0) {
-                  <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-3);padding:5px 0">
-                    <span>Servicios / Productos</span>
-                    <span class="tnum">{{ (calculo().grossServices + calculo().grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-3);padding:5px 0">
-                    <span>Propina</span>
-                    <span class="tnum">{{ calculo().grossTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                  </div>
-                  <hr style="margin:6px 0;border:0;border-top:1px solid var(--border)" />
-                }
-
-                <!-- Total bruto -->
-                <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;padding:5px 0">
-                  <span>Total bruto</span>
-                  <span class="tnum">{{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                </div>
-
-                <!-- Deducciones por método de pago -->
-                @for (ded of deduccionesPorPago(); track $index) {
-                  <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;
-                              color:#c53030;border-left:3px solid #fc8181;padding-left:10px;margin:4px 0;background:rgba(252,129,129,.06);border-radius:0 4px 4px 0">
-                    <span>Cargo {{ ded.name }} ({{ ded.pct }}%)</span>
-                    <span class="tnum">−{{ ded.amount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                  </div>
-                }
-
-                <!-- Base neta -->
-                @if (calculo().totalDeductions > 0) {
-                  <hr style="margin:8px 0 6px;border:0;border-top:1px solid var(--border)" />
-                  <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:5px 0;color:var(--accent-deep)">
-                    <span>Base neta a repartir</span>
-                    <span class="tnum">{{ baseNeta() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                  </div>
-                }
-              </div>
-
-              <!-- ── SECCIÓN 2: Detalle de participaciones ── -->
-              @if (desgloseItems().length > 0) {
-                <div style="padding:14px 18px 16px;background:var(--surface-1);border-top:1px solid var(--border)">
-                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:10px">
-                    Detalle de participaciones
-                  </div>
-
-                  <!-- Encabezados de columna -->
-                  <div style="display:grid;grid-template-columns:1fr 90px 90px;font-size:10px;font-weight:700;text-transform:uppercase;
-                              letter-spacing:.06em;color:var(--ink-4);padding-bottom:6px;border-bottom:1px solid var(--border)">
-                    <span>Ítem</span>
-                    <span style="text-align:right">Salón</span>
-                    <span style="text-align:right;color:var(--accent-deep)">Colaborador</span>
-                  </div>
-
-                  <!-- Filas de ítems -->
-                  @for (d of desgloseItems(); track $index) {
-                    <div style="display:grid;grid-template-columns:1fr 90px 90px;align-items:center;
-                                padding:9px 0;border-bottom:1px dashed var(--border)">
-                      <div>
-                        <div style="font-size:13px;font-weight:500">{{ d.name }}</div>
-                        <div style="font-size:11px;color:var(--ink-4);margin-top:1px">
-                          Participación {{ d.stylistPct }}%
-                          @if (d.hasFee) { · fee salón {{ d.feePct }}% }
-                        </div>
-                      </div>
-                      <span style="text-align:right;font-size:13px;font-weight:500">{{ d.salonAmt | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                      <span style="text-align:right;font-size:13px;font-weight:700;color:var(--accent-deep)">{{ d.stylistAmt | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                    </div>
-                  }
-
-                  <!-- Fila propina -->
-                  @if (calculo().grossTip > 0) {
-                    <div style="display:grid;grid-template-columns:1fr 90px 90px;align-items:center;padding:9px 0">
-                      <div>
-                        <div style="font-size:13px;font-weight:500">Propina</div>
-                        <div style="font-size:11px;color:var(--ink-4);margin-top:1px">
-                          @if (calculo().deductionTip > 0) {
-                            Cargo método de pago −{{ calculo().deductionTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
-                          } @else {
-                            Va íntegra al colaborador
-                          }
-                        </div>
-                      </div>
-                      <span style="text-align:right;font-size:13px;color:var(--ink-4)">—</span>
-                      <span style="text-align:right;font-size:13px;font-weight:700;color:var(--accent-deep)">{{ calculo().netTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                    </div>
-                  }
-                </div>
-              }
-
-              <!-- ── SECCIÓN 3: Distribución final ── -->
-              @if (calculo().stylistTotal > 0 || calculo().salonTotal > 0) {
-                <div style="padding:14px 18px 16px;background:var(--surface-2);border-top:1px solid var(--border)">
-                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:12px">
-                    Distribución final
-                  </div>
-                  <div style="display:flex;gap:10px">
-                    <div style="flex:1;background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
-                      <div style="color:var(--ink-4);font-size:10px;text-transform:uppercase;font-weight:700;letter-spacing:.07em;margin-bottom:6px">Salón</div>
-                      <div class="tnum serif" style="font-size:20px;font-weight:600">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-                    </div>
-                    <div style="flex:1;background:var(--accent-deep);border-radius:8px;padding:12px 14px;color:#fff">
-                      <div style="font-size:10px;text-transform:uppercase;font-weight:700;letter-spacing:.07em;margin-bottom:6px;opacity:.8">
-                        {{ (peluqueroSeleccionado()?.fullName ?? 'Colaborador').split(' ')[0] }}
-                      </div>
-                      <div class="tnum serif" style="font-size:20px;font-weight:600">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-                    </div>
-                  </div>
-                </div>
-              }
-
-              <!-- ── SECCIÓN 4: Cuadre de caja ── -->
-              <div style="padding:14px 18px 16px;border-top:2px solid var(--border)"
-                [style.background]="pagosValidos() ? 'var(--success-soft)' : 'var(--warn-soft)'">
-                <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:10px">
-                  Cuadre de caja
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0">
-                  <span>Total a cobrar</span>
-                  <span class="tnum">{{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0">
-                  <span>Total recibido</span>
-                  <span class="tnum">{{ totalRecibido() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                </div>
-                <hr style="margin:8px 0 6px;border:0;border-top:1px dashed currentColor;opacity:0.3" />
-                <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700">
-                  <span>{{ diferenciaPago() > 0 ? 'Falta' : diferenciaPago() < 0 ? 'Cambio' : '✓ Cuadrado' }}</span>
-                  <span class="tnum">{{ Math.abs(diferenciaPago()) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                </div>
-              </div>
-
-            </div>
-          }
-
-          <!-- STEP 4: Confirmar -->
-          @if (step() === 4) {
-            <div class="receipt">
-              <div style="text-align:center;padding-bottom:16px;border-bottom:1px dashed var(--hair-3);margin-bottom:12px">
-                <div class="serif" style="font-size:24px;font-weight:400">Studio 54</div>
-                <div class="eyebrow" style="margin-top:4px">Hair &amp; Beauty</div>
-              </div>
-              <div class="row"><span style="color:var(--ink-3)">Colaborador</span><span>{{ peluqueroSeleccionado()?.fullName }}</span></div>
-              <div class="row"><span style="color:var(--ink-3)">Participación</span><span class="tnum">{{ peluqueroSeleccionado()?.commissionPercent }}%</span></div>
-              @if (formCliente.get('fullName')!.value) {
-                <div class="row"><span style="color:var(--ink-3)">Cliente</span><span>{{ formCliente.get('fullName')!.value }}</span></div>
-              }
-              <hr class="hr-dotted" style="margin:8px 0" />
-              @for (item of itemsServicio(); track trackItem($index, item)) {
-                <div class="row"><span>{{ item.name }}{{ item.quantity > 1 ? ' ×' + item.quantity : '' }}</span><span class="tnum">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-              }
-              @for (item of itemsProductoVenta(); track trackItem($index, item)) {
-                <div class="row"><span>{{ item.name }}</span><span class="tnum">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-              }
-              @if (itemsProductoInterno().length > 0) {
-                <hr class="hr-dotted" style="margin:8px 0" />
-                <div style="font-size:11px;color:var(--ink-4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Consumo interno</div>
-                @for (item of itemsProductoInterno(); track trackItem($index, item)) {
-                  <div class="row" style="color:var(--ink-4);font-size:12px"><span>{{ item.name }}</span><span>—</span></div>
-                }
-              }
-              <!-- Propina como línea explícita -->
-              @if (calculo().grossTip > 0) {
-                <div class="row" style="color:var(--ink-3)"><span>Propina</span><span class="tnum">{{ calculo().grossTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-              }
-              <div class="row total"><span>Total bruto</span><span class="tnum">{{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-
-              <hr class="hr-dotted" style="margin:8px 0" />
-
-              <!-- Métodos de pago -->
-              @for (pago of pagos(); track trackPago($index)) {
-                <div class="row" style="font-size:12px;color:var(--ink-3)">
-                  <span>{{ nombreMetodoPago(pago.paymentMethodId) }}</span>
-                  <span class="tnum">{{ pago.amount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                </div>
-              }
-
-              <!-- Deducciones por método de pago -->
-              @for (ded of deduccionesPorPago(); track $index) {
-                <div class="row" style="font-size:12px;color:#c53030">
-                  <span>− {{ ded.name }} ({{ ded.pct }}%)</span>
-                  <span class="tnum">−{{ ded.amount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                </div>
-              }
-
-              @if (calculo().totalDeductions > 0) {
-                <div class="row" style="font-size:12px;font-weight:600;border-top:1px dashed var(--hair-3);padding-top:6px;margin-top:2px">
-                  <span>Base neta (a repartir)</span>
-                  <span class="tnum">{{ baseNeta() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                </div>
-              }
-
-              <!-- Desglose por ítem en el recibo -->
-              @if (desgloseItems().length > 0) {
-                <hr class="hr-dotted" style="margin:8px 0" />
-                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-4);margin-bottom:4px">Desglose participaciones</div>
-                <div style="display:grid;grid-template-columns:1fr auto auto;gap:2px 10px;font-size:11px">
-                  <span style="color:var(--ink-4)">Ítem</span>
-                  <span style="color:var(--ink-4);text-align:right">Salón</span>
-                  <span style="color:var(--accent-deep);text-align:right">{{ (peluqueroSeleccionado()?.fullName ?? 'Pelqro').split(' ')[0] }}</span>
-                  @for (d of desgloseItems(); track $index) {
-                    <div style="color:var(--ink-3)">
-                      {{ d.name }}
-                      <span style="font-size:9px;color:var(--ink-4)">({{ d.stylistPct }}%)</span>
-                      @if (d.hasFee) { <span style="font-size:9px;color:var(--ink-4)">+fee</span> }
-                    </div>
-                    <span style="text-align:right">{{ d.salonAmt | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                    <span style="text-align:right;color:var(--accent-deep);font-weight:600">{{ d.stylistAmt | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                  }
-                  @if (calculo().grossTip > 0) {
-                    <span style="color:var(--ink-4)">Propina</span>
-                    <span style="text-align:right;color:var(--ink-4)">—</span>
-                    <span style="text-align:right;color:var(--accent-deep);font-weight:600">{{ calculo().netTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                  }
-                </div>
-              }
-
-              <hr class="hr-dotted" style="margin:8px 0" />
-
-              <!-- Split salón / colaborador -->
-              <div class="row" style="font-size:13px;font-weight:600"><span style="color:var(--ink-3)">Parte salón</span><span class="tnum">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-              <div class="row" style="font-size:13px;font-weight:600"><span style="color:var(--accent-deep)">Parte {{ (peluqueroSeleccionado()?.fullName ?? 'colaborador').split(' ')[0] }}</span><span class="tnum" style="color:var(--accent-deep)">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-            </div>
-            @if (errorMsg()) {
-              <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-top:16px">{{ errorMsg() }}</div>
-            }
-          }
-
-          <hr class="hr" style="margin:32px 0 20px" />
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <button class="btn btn-ghost" [disabled]="step() === 0" (click)="prevStep()">
-              <sp-icon name="arrow-left" [size]="14" /> Atrás
-            </button>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-              @if (!canNext() && step() < 4) {
-                <div style="font-size:11px;color:var(--ink-4)">
-                  @if (step() === 0) { Selecciona un colaborador para continuar }
-                  @if (step() === 1) { Agrega al menos un servicio para continuar }
-                  @if (step() === 3) { El total recibido debe cuadrar con el total a cobrar }
-                </div>
-              }
-              @if (step() < 4) {
-                <button class="btn btn-primary btn-lg" [disabled]="!canNext()" (click)="nextStep()"
-                  [style.opacity]="canNext() ? '1' : '0.4'">
-                  Continuar <sp-icon name="arrow-right" [size]="14" />
-                </button>
-              } @else {
-                @if (!puedeRegistrar() && !guardando()) {
-                  <div style="font-size:11px;color:var(--danger);text-align:right">
-                    @if (!pagosValidos()) { El pago no cuadra con el total }
-                    @else if (!hayServicios()) { Agrega al menos un servicio }
-                    @else if (!formVentaValido()) { Selecciona un colaborador }
-                  </div>
-                }
-                <button class="btn btn-accent btn-lg" (click)="guardarVenta()"
-                  [disabled]="!puedeRegistrar()" [style.opacity]="puedeRegistrar() ? '1' : '0.5'">
-                  <sp-icon name="check" [size]="14" /> {{ guardando() ? 'Registrando…' : 'Registrar venta' }}
-                </button>
-              }
-            </div>
-          </div>
-        </div>
-
-        <!-- RIGHT: Live ticker -->
-        <div style="position:sticky;top:28px">
-          <div class="card" style="padding:24px;background:var(--ink);color:var(--bone);border:none">
-            <div class="eyebrow" style="color:var(--ink-5)">Total</div>
-            <div class="ticker" style="font-size:56px;line-height:1;margin:8px 0 4px">
-              {{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
-            </div>
-            <div style="font-size:11px;color:var(--ink-5);text-transform:uppercase;letter-spacing:0.12em">
-              {{ items().length }} ítem{{ items().length !== 1 ? 's' : '' }}
-            </div>
-            <hr style="margin:20px 0;border:0;border-top:1px dashed rgba(245,241,234,0.20)" />
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-              <span style="font-size:12px;color:var(--ink-5)">Colaborador</span>
-              <span style="font-size:13px">{{ peluqueroSeleccionado()?.fullName || '—' }}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-              <span style="font-size:12px;color:var(--ink-5)">Participación</span>
-              <span class="tnum" style="font-size:14px;font-weight:500">{{ peluqueroSeleccionado()?.commissionPercent ?? 0 }}%</span>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-              <div style="background:rgba(255,255,255,0.06);padding:12px;border-radius:6px">
-                <div style="font-size:10px;color:var(--ink-5);text-transform:uppercase;letter-spacing:0.12em">Salón</div>
-                <div class="serif tnum" style="font-size:20px;margin-top:2px">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-              </div>
-              <div style="background:var(--accent);padding:12px;border-radius:6px">
-                <div style="font-size:10px;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.12em">Colaborador</div>
-                <div class="serif tnum" style="font-size:20px;margin-top:2px;color:white">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-              </div>
-            </div>
-          </div>
-          @if (items().length > 0) {
-            <div class="card" style="padding:20px;margin-top:12px">
-              <div class="eyebrow" style="margin-bottom:10px">Ítems</div>
-              <div style="display:flex;flex-direction:column;gap:8px">
-                @for (item of itemsServicio(); track trackItem($index, item)) {
-                  <div style="display:flex;justify-content:space-between;font-size:12px;align-items:center">
-                    <div style="flex:1;min-width:0">
-                      <div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.name }}</div>
-                      <div style="color:var(--ink-4);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Servicio{{ item.quantity > 1 ? ' · ×' + item.quantity : '' }}</div>
-                    </div>
-                    <span class="tnum">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                  </div>
-                }
-                @for (item of itemsProductoVenta(); track trackItem($index, item)) {
-                  <div style="display:flex;justify-content:space-between;font-size:12px;align-items:center">
-                    <div style="flex:1;min-width:0">
-                      <div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.name }}</div>
-                      <div style="color:var(--ink-4);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Producto{{ item.quantity > 1 ? ' · ×' + item.quantity : '' }}</div>
-                    </div>
-                    <span class="tnum">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                  </div>
-                }
-                @for (item of itemsProductoInterno(); track trackItem($index, item)) {
-                  <div style="display:flex;justify-content:space-between;font-size:12px;align-items:center">
-                    <div style="flex:1;min-width:0">
-                      <div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-4)">{{ item.name }}</div>
-                      <div style="color:var(--ink-4);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Consumo interno</div>
-                    </div>
-                    <span class="tnum" style="color:var(--ink-4)">—</span>
-                  </div>
-                }
-              </div>
-            </div>
-          }
+        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+          <button class="btn btn-ghost" (click)="cerrarDetalle()">Cerrar</button>
         </div>
       </div>
     </div>
-  }
+  </div>
 }

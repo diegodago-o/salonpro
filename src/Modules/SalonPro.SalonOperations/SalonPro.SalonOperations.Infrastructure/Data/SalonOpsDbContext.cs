@@ -16,6 +16,7 @@ public class SalonOpsDbContext(DbContextOptions<SalonOpsDbContext> options) : Db
     public DbSet<CashRegisterDetail> CashRegisterDetails => Set<CashRegisterDetail>();
     public DbSet<Anticipo> Anticipos => Set<Anticipo>();
     public DbSet<AnticipoColaborador> AnticiposColaborador => Set<AnticipoColaborador>();
+    public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<Liquidacion> Liquidaciones => Set<Liquidacion>();
     public DbSet<LiquidacionVenta> LiquidacionVentas => Set<LiquidacionVenta>();
 

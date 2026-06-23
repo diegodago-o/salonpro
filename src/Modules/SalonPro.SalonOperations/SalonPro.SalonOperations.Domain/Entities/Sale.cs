@@ -31,6 +31,7 @@ public class Sale
     public string? VoidedReason { get; private set; }
     public DateTime? VoidedAt { get; private set; }
     public string? Notes { get; private set; }
+    public int? TicketId { get; private set; }
 
     public ICollection<SaleItem> Items { get; private set; } = [];
     public ICollection<SalePayment> Payments { get; private set; } = [];
@@ -85,4 +86,6 @@ public class Sale
 
     /// <summary>Marca la venta como liquidada (incluida en una liquidación cerrada).</summary>
     public void Settle() => Status = SaleStatus.Settled;
+
+    public void AssignToTicket(int ticketId) => TicketId = ticketId;
 }
