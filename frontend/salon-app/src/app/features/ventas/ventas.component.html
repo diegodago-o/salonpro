@@ -126,23 +126,39 @@
         <!-- Cliente -->
         <div class="section-card">
           <div class="section-label">Cliente (opcional)</div>
-          <div style="position:relative">
-            <input class="input" placeholder="Buscar por nombre, cédula o teléfono…"
-              [value]="busquedaCliente()"
-              (input)="onBusquedaClienteInput($any($event.target).value)"
-              (blur)="mostrarSugerencias.set(false)" />
-            @if (mostrarSugerencias() && clientesSugeridos().length > 0) {
-              <div class="sugerencias">
-                @for (c of clientesSugeridos(); track c.id) {
-                  <div class="sugerencia-item" (mousedown)="seleccionarClienteSugerido(c)">
-                    <div style="font-weight:500">{{ c.fullName }}</div>
-                    <div style="font-size:11px;color:var(--ink-4)">{{ c.documentType }} {{ c.documentNumber }}</div>
-                  </div>
-                }
+
+          @if (clienteSeleccionado(); as cli) {
+            <!-- Cliente ya seleccionado: mostrar info + botón cambiar -->
+            <div class="cliente-seleccionado">
+              <div class="cliente-seleccionado-info">
+                <div class="cliente-nombre">{{ cli.fullName }}</div>
+                <div class="cliente-doc">{{ cli.documentType }} {{ cli.documentNumber }}
+                  @if (cli.phone) { · {{ cli.phone }} }
+                  @if (cli.email) { · {{ cli.email }} }
+                </div>
               </div>
-            }
-          </div>
-          @if (!clienteSeleccionado()) {
+              <button class="btn btn-ghost btn-sm" (click)="cambiarCliente()">
+                <sp-icon name="edit" [size]="12" /> Cambiar
+              </button>
+            </div>
+          } @else {
+            <!-- Buscador + formulario para cliente nuevo -->
+            <div style="position:relative">
+              <input class="input" placeholder="Buscar por nombre, cédula o teléfono…"
+                [value]="busquedaCliente()"
+                (input)="onBusquedaClienteInput($any($event.target).value)"
+                (blur)="mostrarSugerencias.set(false)" />
+              @if (mostrarSugerencias() && clientesSugeridos().length > 0) {
+                <div class="sugerencias">
+                  @for (c of clientesSugeridos(); track c.id) {
+                    <div class="sugerencia-item" (mousedown)="seleccionarClienteSugerido(c)">
+                      <div style="font-weight:500">{{ c.fullName }}</div>
+                      <div style="font-size:11px;color:var(--ink-4)">{{ c.documentType }} {{ c.documentNumber }}</div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
             <div class="mini-form" [formGroup]="formCliente">
               <div style="display:grid;grid-template-columns:100px 1fr;gap:8px">
                 <select class="input" formControlName="documentType">
@@ -302,6 +318,11 @@
                       <button class="btn btn-sm" [class.btn-primary]="filtroProd()==='venta'" [class.btn-ghost]="filtroProd()!=='venta'" (click)="filtroProd.set('venta')">Venta</button>
                       <button class="btn btn-sm" [class.btn-primary]="filtroProd()==='interno'" [class.btn-ghost]="filtroProd()!=='interno'" (click)="filtroProd.set('interno')">Consumo interno</button>
                     </div>
+
+                    <input class="input" placeholder="Buscar producto…"
+                      [value]="filtroNombreProd()"
+                      (input)="filtroNombreProd.set($any($event.target).value)"
+                      style="margin-bottom:8px" />
 
                     <div class="items-picker-grid">
                       @for (p of productosFiltrados(); track p.id) {

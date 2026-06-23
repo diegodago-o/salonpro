@@ -103,8 +103,9 @@ export class VentasComponent implements OnInit {
   readonly pickerProd  = signal<ProductOption | null>(null);
   readonly precioProd  = signal(0);
   readonly tipoProd    = signal<'venta' | 'interno'>('venta');
-  readonly filtroProd  = signal<'venta' | 'interno'>('venta');
-  readonly filtroServ  = signal('');
+  readonly filtroProd      = signal<'venta' | 'interno'>('venta');
+  readonly filtroServ      = signal('');
+  readonly filtroNombreProd = signal('');
 
   // ── Pago ──────────────────────────────────────────────
   readonly tipAmount   = signal(0);
@@ -141,7 +142,12 @@ export class VentasComponent implements OnInit {
   });
   readonly productosFiltrados = computed(() => {
     const t = this.filtroProd();
-    return this.productos().filter(p => t === 'venta' ? p.isForSale : !p.isForSale);
+    const q = this.filtroNombreProd().toLowerCase().trim();
+    return this.productos().filter(p => {
+      if (t === 'venta' ? !p.isForSale : p.isForSale) return false;
+      if (!q) return true;
+      return p.name.toLowerCase().includes(q) || (p.brand ?? '').toLowerCase().includes(q);
+    });
   });
 
   constructor() {
@@ -226,6 +232,12 @@ export class VentasComponent implements OnInit {
     if (!val) { this.clienteSeleccionado.set(null); this.formCliente.reset({ documentType: 'CC' }); }
   }
 
+  cambiarCliente(): void {
+    this.clienteSeleccionado.set(null);
+    this.busquedaCliente.set('');
+    this.formCliente.reset({ documentType: 'CC', documentNumber: '', fullName: '', email: '', phone: '' });
+  }
+
   // ── Grupos ────────────────────────────────────────────
   agregarGrupo(): void {
     const nuevo: SaleGroup = { stylist: null, items: [], abierto: true };
@@ -244,6 +256,7 @@ export class VentasComponent implements OnInit {
     this.pickerServ.set(null);
     this.pickerProd.set(null);
     this.filtroServ.set('');
+    this.filtroNombreProd.set('');
   }
 
   cerrarEditorGrupo(): void {

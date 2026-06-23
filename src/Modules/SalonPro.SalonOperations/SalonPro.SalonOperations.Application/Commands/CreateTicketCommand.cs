@@ -42,6 +42,14 @@ public class CreateTicketHandler(
     ICashRegisterRepository cashRegisterRepo)
     : IRequestHandler<CreateTicketCommand, TicketDto>
 {
+    private record GroupResolved(
+        StylistGroupRequest Grp,
+        List<(SalonService Svc, decimal Price)> Services,
+        List<(SalonProduct Prod, decimal Price)> ProductsSold,
+        List<(SalonProduct Prod, decimal Price)> ProductsInternal,
+        decimal GrossServices,
+        decimal GrossProducts);
+
     public async Task<TicketDto> Handle(CreateTicketCommand cmd, CancellationToken ct)
     {
         var req = cmd.Request;
@@ -97,65 +105,72 @@ public class CreateTicketHandler(
             saleDateTime = ColombiaTime.Now;
         }
 
-        // 4. Calcular bruto total del ticket (para ratio de deducción)
-        decimal ticketGrossServices = 0, ticketGrossProducts = 0;
-        foreach (var g in req.Groups)
-        {
-            ticketGrossServices += g.Services.Sum(s => s.Price);
-            ticketGrossProducts += g.ProductsSold.Sum(p => p.Price);
-        }
-        decimal ticketGrossNoTip = ticketGrossServices + ticketGrossProducts;
-        decimal ticketGrossTotal  = ticketGrossNoTip + req.TipAmount;
-        decimal deductionRatio    = ticketGrossTotal > 0 ? totalDeductionsTicket / ticketGrossTotal : 0m;
-
-        // 5. Crear una Sale por cada grupo de estilista
-        var sales = new List<Sale>();
-        bool isFirst = true;
+        // 4. Resolver datos de todos los grupos (sin mutaciones aún)
+        var groupsResolved = new List<GroupResolved>();
+        decimal ticketGrossNoTip = 0;
 
         foreach (var grp in req.Groups)
         {
-            decimal grossServices = 0, grossProducts = 0, internalConsumption = 0;
-
-            var serviceItems  = new List<(SalonService Svc, decimal Price)>();
-            var productSoldItems = new List<(SalonProduct Prod, decimal Price)>();
-            var productInternalItems = new List<(SalonProduct Prod, decimal Price)>();
+            decimal grossServices = 0, grossProducts = 0;
+            var svcItems  = new List<(SalonService Svc, decimal Price)>();
+            var prodSold  = new List<(SalonProduct Prod, decimal Price)>();
+            var prodIntl  = new List<(SalonProduct Prod, decimal Price)>();
 
             foreach (var si in grp.Services)
             {
                 var svc = await serviceRepo.GetByIdAsync(si.ServiceId, ct)
                     ?? throw new NotFoundException("SalonService", si.ServiceId);
-                serviceItems.Add((svc, si.Price));
+                svcItems.Add((svc, si.Price));
                 grossServices += si.Price;
             }
             foreach (var pi in grp.ProductsSold)
             {
                 var prod = await productRepo.GetByIdAsync(pi.ProductId, ct)
                     ?? throw new NotFoundException("SalonProduct", pi.ProductId);
-                productSoldItems.Add((prod, pi.Price));
+                prodSold.Add((prod, pi.Price));
                 grossProducts += pi.Price;
             }
             foreach (var pi in grp.ProductsInternal)
             {
                 var prod = await productRepo.GetByIdAsync(pi.ProductId, ct)
                     ?? throw new NotFoundException("SalonProduct", pi.ProductId);
-                productInternalItems.Add((prod, pi.Price));
-                internalConsumption += prod.PurchasePrice;
+                prodIntl.Add((prod, pi.Price));
             }
 
-            // Tip: solo al primer estilista (propina general va al primer sale)
-            decimal groupTip = isFirst ? req.TipAmount : 0m;
-            decimal groupGrossTotal = grossServices + grossProducts + groupTip;
+            ticketGrossNoTip += grossServices + grossProducts;
+            groupsResolved.Add(new GroupResolved(grp, svcItems, prodSold, prodIntl, grossServices, grossProducts));
+        }
 
-            // Deducciones proporcionales a este grupo
-            decimal groupDeductions = groupGrossTotal > 0
-                ? Math.Round(totalDeductionsTicket * (groupGrossTotal / ticketGrossTotal), 2)
+        decimal ticketGrossTotal = ticketGrossNoTip + req.TipAmount;
+
+        // 5. Crear y guardar el Ticket PRIMERO para obtener su Id
+        var ticket = Ticket.Create(
+            cmd.TenantId, req.BranchId, req.BranchName,
+            client.Id, client.FullName,
+            saleDateTime, ticketGrossTotal, req.TipAmount, req.Notes);
+
+        await ticketRepo.AddAsync(ticket, ct);
+        await ticketRepo.SaveChangesAsync(ct); // ticket.Id queda asignado aquí
+
+        // 6. Crear una Sale por cada grupo con TicketId ya conocido
+        var sales = new List<Sale>();
+        bool isFirst = true;
+
+        foreach (var gd in groupsResolved)
+        {
+            var grp = gd.Grp;
+            decimal groupTip      = isFirst ? req.TipAmount : 0m;
+            decimal groupGrossTotal = gd.GrossServices + gd.GrossProducts + groupTip;
+
+            decimal groupDeductions = ticketGrossTotal > 0
+                ? Math.Round(totalDeductionsTicket * groupGrossTotal / ticketGrossTotal, 2)
                 : 0m;
 
+            decimal pct    = groupGrossTotal > 0 ? groupDeductions / groupGrossTotal : 0m;
             decimal commPct = grp.CommissionPercent / 100m;
-            decimal pct     = groupGrossTotal > 0 ? groupDeductions / groupGrossTotal : 0m;
 
             decimal stylistCommServices = 0, salonCommServices = 0;
-            foreach (var (svc, price) in serviceItems)
+            foreach (var (svc, price) in gd.Services)
             {
                 var itemBase = price * (1 - pct);
                 if (svc.HasSalonFee && svc.SalonFeePercent > 0)
@@ -173,7 +188,7 @@ public class CreateTicketHandler(
             }
 
             decimal stylistCommProducts = 0, salonCommProducts = 0;
-            foreach (var (prod, price) in productSoldItems)
+            foreach (var (prod, price) in gd.ProductsSold)
             {
                 var itemBase    = price * (1 - pct);
                 var prodCommPct = prod.StylistCommissionPercent / 100m;
@@ -181,9 +196,10 @@ public class CreateTicketHandler(
                 salonCommProducts   += Math.Round(itemBase * (1 - prodCommPct), 2);
             }
 
-            var netTip = Math.Round(groupTip * (1 - pct), 2);
-            decimal stylistTotal = Math.Round(stylistCommServices + stylistCommProducts + netTip, 2);
-            decimal salonTotal   = Math.Round(salonCommServices   + salonCommProducts, 2);
+            var netTip             = Math.Round(groupTip * (1 - pct), 2);
+            decimal internalConsumption = gd.ProductsInternal.Sum(pi => pi.Prod.PurchasePrice);
+            decimal stylistTotal   = Math.Round(stylistCommServices + stylistCommProducts + netTip, 2);
+            decimal salonTotal     = Math.Round(salonCommServices   + salonCommProducts, 2);
 
             var sale = Sale.Create(
                 cmd.TenantId, grp.StylistId, grp.StylistName,
@@ -191,64 +207,45 @@ public class CreateTicketHandler(
                 req.ClientDocumentType, req.ClientEmail, req.ClientPhone,
                 cajaAbierta.Id, req.BranchId, req.BranchName,
                 grp.CommissionPercent,
-                grossServices, grossProducts, internalConsumption,
+                gd.GrossServices, gd.GrossProducts, internalConsumption,
                 groupTip, groupDeductions, stylistTotal, salonTotal,
                 req.Notes, saleDateTime);
 
-            foreach (var (svc, price) in serviceItems)
+            // Asignar TicketId ANTES de agregar al contexto
+            sale.AssignToTicket(ticket.Id);
+
+            foreach (var (svc, price) in gd.Services)
                 sale.Items.Add(SaleItem.CreateForSale(sale, SaleItemType.Service, svc.Id, svc.Name,
                     price, 1, svc.HasSalonFee ? svc.SalonFeePercent : 0));
 
-            foreach (var (prod, price) in productSoldItems)
+            foreach (var (prod, price) in gd.ProductsSold)
             {
                 sale.Items.Add(SaleItem.CreateForSale(sale, SaleItemType.ProductSale, prod.Id, prod.Name,
                     price, 1, salonFeePercent: 0, stylistCommissionPercent: prod.StylistCommissionPercent));
                 prod.DecrementStock(1);
             }
 
-            foreach (var (prod, _) in productInternalItems)
+            foreach (var (prod, _) in gd.ProductsInternal)
             {
                 sale.Items.Add(SaleItem.CreateForSale(sale, SaleItemType.ProductInternal, prod.Id, prod.Name,
                     prod.PurchasePrice, 1, salonFeePercent: 0, stylistCommissionPercent: 0));
                 prod.DecrementStock(1);
             }
 
-            // Pagos: solo al primer sale (proporcional sería más complejo y no cambia liquidaciones)
             if (isFirst)
             {
                 foreach (var (methodId, methodName, amount, deductionPct) in paymentDetails)
                     sale.Payments.Add(SalePayment.CreateForSale(sale, methodId, methodName, amount, deductionPct));
             }
 
+            await saleRepo.AddAsync(sale, ct);
             sales.Add(sale);
             isFirst = false;
         }
 
-        // 6. Crear Ticket
-        var ticket = Ticket.Create(
-            cmd.TenantId, req.BranchId, req.BranchName,
-            client.Id, client.FullName,
-            saleDateTime, ticketGrossTotal, req.TipAmount, req.Notes);
-
-        // 7. Guardar sales
-        foreach (var sale in sales)
-            await saleRepo.AddAsync(sale, ct);
-
-        await productRepo.SaveChangesAsync(ct);
-        await clientRepo.SaveChangesAsync(ct);
-        await saleRepo.SaveChangesAsync(ct);
-
-        // 8. Asignar TicketId a cada sale y guardar ticket
-        await ticketRepo.AddAsync(ticket, ct);
-        await ticketRepo.SaveChangesAsync(ct);
-
-        foreach (var sale in sales)
-            sale.AssignToTicket(ticket.Id);
-        await saleRepo.SaveChangesAsync(ct);
-
-        // 9. Actualizar stats cliente
+        // 7. Guardar Sales, descuentos de stock y stats del cliente en una sola operación
         client.RecordVisit(ticketGrossTotal);
-        await clientRepo.SaveChangesAsync(ct);
+        await saleRepo.SaveChangesAsync(ct);
 
         return new TicketDto(ticket.Id, ticket.ClientName, ticket.SaleDateTime,
             ticket.GrossTotal, ticket.TipAmount, ticket.Status,

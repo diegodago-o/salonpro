@@ -1144,3 +1144,37 @@
   font-size: 13px;
   &:hover { background: var(--bone); }
 }
+
+/* ── Cliente seleccionado ── */
+.cliente-seleccionado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bone);
+  border: 1px solid var(--hair-2);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.cliente-seleccionado-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cliente-nombre {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cliente-doc {
+  font-size: 11px;
+  color: var(--ink-4);
+}
