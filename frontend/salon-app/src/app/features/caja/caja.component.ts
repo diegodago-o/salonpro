@@ -88,10 +88,10 @@ export class CajaComponent {
         }
         this.cargarHistorial();
       },
-      error: () => {
-        // Si el API falla, mostrar sin-caja para que el usuario pueda abrir
+      error: (err: any) => {
         this.vista.set('sin-caja');
-        this.errorMsg.set('Error al conectar con el servidor. Si el problema persiste, recarga la página.');
+        const msg = err?.error?.message ?? err?.message ?? JSON.stringify(err);
+        this.errorMsg.set(`[DEBUG] ${msg}`);
       },
     });
   }
