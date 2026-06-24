@@ -28,7 +28,8 @@ public record CreateTicketRequest(
     decimal TipAmount,
     string? Notes,
     List<StylistGroupRequest> Groups,
-    string? SaleDateTime = null);
+    string? SaleDateTime = null,
+    int TipGroupIndex = 0);
 
 public record CreateTicketCommand(int TenantId, int? CashRegisterId, CreateTicketRequest Request) : IRequest<TicketDto>;
 
@@ -147,11 +148,12 @@ public class CreateTicketHandler(
         // El "ticket" es un concepto virtual identificado por el Id de la primera Sale.
         var sales = new List<Sale>();
         bool isFirst = true;
+        int groupIndex = 0;
 
         foreach (var gd in groupsResolved)
         {
             var grp = gd.Grp;
-            decimal groupTip      = isFirst ? req.TipAmount : 0m;
+            decimal groupTip = groupIndex == req.TipGroupIndex ? req.TipAmount : 0m;
             decimal groupGrossTotal = gd.GrossServices + gd.GrossProducts + groupTip;
 
             decimal groupDeductions = ticketGrossTotal > 0
@@ -230,6 +232,7 @@ public class CreateTicketHandler(
             await saleRepo.AddAsync(sale, ct);
             sales.Add(sale);
             isFirst = false;
+            groupIndex++;
         }
 
         // 6. Guardar Sales, stock y stats del cliente

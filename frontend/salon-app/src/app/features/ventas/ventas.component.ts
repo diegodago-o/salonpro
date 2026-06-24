@@ -3,6 +3,7 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { forkJoin } from 'rxjs';
 import { VentasService } from '../../core/services/ventas.service';
 import { TicketService } from '../../core/services/ticket.service';
 import { CajaService } from '../../core/services/caja.service';
@@ -13,7 +14,7 @@ import { Cliente } from '../../core/models/clientes.models';
 import {
   ClientOption, PaymentEntry, PaymentMethodOption, ProductOption,
   SaleCalculation, SaleItem, SaleProductItem, SaleServiceItem,
-  ServiceOption, StylistOption, Sale
+  ServiceOption, StylistOption, Sale, SaleStatus, SaleItemDto, SalePaymentDto
 } from '../../core/models/ventas.models';
 import { SaleGroup } from '../../core/models/ticket.models';
 import { calculateSale } from '../../core/utils/sale-calculator';
@@ -22,6 +23,39 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
 
 type Vista = 'lista' | 'nueva-venta' | 'anular';
 type PasoGrupo = 'estilista' | 'servicios' | 'productos' | 'listo';
+
+interface ReciboVenta {
+  clientName: string;
+  fecha: string;
+  grupos: { stylistName: string; items: { name: string; price: number }[] }[];
+  pagos: { methodName: string; amount: number }[];
+  subtotal: number;
+  tipAmount: number;
+  total: number;
+}
+
+interface VentaGrupo {
+  id: number;
+  saleDateTime: string;
+  clientName: string;
+  clientDocument: string;
+  stylistNames: string;
+  grossTotal: number;
+  tipAmount: number;
+  status: SaleStatus;
+  ventas: Sale[];
+}
+
+interface VentaGrupoDetalle {
+  id: number;
+  clientName: string;
+  saleDateTime: string;
+  grossTotal: number;
+  tipAmount: number;
+  status: SaleStatus;
+  grupos: { stylistName: string; items: SaleItemDto[] }[];
+  payments: SalePaymentDto[];
+}
 
 @Component({
   selector: 'app-ventas',
@@ -53,12 +87,13 @@ export class VentasComponent implements OnInit {
   readonly cargando     = signal(true);
 
   // ── Lista de ventas (consulta) ─────────────────────────
-  readonly ventas       = signal<Sale[]>([]);
-  readonly ventaAnular  = signal<Sale | null>(null);
-  readonly ventaDetalle = signal<Sale | null>(null);
-  readonly fechaDesde   = signal(colombiaStartOfDay(todayColombia()));
-  readonly fechaHasta   = signal(colombiaEndOfDay(todayColombia()));
-  readonly cargandoVentas = signal(false);
+  readonly ventas          = signal<Sale[]>([]);
+  readonly ventasAgrupadas = computed(() => this.agruparVentas(this.ventas()));
+  readonly ventaAnular     = signal<VentaGrupo | null>(null);
+  readonly ventaDetalleGrupo = signal<VentaGrupoDetalle | null>(null);
+  readonly fechaDesde      = signal(colombiaStartOfDay(todayColombia()));
+  readonly fechaHasta      = signal(colombiaEndOfDay(todayColombia()));
+  readonly cargandoVentas  = signal(false);
 
   // ── Cliente ────────────────────────────────────────────
   readonly clientesDisponibles = signal<Cliente[]>([]);
@@ -88,16 +123,13 @@ export class VentasComponent implements OnInit {
   // ── Carrito multi-estilista ────────────────────────────
   readonly grupos = signal<SaleGroup[]>([]);
 
-  // Índice del grupo que está editándose ahora
   readonly grupoEditandoIdx = signal<number | null>(null);
   readonly pasoGrupo        = signal<PasoGrupo>('estilista');
 
-  // Selecciones temporales para el grupo activo
   readonly estilistaTemp   = signal<StylistOption | null>(null);
   readonly serviciosTemp   = signal<SaleServiceItem[]>([]);
   readonly productosTemp   = signal<SaleProductItem[]>([]);
 
-  // Selección de servicio/producto en el picker
   readonly pickerServ  = signal<ServiceOption | null>(null);
   readonly precioServ  = signal(0);
   readonly pickerProd  = signal<ProductOption | null>(null);
@@ -108,15 +140,26 @@ export class VentasComponent implements OnInit {
   readonly filtroNombreProd = signal('');
 
   // ── Pago ──────────────────────────────────────────────
-  readonly tipAmount   = signal(0);
-  readonly pagos       = signal<PaymentEntry[]>([{ paymentMethodId: null, amount: 0 }]);
-  readonly notas       = signal('');
+  readonly tipAmount      = signal(0);
+  readonly tipStylistIdx  = signal<number>(0);  // Fix 1: índice del grupo que recibe la propina
+  readonly pagos          = signal<PaymentEntry[]>([{ paymentMethodId: null, amount: 0 }]);
+  readonly notas          = signal('');
+
+  // Fix 2: detectar si algún método seleccionado es efectivo
+  readonly tieneEfectivo = computed(() =>
+    this.pagos().some(p => {
+      const method = this.metodosPago().find(m => m.id === p.paymentMethodId);
+      return method?.name?.toLowerCase().includes('efectivo') ?? false;
+    })
+  );
 
   readonly totalGrupos = computed(() =>
     this.grupos().reduce((s, g) =>
       s + g.items.reduce((si, item) => si + item.price * item.quantity, 0), 0)
   );
-  readonly totalConPropina = computed(() => this.totalGrupos() + this.tipAmount());
+  readonly totalConPropina = computed(() =>
+    this.totalGrupos() + (this.tieneEfectivo() ? 0 : this.tipAmount())
+  );
 
   readonly totalPagado = computed(() =>
     this.pagos().reduce((s, p) => s + (p.amount || 0), 0)
@@ -130,8 +173,9 @@ export class VentasComponent implements OnInit {
     !this.guardando()
   );
 
-  // ── Resumen éxito ──────────────────────────────────────
+  // ── Recibo y éxito ────────────────────────────────────
   readonly ventaExitosa = signal(false);
+  readonly ventaRecibo  = signal<ReciboVenta | null>(null);  // Fix 3
 
   // ── Servicios filtrados ────────────────────────────────
   readonly serviciosFiltrados = computed(() => {
@@ -215,10 +259,12 @@ export class VentasComponent implements OnInit {
     this.busquedaCliente.set('');
     this.formCliente.reset({ documentType: 'CC', documentNumber: '', fullName: '', email: '', phone: '' });
     this.tipAmount.set(0);
+    this.tipStylistIdx.set(0);
     this.pagos.set([{ paymentMethodId: null, amount: 0 }]);
     this.notas.set('');
     this.errorMsg.set(null);
     this.ventaExitosa.set(false);
+    this.ventaRecibo.set(null);
     this.grupoEditandoIdx.set(null);
     this.vista.set('nueva-venta');
     this.agregarGrupo();
@@ -297,14 +343,15 @@ export class VentasComponent implements OnInit {
   eliminarGrupo(idx: number): void {
     if (this.grupoEditandoIdx() === idx) this.grupoEditandoIdx.set(null);
     this.grupos.update(gs => gs.filter((_, i) => i !== idx));
+    if (this.tipStylistIdx() >= this.grupos().length) {
+      this.tipStylistIdx.set(0);
+    }
   }
 
   seleccionarEstilista(s: StylistOption): void {
-    // Verificar que no esté ya en otro grupo (fusionar si repite)
     const idx = this.grupoEditandoIdx()!;
     const yaExiste = this.grupos().findIndex((g, i) => i !== idx && g.stylist?.id === s.id);
     if (yaExiste >= 0) {
-      // Fusionar: mover todo al grupo existente
       const itemsTemp: SaleItem[] = [...this.serviciosTemp(), ...this.productosTemp()];
       this.grupos.update(gs => gs.map((g, i) => {
         if (i === yaExiste) return { ...g, items: [...g.items, ...itemsTemp] };
@@ -318,10 +365,10 @@ export class VentasComponent implements OnInit {
     this.pasoGrupo.set('servicios');
   }
 
-  // ── Desglose financiero (pre-factura interna) ─────────
+  // ── Desglose financiero ───────────────────────────────
   readonly desglose = computed(() => {
-    const totalPagado = this.totalPagado();
     const totalBruto  = this.totalConPropina();
+    const tipIdx      = this.tipStylistIdx();
     const deduccionTotal = totalBruto > 0
       ? this.pagos()
           .filter(p => p.paymentMethodId && p.amount > 0)
@@ -333,12 +380,13 @@ export class VentasComponent implements OnInit {
 
     const grupos = this.grupos().map((g, idx) => {
       if (!g.stylist || g.items.length === 0) return null;
-      const isFirst = idx === 0;
+      const getsTip     = idx === tipIdx && !this.tieneEfectivo();  // Fix 1 + Fix 2
+      const tipForGroup = getsTip ? this.tipAmount() : 0;
       const calc = calculateSale({
         items: g.items,
-        tipAmount: isFirst ? this.tipAmount() : 0,
+        tipAmount: tipForGroup,
         deductionAmount: totalBruto > 0
-          ? Math.round(deduccionTotal * (g.items.reduce((s, i) => s + i.price, 0) + (isFirst ? this.tipAmount() : 0)) / totalBruto)
+          ? Math.round(deduccionTotal * (g.items.reduce((s, i) => s + i.price, 0) + tipForGroup) / totalBruto)
           : 0,
         stylistCommPct: g.stylist.commissionPercent,
       });
@@ -427,6 +475,9 @@ export class VentasComponent implements OnInit {
   // ── Pago ──────────────────────────────────────────────
   setMetodoPago(idx: number, id: number): void {
     this.pagos.update(ps => ps.map((p, i) => i === idx ? { ...p, paymentMethodId: +id } : p));
+    if (this.tieneEfectivo()) {   // Fix 2: resetear propina si pago cambia a efectivo
+      this.tipAmount.set(0);
+    }
     this.syncPagoUnico();
   }
 
@@ -450,6 +501,7 @@ export class VentasComponent implements OnInit {
   }
 
   onTipChange(val: number): void {
+    if (this.tieneEfectivo()) return;   // Fix 2: ignorar si pago es efectivo
     this.tipAmount.set(val || 0);
     this.syncPagoUnico();
   }
@@ -460,11 +512,31 @@ export class VentasComponent implements OnInit {
     this.errorMsg.set(null);
     this.guardando.set(true);
 
-    const fc    = this.formCliente.value;
+    const fc     = this.formCliente.value;
     const branch = this.branchService.selectedBranch();
     const docType   = fc.documentType || 'CC';
     const docNumber = fc.documentNumber || 'SIN_DOCUMENTO';
     const fullName  = fc.fullName || 'Consumidor Final';
+    const tipAmt    = this.tieneEfectivo() ? 0 : this.tipAmount();
+
+    // Fix 3: capturar datos del recibo antes de enviar
+    const recibo: ReciboVenta = {
+      clientName: fullName,
+      fecha: new Date().toISOString(),
+      grupos: this.grupos().map(g => ({
+        stylistName: g.stylist!.fullName,
+        items: g.items.map(i => ({ name: i.name, price: i.price })),
+      })),
+      pagos: this.pagos()
+        .filter(p => p.paymentMethodId && p.amount > 0)
+        .map(p => ({
+          methodName: this.metodosPago().find(m => m.id === p.paymentMethodId)?.name ?? '',
+          amount: p.amount,
+        })),
+      subtotal: this.totalGrupos(),
+      tipAmount: tipAmt,
+      total: this.totalGrupos() + tipAmt,
+    };
 
     const request = {
       clientDocumentType:   docType,
@@ -477,7 +549,8 @@ export class VentasComponent implements OnInit {
       payments:   this.pagos()
         .filter(p => p.paymentMethodId && p.amount > 0)
         .map(p => ({ paymentMethodId: p.paymentMethodId!, amount: p.amount })),
-      tipAmount: this.tipAmount(),
+      tipAmount:     tipAmt,
+      tipGroupIndex: this.tipStylistIdx(),   // Fix 1
       notes:     this.notas() || undefined,
       groups:    this.grupos().map(g => ({
         stylistId:         g.stylist!.id,
@@ -498,6 +571,7 @@ export class VentasComponent implements OnInit {
     this.ticketService.crearTicket(request).subscribe({
       next: () => {
         this.guardando.set(false);
+        this.ventaRecibo.set(recibo);   // Fix 3
         this.ventaExitosa.set(true);
       },
       error: (e) => {
@@ -513,27 +587,44 @@ export class VentasComponent implements OnInit {
   }
 
   // ── Anular ────────────────────────────────────────────
-  abrirAnular(v: Sale): void { this.ventaAnular.set(v); this.vista.set('anular'); }
+  abrirAnular(g: VentaGrupo): void { this.ventaAnular.set(g); this.vista.set('anular'); }
   cancelarAnular(): void    { this.ventaAnular.set(null); this.vista.set('lista'); }
 
   readonly formAnular = this.fb.group({ reason: ['', Validators.required] });
 
   confirmarAnular(): void {
     if (this.formAnular.invalid) return;
-    const v = this.ventaAnular();
-    if (!v) return;
+    const g = this.ventaAnular();
+    if (!g) return;
     this.guardando.set(true);
-    this.ventasService.anularVenta(v.id, this.formAnular.value.reason!).subscribe({
+    const reason = this.formAnular.value.reason!;
+    forkJoin(g.ventas.map(v => this.ventasService.anularVenta(v.id, reason))).subscribe({
       next: () => { this.guardando.set(false); this.cancelarAnular(); },
       error: () => { this.guardando.set(false); }
     });
   }
 
   // ── Detalle de venta ──────────────────────────────────
-  abrirDetalle(v: Sale): void {
-    this.ventasService.getSaleDetail(v.id).subscribe(r => this.ventaDetalle.set(r.data));
+  abrirDetalle(g: VentaGrupo): void {
+    forkJoin(g.ventas.map(v => this.ventasService.getSaleDetail(v.id))).subscribe(results => {
+      const salesDetalle = results.map(r => r.data).filter((v): v is Sale => v !== null);
+      const firstSale = salesDetalle[0];
+      this.ventaDetalleGrupo.set({
+        id: g.id,
+        clientName: g.clientName,
+        saleDateTime: g.saleDateTime,
+        grossTotal: g.grossTotal,
+        tipAmount: g.tipAmount,
+        status: g.status,
+        grupos: salesDetalle.map(v => ({
+          stylistName: v.stylistName,
+          items: v.items ?? [],
+        })),
+        payments: firstSale?.payments ?? [],
+      });
+    });
   }
-  cerrarDetalle(): void { this.ventaDetalle.set(null); }
+  cerrarDetalle(): void { this.ventaDetalleGrupo.set(null); }
 
   // ── Cálculo de participación ──────────────────────────
   grupoSubtotal(g: SaleGroup): number {
@@ -549,10 +640,39 @@ export class VentasComponent implements OnInit {
     return Math.round((grossServices + grossProducts) * pct);
   }
 
-  // Utilidades de vista
   tieneItemsEnGrupo(idx: number): boolean {
     return (this.grupos()[idx]?.items.length ?? 0) > 0;
   }
 
   itemsGrupo(g: SaleGroup): SaleItem[] { return g.items; }
+
+  // Fix 4: agrupar ventas individuales por visita (misma saleDateTime + clientDocument)
+  private agruparVentas(ventas: Sale[]): VentaGrupo[] {
+    const map = new Map<string, VentaGrupo>();
+    for (const v of ventas) {
+      const key = `${v.saleDateTime}|${v.clientDocument}`;
+      if (map.has(key)) {
+        const g = map.get(key)!;
+        g.ventas.push(v);
+        g.grossTotal += v.grossTotal;
+        if (!g.stylistNames.includes(v.stylistName)) {
+          g.stylistNames += `, ${v.stylistName}`;
+        }
+        if (v.status !== 'Active') g.status = v.status;
+      } else {
+        map.set(key, {
+          id: v.id,
+          saleDateTime: v.saleDateTime,
+          clientName: v.clientName,
+          clientDocument: v.clientDocument,
+          stylistNames: v.stylistName,
+          grossTotal: v.grossTotal,
+          tipAmount: v.tipAmount,
+          status: v.status,
+          ventas: [v],
+        });
+      }
+    }
+    return Array.from(map.values());
+  }
 }

@@ -7,7 +7,7 @@
     <div>
       <div class="eyebrow">Punto de venta</div>
       <h1><span class="serif">Consultar </span><span class="serif-italic">ventas</span></h1>
-      <div class="deck">{{ ventas().length }} ventas registradas</div>
+      <div class="deck">{{ ventasAgrupadas().length }} ventas registradas</div>
     </div>
     <button class="btn btn-primary" (click)="abrirNuevaVenta()">
       <sp-icon name="plus" [size]="14" /> Registrar venta
@@ -51,14 +51,14 @@
         </tr>
       </thead>
       <tbody>
-        @for (v of ventas(); track v.id) {
+        @for (v of ventasAgrupadas(); track v.id) {
           <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'">
             <td class="tnum" style="font-size:12px">{{ v.saleDateTime | date:'dd/MM HH:mm':'':'es-CO' }}</td>
             <td>
               <div style="font-weight:500">{{ v.clientName }}</div>
               <div style="font-size:11px;color:var(--ink-4)">{{ v.clientDocument }}</div>
             </td>
-            <td>{{ v.stylistName }}</td>
+            <td>{{ v.stylistNames }}</td>
             <td class="tnum" style="text-align:right">
               {{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
             </td>
@@ -94,18 +94,69 @@
 <div class="page fade-in">
 
   @if (ventaExitosa()) {
-    <!-- ── Pantalla éxito ── -->
-    <div style="max-width:480px;margin:80px auto;text-align:center">
-      <div style="font-size:40px;margin-bottom:16px">✓</div>
-      <h2 class="serif" style="font-size:28px;font-weight:400;margin-bottom:8px">Venta registrada</h2>
-      <p style="color:var(--ink-3);margin-bottom:32px">La venta fue guardada exitosamente.</p>
-      <div style="display:flex;gap:8px;justify-content:center">
+    <!-- ── Recibo de venta registrada (Fix 3) ── -->
+    @if (ventaRecibo(); as rec) {
+    <div style="max-width:520px;margin:40px auto">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:36px;margin-bottom:8px">✓</div>
+        <h2 class="serif" style="font-size:26px;font-weight:400">Venta registrada</h2>
+        <div style="font-size:13px;color:var(--ink-4);margin-top:4px">
+          {{ rec.fecha | date:'dd/MM/yyyy HH:mm':'':'es-CO' }}
+        </div>
+      </div>
+
+      <div class="card" style="padding:24px">
+        <div style="font-size:15px;font-weight:600;margin-bottom:16px">{{ rec.clientName }}</div>
+
+        @for (g of rec.grupos; track $index) {
+          <div style="margin-bottom:16px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-4);margin-bottom:6px">
+              {{ g.stylistName }}
+            </div>
+            @for (item of g.items; track $index) {
+              <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
+                <span>{{ item.name }}</span>
+                <span class="tnum">{{ item.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+              </div>
+            }
+          </div>
+        }
+
+        <div style="border-top:1px solid var(--hair-2);padding-top:12px;margin-top:4px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-3);padding:2px 0">
+            <span>Subtotal</span>
+            <span class="tnum">{{ rec.subtotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+          </div>
+          @if (rec.tipAmount > 0) {
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-3);padding:2px 0">
+              <span>Propina</span>
+              <span class="tnum">{{ rec.tipAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+            </div>
+          }
+          <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;padding:6px 0 0">
+            <span>TOTAL</span>
+            <span class="tnum">{{ rec.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid var(--hair-2);padding-top:12px;margin-top:8px">
+          @for (p of rec.pagos; track $index) {
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3);padding:2px 0">
+              <span>{{ p.methodName }}</span>
+              <span class="tnum">{{ p.amount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:20px">
         <button class="btn btn-ghost" (click)="volverALista()">Ver ventas</button>
         <button class="btn btn-primary" (click)="nuevaVentaTrasSalida()">
           <sp-icon name="plus" [size]="14" /> Nueva venta
         </button>
       </div>
     </div>
+    }
   } @else {
 
     <div class="page-head">
@@ -401,15 +452,41 @@
           }
 
           <div class="resumen-row">
-            <span style="color:var(--ink-3)">Propina</span>
+            <div>
+              <span style="color:var(--ink-3)">Propina</span>
+              @if (tieneEfectivo()) {
+                <div style="font-size:10px;color:var(--ink-4);margin-top:2px">No aplica en efectivo</div>
+              }
+            </div>
             <div style="display:flex;align-items:center;gap:4px">
               <span style="font-size:12px;color:var(--ink-4)">$</span>
               <input class="input mono" type="number" min="0"
-                [value]="tipAmount()"
+                [value]="tieneEfectivo() ? 0 : tipAmount()"
+                [disabled]="tieneEfectivo()"
                 (input)="onTipChange(+$any($event.target).value)"
                 style="width:90px;padding:4px 6px;font-size:13px" />
             </div>
           </div>
+
+          <!-- Fix 1: selector de quién recibe la propina (sólo si hay propina y varios grupos) -->
+          @if (tipAmount() > 0 && !tieneEfectivo() && grupos().length > 1) {
+            <div style="padding:8px 0 4px;border-top:1px solid var(--hair-2);margin-top:4px">
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-4);margin-bottom:6px">
+                Propina para
+              </div>
+              @for (g of grupos(); track $index; let i = $index) {
+                @if (g.stylist) {
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:3px 0">
+                    <input type="radio" name="tipStylist"
+                      [checked]="tipStylistIdx() === i"
+                      (change)="tipStylistIdx.set(i)"
+                      style="cursor:pointer" />
+                    {{ g.stylist.fullName }}
+                  </label>
+                }
+              }
+            </div>
+          }
 
           <div class="resumen-total">
             <span>TOTAL</span>
@@ -558,28 +635,60 @@
 }
 
 <!-- Modal detalle de venta -->
-@if (ventaDetalle()) {
+@if (ventaDetalleGrupo(); as det) {
   <div class="modal-back" (click)="cerrarDetalle()">
-    <div class="modal" (click)="$event.stopPropagation()" style="max-width:520px">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width:540px">
       <div style="padding:28px">
-        <div class="eyebrow">Detalle</div>
-        <h3 class="serif" style="font-size:22px;font-weight:400;margin:4px 0 16px">
-          {{ ventaDetalle()!.stylistName }} · {{ ventaDetalle()!.clientName }}
+        <div class="eyebrow">Detalle de venta</div>
+        <h3 class="serif" style="font-size:22px;font-weight:400;margin:4px 0 4px">
+          {{ det.clientName }}
         </h3>
-        @if (ventaDetalle()!.items?.length) {
-          <table class="tbl" style="margin-bottom:16px">
-            <thead><tr><th>Ítem</th><th style="text-align:right">Precio</th></tr></thead>
-            <tbody>
-              @for (item of ventaDetalle()!.items!; track item.id) {
-                <tr>
-                  <td>{{ item.name }}</td>
-                  <td class="tnum" style="text-align:right">{{ item.unitPrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
+        <div style="font-size:12px;color:var(--ink-4);margin-bottom:20px">
+          {{ det.saleDateTime | date:'dd/MM/yyyy HH:mm':'':'es-CO' }}
+        </div>
+
+        @for (g of det.grupos; track $index) {
+          <div style="margin-bottom:16px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-4);margin-bottom:6px;font-weight:600">
+              {{ g.stylistName }}
+            </div>
+            @if (g.items.length > 0) {
+              <table class="tbl">
+                <tbody>
+                  @for (item of g.items; track item.id) {
+                    <tr>
+                      <td style="font-size:13px">{{ item.name }}</td>
+                      <td class="tnum" style="text-align:right;font-size:13px">
+                        {{ item.unitPrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
         }
-        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+
+        <div style="border-top:1px solid var(--hair-2);padding-top:12px;margin-top:4px">
+          @if (det.tipAmount > 0) {
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-3);padding:2px 0">
+              <span>Propina</span>
+              <span class="tnum">{{ det.tipAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+            </div>
+          }
+          <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;padding:4px 0">
+            <span>TOTAL</span>
+            <span class="tnum">{{ det.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+          </div>
+          @for (p of det.payments; track p.paymentMethodId) {
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-4);padding:2px 0">
+              <span>{{ p.paymentMethodName }}</span>
+              <span class="tnum">{{ p.amount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+            </div>
+          }
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:16px">
           <button class="btn btn-ghost" (click)="cerrarDetalle()">Cerrar</button>
         </div>
       </div>
