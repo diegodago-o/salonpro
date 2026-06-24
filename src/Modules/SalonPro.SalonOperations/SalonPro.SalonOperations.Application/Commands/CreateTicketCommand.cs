@@ -33,7 +33,6 @@ public record CreateTicketRequest(
 public record CreateTicketCommand(int TenantId, int? CashRegisterId, CreateTicketRequest Request) : IRequest<TicketDto>;
 
 public class CreateTicketHandler(
-    ITicketRepository ticketRepo,
     ISaleRepository saleRepo,
     IClientRepository clientRepo,
     ISalonServiceRepository serviceRepo,
@@ -143,16 +142,9 @@ public class CreateTicketHandler(
 
         decimal ticketGrossTotal = ticketGrossNoTip + req.TipAmount;
 
-        // 5. Crear y guardar el Ticket PRIMERO para obtener su Id
-        var ticket = Ticket.Create(
-            cmd.TenantId, req.BranchId, req.BranchName,
-            client.Id, client.FullName,
-            saleDateTime, ticketGrossTotal, req.TipAmount, req.Notes);
-
-        await ticketRepo.AddAsync(ticket, ct);
-        await ticketRepo.SaveChangesAsync(ct); // ticket.Id queda asignado aquí
-
-        // 6. Crear una Sale por cada grupo con TicketId ya conocido
+        // 5. Crear las Sales por cada grupo de estilista
+        // No persistimos Ticket en BD: la tabla Tickets aún no está disponible en producción.
+        // El "ticket" es un concepto virtual identificado por el Id de la primera Sale.
         var sales = new List<Sale>();
         bool isFirst = true;
 
@@ -211,9 +203,6 @@ public class CreateTicketHandler(
                 groupTip, groupDeductions, stylistTotal, salonTotal,
                 req.Notes, saleDateTime);
 
-            // Asignar TicketId ANTES de agregar al contexto
-            sale.AssignToTicket(ticket.Id);
-
             foreach (var (svc, price) in gd.Services)
                 sale.Items.Add(SaleItem.CreateForSale(sale, SaleItemType.Service, svc.Id, svc.Name,
                     price, 1, svc.HasSalonFee ? svc.SalonFeePercent : 0));
@@ -243,15 +232,16 @@ public class CreateTicketHandler(
             isFirst = false;
         }
 
-        // 7. Guardar Sales, descuentos de stock y stats del cliente en una sola operación
+        // 6. Guardar Sales, stock y stats del cliente
         client.RecordVisit(ticketGrossTotal);
         await saleRepo.SaveChangesAsync(ct);
 
-        // 8. Vincular Sales con Ticket via raw SQL (TicketId ignorado por EF Core model)
-        await saleRepo.LinkToTicketAsync(sales.Select(s => s.Id), ticket.Id, ct);
+        // El Id de la primera Sale actúa como identificador del grupo de ventas
+        int virtualTicketId = sales.First().Id;
+        await saleRepo.LinkToTicketAsync(sales.Select(s => s.Id), virtualTicketId, ct);
 
-        return new TicketDto(ticket.Id, ticket.ClientName, ticket.SaleDateTime,
-            ticket.GrossTotal, ticket.TipAmount, ticket.Status,
+        return new TicketDto(virtualTicketId, client.FullName, saleDateTime,
+            ticketGrossTotal, req.TipAmount, "Active",
             sales.Select(s => s.Id).ToList());
     }
 }
