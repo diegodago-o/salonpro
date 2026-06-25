@@ -26,6 +26,7 @@ export interface CreateTicketRequest {
     productsInternal: { productId: number; price: number }[];
   }[];
   saleDateTime?: string;
+  tipGroupIndex?: number;
 }
 
 export interface TicketDto {

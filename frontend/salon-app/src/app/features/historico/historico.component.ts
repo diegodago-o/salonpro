@@ -60,7 +60,8 @@ export class HistoricoComponent implements OnInit {
   readonly peluqueroSeleccionado = computed(() => this.grupoActual().stylist);
 
   /** Propina como signal reactiva — sincronizada con formVenta.tipAmount */
-  readonly tipAmountSig = signal(0);
+  readonly tipAmountSig  = signal(0);
+  readonly tipGrupoIdx   = signal(0);
 
   // ── Fecha histórica ────────────────────────────────────
   readonly historialDate = signal<string>(this.hoy());
@@ -115,6 +116,7 @@ export class HistoricoComponent implements OnInit {
   readonly filtroServicio      = signal('');
   readonly categoriaServicio   = signal('Todos');
   readonly filtroProductoVenta = signal('');
+  readonly buscadorProducto    = signal('');
 
   // ── Formularios ───────────────────────────────────────
   readonly formCliente = this.fb.group({
@@ -257,11 +259,14 @@ export class HistoricoComponent implements OnInit {
   });
 
   readonly productosVentaFiltrados = computed(() => {
-    const f = this.filtroProductoVenta().toLowerCase();
-    return this.productos().filter(p => p.isForSale && (!f || p.name.toLowerCase().includes(f)));
+    const busqueda = this.buscadorProducto().toLowerCase();
+    return this.productos().filter(p => p.isForSale && (!busqueda || p.name.toLowerCase().includes(busqueda)));
   });
 
-  readonly productosInternosFiltrados = computed(() => this.productos().filter(() => true));
+  readonly productosInternosFiltrados = computed(() => {
+    const busqueda = this.buscadorProducto().toLowerCase();
+    return this.productos().filter(p => !busqueda || p.name.toLowerCase().includes(busqueda));
+  });
 
   metodosPagoDisponibles(indexActual: number): PaymentMethodOption[] {
     const usados = this.pagos()
@@ -361,6 +366,7 @@ export class HistoricoComponent implements OnInit {
     this.filtroServicio.set('');
     this.categoriaServicio.set('Todos');
     this.filtroProductoVenta.set('');
+    this.buscadorProducto.set('');
     this.step.set(1);
   }
 
@@ -482,9 +488,10 @@ export class HistoricoComponent implements OnInit {
       branchName:           this.branchService.selectedBranch()?.name ?? undefined,
       payments: this.pagos().filter(p => p.paymentMethodId && p.amount > 0)
         .map(p => ({ paymentMethodId: p.paymentMethodId!, amount: p.amount })),
-      tipAmount:    this.tipAmountSig(),
-      notes:        this.formVenta.value.notes ?? undefined,
-      saleDateTime: this.saleDateTimeISO() ?? undefined,
+      tipAmount:      this.tipAmountSig(),
+      tipGroupIndex:  this.grupos().length > 1 ? this.tipGrupoIdx() : 0,
+      notes:          this.formVenta.value.notes ?? undefined,
+      saleDateTime:   this.saleDateTimeISO() ?? undefined,
       groups: this.grupos().map(g => ({
         stylistId:         g.stylist!.id,
         stylistName:       g.stylist!.fullName,
@@ -567,11 +574,14 @@ export class HistoricoComponent implements OnInit {
     this.formVenta.reset({ tipAmount: 0 });
     this.grupos.set([{ stylist: null, items: [] }]);
     this.grupoActualIdx.set(0);
+    this.tipAmountSig.set(0);
+    this.tipGrupoIdx.set(0);
     this.pagos.set([{ paymentMethodId: null, amount: 0 }]);
     this.clienteEncontrado.set(null);
     this.filtroServicio.set('');
     this.categoriaServicio.set('Todos');
     this.filtroProductoVenta.set('');
+    this.buscadorProducto.set('');
     this.ventaExitosa.set(false);
     this.ventaExitosaData.set(null);
     this.folioVenta.set('');
@@ -597,14 +607,15 @@ export class HistoricoComponent implements OnInit {
 
   private calcularParaGrupo(idx: number, totalWithTip: number, dedTotal: number): SaleCalculation {
     const g        = this.grupos()[idx];
+    const tipIdx    = this.tipGrupoIdx();
     const groupGross = g.items.filter(i => i.type !== 'ProductInternal')
       .reduce((s, i) => s + i.price * i.quantity, 0)
-      + (idx === 0 ? this.tipAmountSig() : 0);
+      + (idx === tipIdx ? this.tipAmountSig() : 0);
     const frac     = totalWithTip > 0 ? groupGross / totalWithTip : 0;
     const groupDed = Math.round(dedTotal * frac);
     return calculateSale({
       items:          g.items,
-      tipAmount:      idx === 0 ? this.tipAmountSig() : 0,
+      tipAmount:      idx === tipIdx ? this.tipAmountSig() : 0,
       deductionAmount: groupDed,
       stylistCommPct: g.stylist?.commissionPercent ?? 0,
     });

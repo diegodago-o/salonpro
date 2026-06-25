@@ -320,7 +320,7 @@
 
           <!-- ╔══ STEP 3: Productos ══╗ -->
           @if (step() === 3) {
-            <div style="display:flex;gap:6px;margin-bottom:18px;padding:3px;background:var(--bone);border-radius:7px;width:fit-content">
+            <div style="display:flex;gap:6px;margin-bottom:12px;padding:3px;background:var(--bone);border-radius:7px;width:fit-content">
               <button [class]="'btn btn-sm ' + (filtroProductoVenta() !== '__internal__' ? 'btn-primary' : 'btn-ghost')"
                 (click)="filtroProductoVenta.set('')">
                 <sp-icon name="bag" [size]="12" /> Venta a cliente
@@ -330,33 +330,43 @@
                 <sp-icon name="sparkle" [size]="12" /> Consumo interno
               </button>
             </div>
+
+            <!-- Buscador -->
+            <input class="input" type="text" placeholder="Buscar producto…" style="margin-bottom:14px"
+              [value]="buscadorProducto()"
+              (input)="buscadorProducto.set($any($event.target).value)" />
+
             @if (filtroProductoVenta() !== '__internal__') {
-              <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Productos que el cliente se llevó.</div>
-              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-                @for (p of productosVentaFiltrados(); track p.id) {
-                  <button [class]="'tile' + (productoVentaYaAgregado(p.id) ? ' selected' : '')" (click)="agregarProductoVenta(p)">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start">
-                      <div>
-                        <div style="font-weight:500;font-size:14px">{{ p.name }}</div>
-                        <div class="tile-meta" style="margin-top:2px">{{ p.brand }}</div>
+              <div style="font-size:12px;color:var(--ink-3);margin-bottom:10px">Productos que el cliente se llevó.</div>
+              <div style="max-height:380px;overflow-y:auto;padding-right:4px">
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+                  @for (p of productosVentaFiltrados(); track p.id) {
+                    <button [class]="'tile' + (productoVentaYaAgregado(p.id) ? ' selected' : '')" (click)="agregarProductoVenta(p)">
+                      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                        <div>
+                          <div style="font-weight:500;font-size:14px">{{ p.name }}</div>
+                          <div class="tile-meta" style="margin-top:2px">{{ p.brand }}</div>
+                        </div>
+                        <div class="serif tnum" style="font-size:16px">{{ p.salePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
                       </div>
-                      <div class="serif tnum" style="font-size:16px">{{ p.salePrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-                    </div>
-                  </button>
-                }
+                    </button>
+                  }
+                </div>
               </div>
-              @if (productosVentaFiltrados().length === 0) { <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Opcional · sin productos para venta</div> }
+              @if (productosVentaFiltrados().length === 0) { <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Sin productos que coincidan.</div> }
             } @else {
-              <div style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Productos usados por el colaborador durante el servicio.</div>
-              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-                @for (p of productosInternosFiltrados(); track p.id) {
-                  <button [class]="'tile' + (productoInternoYaAgregado(p.id) ? ' selected' : '')" (click)="agregarProductoInterno(p)">
-                    <div style="font-weight:500;font-size:14px">{{ p.name }}</div>
-                    <div class="tile-meta" style="margin-top:2px">{{ p.brand }}</div>
-                  </button>
-                }
+              <div style="font-size:12px;color:var(--ink-3);margin-bottom:10px">Productos usados por el colaborador durante el servicio.</div>
+              <div style="max-height:380px;overflow-y:auto;padding-right:4px">
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+                  @for (p of productosInternosFiltrados(); track p.id) {
+                    <button [class]="'tile' + (productoInternoYaAgregado(p.id) ? ' selected' : '')" (click)="agregarProductoInterno(p)">
+                      <div style="font-weight:500;font-size:14px">{{ p.name }}</div>
+                      <div class="tile-meta" style="margin-top:2px">{{ p.brand }}</div>
+                    </button>
+                  }
+                </div>
               </div>
-              @if (productosInternosFiltrados().length === 0) { <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Opcional · sin consumos internos</div> }
+              @if (productosInternosFiltrados().length === 0) { <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Sin productos que coincidan.</div> }
             }
 
             <!-- Botón agregar otro colaborador -->
@@ -439,6 +449,16 @@
                   [style.opacity]="hasCashPayment() ? '0.45' : '1'"
                   [style.cursor]="hasCashPayment() ? 'not-allowed' : 'auto'" />
               </label>
+              @if (grupos().length > 1 && tipAmountSig() > 0) {
+                <label class="field" style="max-width:240px;margin-top:10px">
+                  <span class="label">¿A quién va la propina?</span>
+                  <select class="select" [value]="tipGrupoIdx()" (change)="tipGrupoIdx.set(+$any($event.target).value)">
+                    @for (g of grupos(); track $index) {
+                      <option [value]="$index">{{ g.stylist?.fullName || 'Colaborador ' + ($index + 1) }}</option>
+                    }
+                  </select>
+                </label>
+              }
             </div>
 
             <!-- Resumen financiero -->
@@ -479,7 +499,7 @@
                       <div class="tnum" style="font-size:15px;font-weight:600">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
                     </div>
                     <div style="flex:1;background:var(--accent-deep);border-radius:6px;padding:8px 10px;font-size:12px;color:#fff">
-                      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;opacity:.8">{{ (peluqueroSeleccionado()?.fullName ?? 'Colaborador').split(' ')[0] }}</div>
+                      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;opacity:.8">{{ grupos().length > 1 ? 'Colaboradores' : ((peluqueroSeleccionado()?.fullName ?? 'Colaborador').split(' ')[0]) }}</div>
                       <div class="tnum" style="font-size:15px;font-weight:600">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
                     </div>
                   </div>
