@@ -60,6 +60,9 @@
       </div>
 
       <div style="display:flex;gap:8px;justify-content:center;margin-top:20px">
+        <button class="btn btn-ghost" (click)="imprimirReciboActual()">
+          <sp-icon name="printer" [size]="14" /> Recibo
+        </button>
         <button class="btn btn-primary" (click)="nuevaVentaTrasSalida()">
           <sp-icon name="plus" [size]="14" /> Nueva venta
         </button>
@@ -221,7 +224,10 @@
                         @for (s of serviciosTemp(); track $index; let i = $index) {
                           <div class="item-row-edit">
                             <span class="item-name-edit">{{ s.name }}</span>
-                            <span class="tnum item-price-edit">{{ s.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                            <input class="input mono" type="number" min="1" style="width:90px;padding:3px 6px;font-size:13px;text-align:right"
+                              [value]="s.price"
+                              (change)="editarPrecioServicio(i, +$any($event.target).value)"
+                              (click)="$event.stopPropagation()" />
                             <button class="btn btn-icon btn-ghost" (click)="quitarServicio(i)">
                               <sp-icon name="x" [size]="11" />
                             </button>
@@ -272,7 +278,10 @@
                         @for (p of productosTemp(); track $index; let i = $index) {
                           <div class="item-row-edit">
                             <span class="item-name-edit">{{ p.name }}</span>
-                            <span class="tnum item-price-edit">{{ p.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                            <input class="input mono" type="number" min="1" style="width:90px;padding:3px 6px;font-size:13px;text-align:right"
+                              [value]="p.price"
+                              (change)="editarPrecioProducto(i, +$any($event.target).value)"
+                              (click)="$event.stopPropagation()" />
                             <button class="btn btn-icon btn-ghost" (click)="quitarProducto(i)">
                               <sp-icon name="x" [size]="11" />
                             </button>

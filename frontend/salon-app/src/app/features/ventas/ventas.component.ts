@@ -384,6 +384,11 @@ export class VentasComponent implements OnInit {
     this.serviciosTemp.update(s => s.filter((_, idx) => idx !== i));
   }
 
+  editarPrecioServicio(i: number, precio: number): void {
+    if (precio <= 0) return;
+    this.serviciosTemp.update(s => s.map((item, idx) => idx === i ? { ...item, price: precio } : item));
+  }
+
   // Productos del grupo
   quickAgregarProducto(prod: ProductOption, tipo: 'venta' | 'interno'): void {
     const precio = tipo === 'venta' ? prod.salePrice : prod.purchasePrice;
@@ -420,6 +425,11 @@ export class VentasComponent implements OnInit {
 
   quitarProducto(i: number): void {
     this.productosTemp.update(p => p.filter((_, idx) => idx !== i));
+  }
+
+  editarPrecioProducto(i: number, precio: number): void {
+    if (precio <= 0) return;
+    this.productosTemp.update(p => p.map((item, idx) => idx === i ? { ...item, price: precio } : item));
   }
 
   // ── Pago ──────────────────────────────────────────────
@@ -534,6 +544,55 @@ export class VentasComponent implements OnInit {
 
   nuevaVentaTrasSalida(): void {
     this.abrirNuevaVenta();
+  }
+
+  imprimirReciboActual(): void {
+    const rec = this.ventaRecibo();
+    if (!rec) return;
+    const fmt = (n: number) =>
+      new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
+    const fecha = new Date(rec.fecha).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+    const branch = this.branchService.selectedBranch();
+    const logoHtml = this.logoSalon()
+      ? `<img src="${this.logoSalon()}" style="width:70px;height:70px;object-fit:contain;margin:0 auto 8px;display:block">`
+      : '';
+    const secciones = rec.grupos.map(g => {
+      const rows = g.items.map(i =>
+        `<tr><td style="padding:2px 0">${i.name}</td><td style="text-align:right">${fmt(i.price)}</td></tr>`
+      ).join('');
+      return `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#666;margin:6px 0 2px">${g.stylistName}</div><table>${rows}</table>`;
+    }).join('');
+    const pagos = rec.pagos.map(p =>
+      `<tr><td style="color:#666;padding:2px 0">${p.methodName}</td><td style="text-align:right">${fmt(p.amount)}</td></tr>`
+    ).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Courier New',monospace;font-size:12px;width:302px;padding:12px}
+h2{font-size:14px;font-weight:bold;text-align:center;margin-bottom:4px}
+.c{text-align:center}.d{border-top:1px dashed #000;margin:8px 0}
+table{width:100%;border-collapse:collapse}td{vertical-align:top}
+.tot td{font-weight:bold;font-size:13px;border-top:1px solid #000;padding-top:4px}
+@media print{@page{margin:0}body{width:100%}}</style>
+</head><body>
+${logoHtml}
+<h2>${branch?.name ?? 'Salón'}</h2>
+<div class="c" style="font-size:11px;color:#555;margin-bottom:8px">${fecha}</div>
+<div class="d"></div>
+<div style="font-size:12px;margin-bottom:6px"><strong>${rec.clientName}</strong></div>
+<div class="d"></div>
+${secciones}
+${rec.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td><td style="text-align:right">${fmt(rec.tipAmount)}</td></tr></table>` : ''}
+<div class="d"></div>
+<table><tr class="tot"><td>TOTAL</td><td style="text-align:right">${fmt(rec.total)}</td></tr></table>
+<div class="d"></div>
+<table>${pagos}</table>
+<div class="d"></div>
+<div class="c" style="font-size:10px;color:#888;margin-top:8px">¡Gracias por tu visita!</div>
+<script>window.onload=()=>{window.print();window.close()}<\/script>
+</body></html>`;
+    const w = window.open('', '_blank', 'width:420,height:620');
+    w?.document.write(html);
+    w?.document.close();
   }
 
   // ── Cálculo de participación ──────────────────────────
