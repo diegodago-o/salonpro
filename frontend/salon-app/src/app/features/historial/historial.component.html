@@ -3,7 +3,7 @@
     <div>
       <div class="eyebrow">Ventas</div>
       <h1><span class="serif">Consultar</span> <span class="serif-italic">ventas</span></h1>
-      <div class="deck">{{ ventas().length }} transacciones cargadas</div>
+      <div class="deck">{{ ventasAgrupadasFiltradas().length }} ventas · {{ ventas().length }} transacciones</div>
     </div>
     <button class="btn btn-ghost" (click)="descargarExcel()" [disabled]="ventasFiltradas().length === 0">
       <sp-icon name="download" [size]="14" /> Excel
@@ -107,7 +107,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (v of ventasFiltradas(); track v.id) {
+            @for (v of ventasAgrupadasFiltradas(); track v.id) {
               <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'" [style.background]="v.status === 'Settled' ? 'rgba(99,102,241,.04)' : ''">
 
                 <td class="mono" style="font-size:11px;color:var(--ink-3)">#{{ v.id }}</td>
@@ -121,16 +121,22 @@
                   {{ v.branchName || '—' }}
                 </td>
 
+                <!-- Peluquero: lista de todos los colaboradores del grupo -->
                 <td>
-                  <div style="display:flex;align-items:center;gap:7px">
-                    <span class="avatar avatar-sm">
-                      {{ v.stylistName.split(' ').map($any(n => n[0])).slice(0,2).join('').toUpperCase() }}
-                    </span>
-                    <div>
-                      <div style="font-size:13px">{{ v.stylistName }}</div>
-                      <div style="font-size:11px;color:var(--ink-4)">{{ v.commissionPercent }}%</div>
+                  @if (v.ventas.length === 1) {
+                    <div style="display:flex;align-items:center;gap:7px">
+                      <span class="avatar avatar-sm">
+                        {{ v.stylistNames.split(' ').map($any(n => n[0])).slice(0,2).join('').toUpperCase() }}
+                      </span>
+                      <div>
+                        <div style="font-size:13px">{{ v.stylistNames }}</div>
+                        <div style="font-size:11px;color:var(--ink-4)">{{ v.ventas[0].commissionPercent }}%</div>
+                      </div>
                     </div>
-                  </div>
+                  } @else {
+                    <div style="font-size:13px;font-weight:500">{{ v.stylistNames }}</div>
+                    <div style="font-size:11px;color:var(--ink-4)">{{ v.ventas.length }} colaboradores</div>
+                  }
                 </td>
 
                 <td>
@@ -172,20 +178,17 @@
                 </td>
 
                 <td style="white-space:nowrap;text-align:right">
-                  <!-- Ver detalle -->
                   <button class="btn btn-ghost btn-sm"
                     style="font-size:11px;padding:3px 8px;display:inline-flex;align-items:center;gap:3px;color:var(--ink-3)"
                     (click)="abrirDetalle(v)">
                     <sp-icon name="eye" [size]="13" /> Detalle
                   </button>
-                  <!-- Ver recibo -->
                   <button class="btn btn-ghost btn-sm"
                     style="font-size:11px;padding:3px 8px;display:inline-flex;align-items:center;gap:3px;color:var(--ink-3)"
                     (click)="verRecibo(v)" [disabled]="cargandoRecibo() === v.id">
                     <sp-icon name="bag" [size]="13" />
                     {{ cargandoRecibo() === v.id ? '…' : 'Recibo' }}
                   </button>
-                  <!-- Anular (solo ventas activas, no liquidadas) -->
                   @if (v.status === 'Active') {
                     <button class="btn btn-ghost btn-sm"
                       style="font-size:11px;padding:3px 8px;display:inline-flex;align-items:center;gap:3px;color:var(--danger)"
@@ -250,6 +253,7 @@
 @if (mostrarModal()) {
   <div class="modal-back" (click)="cerrarDetalle()">
     <div class="modal" style="max-width:680px;width:100%;max-height:92vh;display:flex;flex-direction:column" (click)="$event.stopPropagation()">
+      @if (ventaDetalleGrupo(); as det) {
       <div style="padding:28px 32px;overflow-y:auto;flex:1;min-height:0">
 
         <!-- Encabezado modal -->
@@ -257,20 +261,18 @@
           <div>
             <div class="eyebrow">Detalle de venta</div>
             <h3 class="serif" style="font-size:28px;font-weight:400;margin:2px 0 8px">
-              Folio #{{ ventaDetalle()!.id }}
+              Folio #{{ det.id }}
             </h3>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              @if (ventaDetalle()!.status === 'Active') {
+              @if (det.status === 'Active') {
                 <span class="pill pill-success"><span class="pill-dot"></span>Activa</span>
-              } @else if (ventaDetalle()!.status === 'Settled') {
+              } @else if (det.status === 'Settled') {
                 <span class="pill" style="background:rgba(99,102,241,.12);color:#4338ca"><span class="pill-dot" style="background:#4338ca"></span>Liquidada</span>
               } @else {
                 <span class="pill pill-danger"><span class="pill-dot"></span>Anulada</span>
               }
-              @if (ventaDetalle()!.branchName) {
-                <span class="pill">
-                  <sp-icon name="map-pin" [size]="11" /> {{ ventaDetalle()!.branchName }}
-                </span>
+              @if (det.branchName) {
+                <span class="pill"><sp-icon name="map-pin" [size]="11" /> {{ det.branchName }}</span>
               }
             </div>
           </div>
@@ -281,42 +283,26 @@
 
         <!-- Fecha -->
         <div style="font-size:12px;color:var(--ink-4);margin-bottom:20px">
-          {{ ventaDetalle()!.saleDateTime | date:'EEEE dd \'de\' MMMM yyyy, HH:mm':'America/Bogota':'es-CO' }}
+          {{ det.saleDateTime | date:'EEEE dd \'de\' MMMM yyyy, HH:mm':'America/Bogota':'es-CO' }}
         </div>
 
         <hr class="hr" />
 
-        <!-- ── Sección: Cliente ── -->
+        <!-- ── Cliente ── -->
         <div style="margin:16px 0">
           <div class="eyebrow" style="margin-bottom:8px">Cliente</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:13px">
-            <div><span style="color:var(--ink-4)">Nombre</span><br><strong>{{ ventaDetalle()!.clientName }}</strong></div>
+            <div><span style="color:var(--ink-4)">Nombre</span><br><strong>{{ det.clientName }}</strong></div>
             <div>
-              <span style="color:var(--ink-4)">Documento ({{ ventaDetalle()!.clientDocumentType || 'Doc' }})</span><br>
-              <strong class="mono">{{ ventaDetalle()!.clientDocument }}</strong>
+              <span style="color:var(--ink-4)">Documento ({{ det.clientDocumentType || 'Doc' }})</span><br>
+              <strong class="mono">{{ det.clientDocument }}</strong>
             </div>
-            @if (ventaDetalle()!.clientEmail) {
-              <div><span style="color:var(--ink-4)">Email</span><br>{{ ventaDetalle()!.clientEmail }}</div>
+            @if (det.clientEmail) {
+              <div><span style="color:var(--ink-4)">Email</span><br>{{ det.clientEmail }}</div>
             }
-            @if (ventaDetalle()!.clientPhone) {
-              <div><span style="color:var(--ink-4)">Teléfono</span><br>{{ ventaDetalle()!.clientPhone }}</div>
+            @if (det.clientPhone) {
+              <div><span style="color:var(--ink-4)">Teléfono</span><br>{{ det.clientPhone }}</div>
             }
-          </div>
-        </div>
-
-        <hr class="hr" />
-
-        <!-- ── Sección: Estilista ── -->
-        <div style="margin:16px 0">
-          <div class="eyebrow" style="margin-bottom:8px">Estilista</div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="avatar">
-              {{ ventaDetalle()!.stylistName.split(' ').map($any(n => n[0])).slice(0,2).join('').toUpperCase() }}
-            </span>
-            <div>
-              <div style="font-size:14px;font-weight:600">{{ ventaDetalle()!.stylistName }}</div>
-              <div style="font-size:12px;color:var(--ink-4)">Participación: {{ ventaDetalle()!.commissionPercent }}%</div>
-            </div>
           </div>
         </div>
 
@@ -326,50 +312,119 @@
           <div style="padding:30px;text-align:center;color:var(--ink-4)">Cargando detalle…</div>
         } @else {
 
-          <!-- ── Sección: Ítems ── -->
-          @if (ventaDetalle()!.items && ventaDetalle()!.items!.length > 0) {
+          <!-- ── Sección por cada colaborador ── -->
+          @for (g of det.grupos; track g.stylistName; let last = $last) {
             <div style="margin:16px 0">
-              <div class="eyebrow" style="margin-bottom:8px">Ítems de la venta</div>
-              <table style="width:100%;font-size:13px;border-collapse:collapse">
-                <thead>
-                  <tr style="font-size:11px;color:var(--ink-4);text-transform:uppercase;letter-spacing:.05em">
-                    <th style="text-align:left;padding:4px 0;font-weight:500">Concepto</th>
-                    <th style="text-align:center;font-weight:500">Tipo</th>
-                    <th style="text-align:right;font-weight:500">Precio unit.</th>
-                    <th style="text-align:right;font-weight:500">Cant.</th>
-                    <th style="text-align:right;font-weight:500">Subtotal</th>
-                    <th style="text-align:right;font-weight:500">Fee salón</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (item of ventaDetalle()!.items; track item.id) {
-                    <tr style="border-top:1px solid var(--border)">
-                      <td style="padding:7px 0">{{ item.name }}</td>
-                      <td style="text-align:center">
-                        <span class="pill" [ngClass]="itemTypePill(item.type)" style="font-size:10px">
-                          {{ itemTypeLabel(item.type) }}
-                        </span>
-                      </td>
-                      <td class="tnum" style="text-align:right">{{ item.unitPrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
-                      <td class="tnum" style="text-align:right">{{ item.quantity }}</td>
-                      <td class="tnum" style="text-align:right;font-weight:600">{{ item.subtotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
-                      <td class="tnum" style="text-align:right;color:var(--ink-4)">
-                        {{ item.salonFeePercent > 0 ? (item.salonFeePercent | number:'1.0-1') + '%' : '—' }}
-                      </td>
+
+              <div class="eyebrow" style="margin-bottom:8px">Colaborador</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                <span class="avatar">
+                  {{ g.stylistName.split(' ').map($any(n => n[0])).slice(0,2).join('').toUpperCase() }}
+                </span>
+                <div>
+                  <div style="font-size:14px;font-weight:600">{{ g.stylistName }}</div>
+                  <div style="font-size:12px;color:var(--ink-4)">Participación: {{ g.commissionPercent }}%</div>
+                </div>
+              </div>
+
+              <!-- Ítems del colaborador -->
+              @if (g.items.length > 0) {
+                <table style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:12px">
+                  <thead>
+                    <tr style="font-size:11px;color:var(--ink-4);text-transform:uppercase;letter-spacing:.05em">
+                      <th style="text-align:left;padding:4px 0;font-weight:500">Concepto</th>
+                      <th style="text-align:center;font-weight:500">Tipo</th>
+                      <th style="text-align:right;font-weight:500">Precio unit.</th>
+                      <th style="text-align:right;font-weight:500">Cant.</th>
+                      <th style="text-align:right;font-weight:500">Subtotal</th>
+                      <th style="text-align:right;font-weight:500">Fee salón</th>
                     </tr>
-                  }
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    @for (item of g.items; track item.id) {
+                      <tr style="border-top:1px solid var(--border)">
+                        <td style="padding:7px 0">{{ item.name }}</td>
+                        <td style="text-align:center">
+                          <span class="pill" [ngClass]="itemTypePill(item.type)" style="font-size:10px">
+                            {{ itemTypeLabel(item.type) }}
+                          </span>
+                        </td>
+                        <td class="tnum" style="text-align:right">{{ item.unitPrice | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                        <td class="tnum" style="text-align:right">{{ item.quantity }}</td>
+                        <td class="tnum" style="text-align:right;font-weight:600">{{ item.subtotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</td>
+                        <td class="tnum" style="text-align:right;color:var(--ink-4)">
+                          {{ item.salonFeePercent > 0 ? (item.salonFeePercent | number:'1.0-1') + '%' : '—' }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+
+                <!-- Desglose participaciones de este colaborador -->
+                @if (calcDesglose(g.sale).length > 0) {
+                  <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:4px">
+                    <div style="padding:10px 14px;background:var(--surface-2)">
+                      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-4);margin-bottom:8px">
+                        Participación {{ g.stylistName.split(' ')[0] }}
+                      </div>
+                      <div style="display:grid;grid-template-columns:1fr 80px 80px;font-size:10px;font-weight:700;
+                                  text-transform:uppercase;color:var(--ink-4);padding-bottom:5px;border-bottom:1px solid var(--border)">
+                        <span>Ítem</span>
+                        <span style="text-align:right">Salón</span>
+                        <span style="text-align:right;color:var(--accent-deep)">{{ g.stylistName.split(' ')[0] }}</span>
+                      </div>
+                      @for (d of calcDesglose(g.sale); track d.name) {
+                        <div style="display:grid;grid-template-columns:1fr 80px 80px;align-items:center;
+                                    padding:7px 0;border-bottom:1px dashed var(--border)">
+                          <div>
+                            <div style="font-size:12px;font-weight:500">{{ d.name }}</div>
+                            <div style="font-size:10px;color:var(--ink-4)">
+                              {{ d.isService ? 'Servicio' : 'Producto' }} · {{ d.commPct }}%
+                              @if (d.hasFee) { · fee {{ d.feePct }}% }
+                            </div>
+                          </div>
+                          <span style="text-align:right;font-size:12px">{{ d.salonAmt | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                          <span style="text-align:right;font-size:12px;font-weight:700;color:var(--accent-deep)">{{ d.stylistAmt | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                        </div>
+                      }
+                      @if (g.sale.tipAmount > 0) {
+                        <div style="display:grid;grid-template-columns:1fr 80px 80px;align-items:center;padding:7px 0">
+                          <div style="font-size:12px;font-weight:500">Propina
+                            <span style="font-size:10px;color:var(--ink-4);display:block">
+                              @if (calcNetTip(g.sale) < g.sale.tipAmount) { Con deducción } @else { Íntegra }
+                            </span>
+                          </div>
+                          <span style="text-align:right;font-size:12px;color:var(--ink-4)">—</span>
+                          <span style="text-align:right;font-size:12px;font-weight:700;color:var(--accent-deep)">{{ calcNetTip(g.sale) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                        </div>
+                      }
+                      <!-- Mini distribución -->
+                      <div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+                        <div style="flex:1;background:var(--surface-1);border:1px solid var(--border);border-radius:6px;padding:8px 10px">
+                          <div style="color:var(--ink-4);font-size:9px;text-transform:uppercase;font-weight:700;margin-bottom:3px">Salón</div>
+                          <div class="tnum" style="font-size:14px;font-weight:600">{{ g.sale.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+                        </div>
+                        <div style="flex:1;background:var(--accent-deep);border-radius:6px;padding:8px 10px;color:#fff">
+                          <div style="font-size:9px;text-transform:uppercase;font-weight:700;margin-bottom:3px;opacity:.8">{{ g.stylistName.split(' ')[0] }}</div>
+                          <div class="tnum" style="font-size:14px;font-weight:600">{{ g.sale.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
+              }
             </div>
 
-            <hr class="hr" />
+            @if (!last) { <hr class="hr" /> }
           }
 
-          <!-- ── Sección: Métodos de pago ── -->
-          @if (ventaDetalle()!.payments && ventaDetalle()!.payments!.length > 0) {
+          <hr class="hr" />
+
+          <!-- ── Pagos (de la venta principal) ── -->
+          @if ((det.grupos[0]?.payments?.length ?? 0) > 0) {
             <div style="margin:16px 0">
               <div class="eyebrow" style="margin-bottom:8px">Pagos recibidos</div>
-              @for (p of ventaDetalle()!.payments; track p.paymentMethodId) {
+              @for (p of det.grupos[0]!.payments!; track p.paymentMethodId) {
                 <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
                   <div>
                     <strong>{{ p.paymentMethodName }}</strong>
@@ -383,38 +438,31 @@
                 </div>
               }
             </div>
-
             <hr class="hr" />
           }
 
-          <!-- ══ Liquidación de la venta ══════════════════ -->
-
-          <!-- ── SECCIÓN: Resumen de venta ── -->
+          <!-- ── Resumen combinado de la visita ── -->
           <div style="margin:16px 0;border:1px solid var(--border);border-radius:10px;overflow:hidden">
-
             <div style="padding:14px 18px 16px;background:var(--surface-2)">
               <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:10px">
-                Resumen de venta
+                Resumen de la visita
               </div>
-
-              @if (ventaDetalle()!.tipAmount > 0) {
+              @if (det.tipAmount > 0) {
                 <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-3);padding:5px 0">
                   <span>Servicios / Productos</span>
-                  <span class="tnum">{{ (ventaDetalle()!.grossServices + ventaDetalle()!.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  <span class="tnum">{{ (det.grossServices + det.grossProducts) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-3);padding:5px 0">
                   <span>Propina</span>
-                  <span class="tnum">{{ ventaDetalle()!.tipAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  <span class="tnum">{{ det.tipAmount | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
                 </div>
                 <hr style="margin:6px 0;border:0;border-top:1px solid var(--border)" />
               }
-
               <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;padding:5px 0">
                 <span>Total bruto</span>
-                <span class="tnum serif">{{ ventaDetalle()!.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                <span class="tnum serif">{{ det.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
               </div>
-
-              @for (p of (ventaDetalle()!.payments ?? []); track p.paymentMethodId) {
+              @for (p of (det.grupos[0]?.payments ?? []); track p.paymentMethodId) {
                 @if (p.deductionPercent > 0 && p.deductionAmount > 0) {
                   <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0 5px 10px;
                               color:#c53030;border-left:3px solid #fc8181;margin:4px 0;
@@ -424,116 +472,67 @@
                   </div>
                 }
               }
-
-              @if (ventaDetalle()!.totalDeductions > 0) {
+              @if (det.totalDeductions > 0) {
                 <hr style="margin:8px 0 6px;border:0;border-top:1px solid var(--border)" />
                 <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:5px 0;color:var(--accent-deep)">
                   <span>Base neta a repartir</span>
-                  <span class="tnum">{{ (ventaDetalle()!.grossTotal - ventaDetalle()!.totalDeductions) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                  <span class="tnum">{{ (det.grossTotal - det.totalDeductions) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
                 </div>
               }
             </div>
 
-            <!-- ── SECCIÓN: Desglose participaciones ── -->
-            @if (desgloseDetalle().length > 0) {
-              <div style="padding:14px 18px 16px;background:var(--surface-1);border-top:1px solid var(--border)">
-                <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:10px">
-                  Desglose participaciones
-                </div>
-
-                <!-- Cabeceras -->
-                <div style="display:grid;grid-template-columns:1fr 90px 90px;font-size:10px;font-weight:700;
-                            text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);
-                            padding-bottom:6px;border-bottom:1px solid var(--border)">
-                  <span>Ítem</span>
-                  <span style="text-align:right">Salón</span>
-                  <span style="text-align:right;color:var(--accent-deep)">{{ ventaDetalle()!.stylistName.split(' ')[0] }}</span>
-                </div>
-
-                @for (d of desgloseDetalle(); track d.name) {
-                  <div style="display:grid;grid-template-columns:1fr 90px 90px;align-items:center;
-                              padding:9px 0;border-bottom:1px dashed var(--border)">
-                    <div>
-                      <div style="font-size:13px;font-weight:500">{{ d.name }}</div>
-                      <div style="font-size:11px;color:var(--ink-4);margin-top:1px">
-                        {{ d.isService ? 'Servicio' : 'Producto' }} · {{ d.commPct }}%
-                        @if (d.hasFee) { · fee salón {{ d.feePct }}% }
-                      </div>
-                    </div>
-                    <span style="text-align:right;font-size:13px;font-weight:500">{{ d.salonAmt | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                    <span style="text-align:right;font-size:13px;font-weight:700;color:var(--accent-deep)">{{ d.stylistAmt | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                  </div>
-                }
-
-                @if (ventaDetalle()!.tipAmount > 0) {
-                  <div style="display:grid;grid-template-columns:1fr 90px 90px;align-items:center;padding:9px 0">
-                    <div>
-                      <div style="font-size:13px;font-weight:500">Propina</div>
-                      <div style="font-size:11px;color:var(--ink-4);margin-top:1px">
-                        @if (netTipDetalle() < ventaDetalle()!.tipAmount) {
-                          Cargo método de pago aplicado
-                        } @else {
-                          Va íntegra al colaborador
-                        }
-                      </div>
-                    </div>
-                    <span style="text-align:right;font-size:13px;color:var(--ink-4)">—</span>
-                    <span style="text-align:right;font-size:13px;font-weight:700;color:var(--accent-deep)">{{ netTipDetalle() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
-                  </div>
-                }
-              </div>
-            }
-
-            <!-- ── SECCIÓN: Distribución final ── -->
+            <!-- Distribución final combinada -->
             <div style="padding:14px 18px 16px;background:var(--surface-2);border-top:1px solid var(--border)">
               <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:12px">
                 Distribución final
               </div>
-              <div style="display:flex;gap:10px">
-                <div style="flex:1;background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <div style="flex:1;min-width:100px;background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
                   <div style="color:var(--ink-4);font-size:10px;text-transform:uppercase;font-weight:700;letter-spacing:.07em;margin-bottom:6px">Salón</div>
-                  <div class="tnum serif" style="font-size:20px;font-weight:600">{{ ventaDetalle()!.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
+                  <div class="tnum serif" style="font-size:20px;font-weight:600">{{ det.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
                 </div>
-                <div style="flex:1;background:var(--accent-deep);border-radius:8px;padding:12px 14px;color:#fff">
-                  <div style="font-size:10px;text-transform:uppercase;font-weight:700;letter-spacing:.07em;margin-bottom:6px;opacity:.8">
-                    {{ ventaDetalle()!.stylistName.split(' ')[0] }}
+                @for (g of det.grupos; track g.stylistName) {
+                  <div style="flex:1;min-width:100px;background:var(--accent-deep);border-radius:8px;padding:12px 14px;color:#fff">
+                    <div style="font-size:10px;text-transform:uppercase;font-weight:700;letter-spacing:.07em;margin-bottom:6px;opacity:.8">
+                      {{ g.stylistName.split(' ')[0] }}
+                    </div>
+                    <div class="tnum serif" style="font-size:20px;font-weight:600">{{ g.sale.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
                   </div>
-                  <div class="tnum serif" style="font-size:20px;font-weight:600">{{ ventaDetalle()!.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-                </div>
+                }
               </div>
             </div>
-
           </div>
 
-          @if (ventaDetalle()!.voidedReason) {
+          @if (det.voidedReason) {
             <div style="background:#fff5f5;border:1px solid #fed7d7;border-radius:8px;padding:12px;font-size:13px;color:#c53030;margin-top:8px">
-              <strong>Razón de anulación:</strong> {{ ventaDetalle()!.voidedReason }}
+              <strong>Razón de anulación:</strong> {{ det.voidedReason }}
             </div>
           }
-          @if (ventaDetalle()!.notes) {
+          @if (det.notes) {
             <div style="background:var(--surface-2);border-radius:8px;padding:12px;font-size:13px;color:var(--ink-3);margin-top:8px">
-              <strong>Notas:</strong> {{ ventaDetalle()!.notes }}
+              <strong>Notas:</strong> {{ det.notes }}
             </div>
           }
         }
 
       </div>
 
-      <!-- Pie fijo (fuera del scroll) -->
+      <!-- Pie fijo -->
       <div style="padding:14px 32px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;flex-shrink:0">
-        @if (ventaDetalle()!.status === 'Active') {
+        @if (det.status === 'Active') {
           <button class="btn btn-ghost" style="color:var(--danger)"
-            (click)="iniciarAnulacion(ventaDetalle()!); cerrarDetalle()">
+            (click)="iniciarAnulacion(det); cerrarDetalle()">
             <sp-icon name="x" [size]="14" /> Anular venta
           </button>
         }
         <button class="btn btn-ghost"
-          (click)="verRecibo(ventaDetalle()!)" [disabled]="cargandoRecibo() === ventaDetalle()!.id">
+          (click)="verRecibo(det)" [disabled]="cargandoRecibo() === det.id">
           <sp-icon name="bag" [size]="14" />
-          {{ cargandoRecibo() === ventaDetalle()!.id ? 'Cargando…' : 'Ver recibo' }}
+          {{ cargandoRecibo() === det.id ? 'Cargando…' : 'Ver recibo' }}
         </button>
         <button class="btn btn-primary" (click)="cerrarDetalle()">Cerrar</button>
       </div>
+      }
     </div>
   </div>
 }

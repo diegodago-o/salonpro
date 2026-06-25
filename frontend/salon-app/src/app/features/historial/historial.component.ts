@@ -4,12 +4,50 @@ import { CurrencyPipe, DatePipe, DecimalPipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { forkJoin, of } from 'rxjs';
 import { VentasService } from '../../core/services/ventas.service';
 import { BranchService } from '../../core/services/branch.service';
-import { Sale } from '../../core/models/ventas.models';
+import { Sale, SaleStatus, SaleItemDto, SalePaymentDto } from '../../core/models/ventas.models';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { environment } from '../../../environments/environment';
 import * as XLSX from 'xlsx';
+
+interface VentaGrupo {
+  id: number;
+  saleDateTime: string;
+  clientName: string;
+  clientDocument: string;
+  clientDocumentType?: string;
+  clientPhone?: string;
+  clientEmail?: string;
+  branchName?: string;
+  paymentMethodName: string;
+  stylistNames: string;
+  grossServices: number;
+  grossProducts: number;
+  tipAmount: number;
+  totalDeductions: number;
+  grossTotal: number;
+  stylistTotal: number;
+  salonTotal: number;
+  status: SaleStatus;
+  voidedReason?: string;
+  notes?: string;
+  ventas: Sale[];
+}
+
+interface GrupoDetalle {
+  stylistName: string;
+  commissionPercent: number;
+  items: SaleItemDto[];
+  payments: SalePaymentDto[];
+  sale: Sale;
+}
+
+interface VentaGrupoDetalle extends VentaGrupo {
+  grupos: GrupoDetalle[];
+  loadedItems: boolean;
+}
 
 @Component({
   selector: 'app-historial',
@@ -26,21 +64,23 @@ export class HistorialComponent {
   readonly ventas        = signal<Sale[]>([]);
   readonly loading       = signal(true);
   readonly loadingDetail = signal(false);
-  readonly ventaDetalle  = signal<Sale | null>(null);
   readonly mostrarModal  = signal(false);
+
+  // Ahora el detalle es del grupo completo
+  readonly ventaDetalleGrupo = signal<VentaGrupoDetalle | null>(null);
 
   // ── Logo del salón (para el recibo) ───────────────────
   readonly logoSalon = signal('');
 
   // ── Anular venta ──────────────────────────────────────
   readonly anulando          = signal(false);
-  readonly ventaAAnular      = signal<Sale | null>(null);
+  readonly ventaAAnular      = signal<VentaGrupo | null>(null);
   readonly razonAnulacion    = signal('');
   readonly guardandoAnulacion = signal(false);
   readonly errorAnulacion    = signal('');
 
   // ── Recibo ────────────────────────────────────────────
-  readonly cargandoRecibo = signal<number | null>(null); // ID de la venta en carga
+  readonly cargandoRecibo = signal<number | null>(null); // ID del grupo (primer folio) en carga
 
   // Filtros
   readonly filtroEstado     = signal('all');
@@ -62,6 +102,11 @@ export class HistorialComponent {
     });
   });
 
+  // Ventas agrupadas por visita (mismo saleDateTime + clientDocument)
+  readonly ventasAgrupadasFiltradas = computed(() =>
+    this.agruparVentas(this.ventasFiltradas())
+  );
+
   readonly totales = computed(() => {
     const activas = this.ventasFiltradas().filter(v => v.status === 'Active');
     return {
@@ -81,7 +126,6 @@ export class HistorialComponent {
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.cargar());
 
-    // Cargar logo del salón para los recibos
     this.http.get<any>(`${environment.apiUrl}/tenants/profile`).subscribe({
       next: r => { if (r?.data?.logoUrl) this.logoSalon.set(this.resolveLogo(r.data.logoUrl)); },
       error: () => {}
@@ -97,8 +141,8 @@ export class HistorialComponent {
   }
 
   // ── Anular venta ─────────────────────────────────────
-  iniciarAnulacion(v: Sale): void {
-    this.ventaAAnular.set(v);
+  iniciarAnulacion(g: VentaGrupo): void {
+    this.ventaAAnular.set(g);
     this.razonAnulacion.set('');
     this.errorAnulacion.set('');
     this.anulando.set(true);
@@ -110,14 +154,15 @@ export class HistorialComponent {
   }
 
   confirmarAnulacion(): void {
-    const v     = this.ventaAAnular();
+    const g     = this.ventaAAnular();
     const razon = this.razonAnulacion().trim();
-    if (!v || !razon) { this.errorAnulacion.set('Debes indicar el motivo de anulación.'); return; }
+    if (!g || !razon) { this.errorAnulacion.set('Debes indicar el motivo de anulación.'); return; }
     this.guardandoAnulacion.set(true);
-    this.ventasService.anularVenta(v.id, razon).subscribe({
+    forkJoin(g.ventas.map(v => this.ventasService.anularVenta(v.id, razon))).subscribe({
       next: () => {
+        const ids = new Set(g.ventas.map(v => v.id));
         this.ventas.update(list =>
-          list.map(x => x.id === v.id ? { ...x, status: 'Voided' as const, voidedReason: razon } : x)
+          list.map(x => ids.has(x.id) ? { ...x, status: 'Voided' as const, voidedReason: razon } : x)
         );
         this.guardandoAnulacion.set(false);
         this.cancelarAnulacion();
@@ -130,41 +175,53 @@ export class HistorialComponent {
   }
 
   // ── Recibo ────────────────────────────────────────────
-  verRecibo(v: Sale): void {
-    // Si el detalle ya está cargado, imprimimos directo
-    if (v.items && v.payments) { this.imprimirRecibo(v); return; }
-    this.cargandoRecibo.set(v.id);
-    this.ventasService.getSaleDetail(v.id).subscribe({
-      next: r => {
-        const detalle = r.data;
-        // Cachear el detalle en la lista para futuros usos
-        this.ventas.update(list => list.map(x => x.id === v.id ? detalle : x));
+  verRecibo(g: VentaGrupo): void {
+    const todosConItems = g.ventas.every(v => v.items && v.payments);
+    if (todosConItems) {
+      this.imprimirReciboGrupo(g, g.ventas);
+      return;
+    }
+    this.cargandoRecibo.set(g.id);
+    forkJoin(g.ventas.map(v =>
+      v.items ? of({ data: v }) : this.ventasService.getSaleDetail(v.id)
+    )).subscribe({
+      next: results => {
+        const salesDetalle = results.map(r => r.data!);
+        this.ventas.update(list => list.map(x => {
+          const d = salesDetalle.find(s => s.id === x.id);
+          return d ? d : x;
+        }));
         this.cargandoRecibo.set(null);
-        this.imprimirRecibo(detalle);
+        this.imprimirReciboGrupo(g, salesDetalle);
       },
       error: () => this.cargandoRecibo.set(null)
     });
   }
 
-  imprimirRecibo(v: Sale): void {
+  imprimirReciboGrupo(g: VentaGrupo, salesDetalle: Sale[]): void {
     const fmt = (n: number) =>
       new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
-    const fecha = new Date(v.saleDateTime).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+    const fecha = new Date(g.saleDateTime).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
 
     const logoHtml = this.logoSalon()
       ? `<img src="${this.logoSalon()}" style="width:70px;height:70px;object-fit:contain;margin:0 auto 8px;display:block">`
       : '';
 
-    const items = (v.items ?? [])
-      .filter(i => i.type !== 'ProductInternal')
-      .map(i => `<tr><td style="padding:2px 0">${i.name}</td><td style="text-align:right">${fmt(i.subtotal)}</td></tr>`)
-      .join('');
+    // Secciones por estilista
+    const secciones = salesDetalle.map(sale => {
+      const items = (sale.items ?? [])
+        .filter(i => i.type !== 'ProductInternal')
+        .map(i => `<tr><td style="padding:2px 0">${i.name}</td><td style="text-align:right">${fmt(i.subtotal)}</td></tr>`)
+        .join('');
+      return items ? `<div style="font-size:10px;color:#666;margin:6px 0 2px">${sale.stylistName}</div><table>${items}</table>` : '';
+    }).filter(Boolean).join('');
 
-    const pagos = (v.payments ?? [])
+    const payments = salesDetalle[0]?.payments ?? [];
+    const pagos = payments
       .map(p => `<tr><td style="padding:2px 0;color:#666">${p.paymentMethodName}</td><td style="text-align:right">${fmt(p.amount)}</td></tr>`)
       .join('');
 
-    const docLine = v.clientDocument ? `<br><span style="color:#666">${v.clientDocumentType ?? 'Doc'}: ${v.clientDocument}</span>` : '';
+    const docLine = g.clientDocument ? `<br><span style="color:#666">${g.clientDocumentType ?? 'Doc'}: ${g.clientDocument}</span>` : '';
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>*{margin:0;padding:0;box-sizing:border-box}
@@ -176,15 +233,15 @@ table{width:100%;border-collapse:collapse}td{vertical-align:top}
 @media print{@page{margin:0}body{width:100%}}</style>
 </head><body>
 ${logoHtml}
-<h2>${v.branchName ?? 'Salón'}</h2>
+<h2>${g.branchName ?? 'Salón'}</h2>
 <div class="c" style="font-size:11px;color:#555;margin-bottom:8px">${fecha}</div>
 <div class="d"></div>
-<div style="font-size:12px;margin-bottom:6px"><strong>${v.clientName}</strong>${docLine}</div>
+<div style="font-size:12px;margin-bottom:6px"><strong>${g.clientName}</strong>${docLine}</div>
 <div class="d"></div>
-<table>${items}</table>
-${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td><td style="text-align:right">${fmt(v.tipAmount)}</td></tr></table>` : ''}
+${secciones}
+${g.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td><td style="text-align:right">${fmt(g.tipAmount)}</td></tr></table>` : ''}
 <div class="d"></div>
-<table><tr class="tot"><td>TOTAL</td><td style="text-align:right">${fmt(v.grossTotal)}</td></tr></table>
+<table><tr class="tot"><td>TOTAL</td><td style="text-align:right">${fmt(g.grossTotal)}</td></tr></table>
 <div class="d"></div>
 <table>${pagos}</table>
 <div class="d"></div>
@@ -192,7 +249,7 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
 <script>window.onload=()=>{window.print();window.close()}<\/script>
 </body></html>`;
 
-    const w = window.open('', '_blank', 'width=420,height=620');
+    const w = window.open('', '_blank', 'width:420,height:620');
     w?.document.write(html);
     w?.document.close();
   }
@@ -203,7 +260,7 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
     const hasta = this.filtroFechaHasta;
     const branch = this.branchService.selectedBranch();
     this.ventasService.getVentas(
-      desde ? colombiaStartOfDay(desde) : undefined,  // sin conversión UTC
+      desde ? colombiaStartOfDay(desde) : undefined,
       hasta ? colombiaEndOfDay(hasta)   : undefined,
       branch?.id,
       branch?.name
@@ -213,13 +270,44 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
     });
   }
 
-  abrirDetalle(v: Sale): void {
+  abrirDetalle(g: VentaGrupo): void {
     this.mostrarModal.set(true);
-    this.ventaDetalle.set(v);         // muestra datos básicos inmediatamente
-    if (!v.items) {
+    // Mostrar datos básicos de inmediato
+    this.ventaDetalleGrupo.set({
+      ...g,
+      grupos: g.ventas.map(v => ({
+        stylistName: v.stylistName,
+        commissionPercent: v.commissionPercent,
+        items: v.items ?? [],
+        payments: v.payments ?? [],
+        sale: v,
+      })),
+      loadedItems: g.ventas.every(v => !!v.items),
+    });
+
+    // Cargar detalles si alguna venta no los tiene
+    if (!g.ventas.every(v => v.items)) {
       this.loadingDetail.set(true);
-      this.ventasService.getSaleDetail(v.id).subscribe(r => {
-        this.ventaDetalle.set(r.data);
+      forkJoin(g.ventas.map(v =>
+        v.items ? of({ data: v }) : this.ventasService.getSaleDetail(v.id)
+      )).subscribe(results => {
+        const salesDetalle = results.map(r => r.data!) as Sale[];
+        // Cachear en la lista global
+        this.ventas.update(list => list.map(x => {
+          const d = salesDetalle.find(s => s.id === x.id);
+          return d ? d : x;
+        }));
+        this.ventaDetalleGrupo.set({
+          ...g,
+          grupos: salesDetalle.map(v => ({
+            stylistName: v.stylistName,
+            commissionPercent: v.commissionPercent,
+            items: v.items ?? [],
+            payments: v.payments ?? [],
+            sale: v,
+          })),
+          loadedItems: true,
+        });
         this.loadingDetail.set(false);
       });
     }
@@ -227,11 +315,11 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
 
   cerrarDetalle(): void {
     this.mostrarModal.set(false);
-    this.ventaDetalle.set(null);
+    this.ventaDetalleGrupo.set(null);
   }
 
   private hoy(): string {
-    return todayColombia(); // fecha en hora Colombia (GMT-5)
+    return todayColombia();
   }
 
   filtrarHoy(): void {
@@ -291,20 +379,21 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
            type === 'ProductSale' ? 'pill-success' : 'pill-warning';
   }
 
-  /** Desglose por ítem del detalle abierto (espejo de sale-calculator.ts para visualización) */
-  readonly desgloseDetalle = computed(() => {
-    const v = this.ventaDetalle();
-    if (!v?.items) return [];
+  // Desglose de participaciones para una venta individual
+  calcDesglose(sale: Sale): {
+    name: string; isService: boolean; subtotal: number; commPct: number;
+    hasFee: boolean; feePct: number; stylistAmt: number; salonAmt: number;
+  }[] {
+    if (!sale.items) return [];
+    const grossAll = sale.grossServices + sale.grossProducts + sale.tipAmount;
+    const sPct     = sale.commissionPercent / 100;
 
-    const grossAll = v.grossServices + v.grossProducts + v.tipAmount;
-    const sPct     = v.commissionPercent / 100; // % general del estilista (para servicios)
-
-    return v.items
+    return sale.items
       .filter(i => i.type !== 'ProductInternal')
       .map(item => {
         const subtotal = item.subtotal;
         const frac     = grossAll > 0 ? subtotal / grossAll : 0;
-        const netBase  = Math.round(subtotal - v.totalDeductions * frac);
+        const netBase  = Math.round(subtotal - sale.totalDeductions * frac);
 
         let stylistAmt: number, salonAmt: number, commPct: number;
 
@@ -320,7 +409,6 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
             salonAmt   = Math.round(netBase * (1 - commPct));
           }
         } else {
-          // Producto: usa el % propio del producto guardado en el ítem
           commPct    = (item.stylistCommissionPercent ?? 0) / 100;
           stylistAmt = Math.round(netBase * commPct);
           salonAmt   = Math.round(netBase * (1 - commPct));
@@ -337,14 +425,61 @@ ${v.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
           salonAmt,
         };
       });
-  });
+  }
 
-  /** Propina neta (descontada la deducción proporcional) */
-  netTipDetalle = computed(() => {
-    const v = this.ventaDetalle();
-    if (!v || v.tipAmount === 0) return 0;
-    const grossAll = v.grossServices + v.grossProducts + v.tipAmount;
-    const frac = grossAll > 0 ? v.tipAmount / grossAll : 0;
-    return Math.round(v.tipAmount - v.totalDeductions * frac);
-  });
+  calcNetTip(sale: Sale): number {
+    if (!sale || sale.tipAmount === 0) return 0;
+    const grossAll = sale.grossServices + sale.grossProducts + sale.tipAmount;
+    const frac = grossAll > 0 ? sale.tipAmount / grossAll : 0;
+    return Math.round(sale.tipAmount - sale.totalDeductions * frac);
+  }
+
+  // Agrupar ventas individuales por visita (mismo saleDateTime + clientDocument)
+  private agruparVentas(ventas: Sale[]): VentaGrupo[] {
+    const map = new Map<string, VentaGrupo>();
+    for (const v of ventas) {
+      const key = `${v.saleDateTime}|${v.clientDocument}`;
+      if (map.has(key)) {
+        const g = map.get(key)!;
+        g.ventas.push(v);
+        g.grossServices  += v.grossServices;
+        g.grossProducts  += v.grossProducts;
+        g.tipAmount      += v.tipAmount;
+        g.totalDeductions += v.totalDeductions;
+        g.grossTotal     += v.grossTotal;
+        g.stylistTotal   += v.stylistTotal;
+        g.salonTotal     += v.salonTotal;
+        if (!g.stylistNames.includes(v.stylistName)) {
+          g.stylistNames += `, ${v.stylistName}`;
+        }
+        if (v.status !== 'Active') g.status = v.status;
+        if (v.voidedReason) g.voidedReason = v.voidedReason;
+      } else {
+        map.set(key, {
+          id:               v.id,
+          saleDateTime:     v.saleDateTime,
+          clientName:       v.clientName,
+          clientDocument:   v.clientDocument,
+          clientDocumentType: v.clientDocumentType,
+          clientPhone:      v.clientPhone,
+          clientEmail:      v.clientEmail,
+          branchName:       v.branchName,
+          paymentMethodName: v.paymentMethodName,
+          stylistNames:     v.stylistName,
+          grossServices:    v.grossServices,
+          grossProducts:    v.grossProducts,
+          tipAmount:        v.tipAmount,
+          totalDeductions:  v.totalDeductions,
+          grossTotal:       v.grossTotal,
+          stylistTotal:     v.stylistTotal,
+          salonTotal:       v.salonTotal,
+          status:           v.status,
+          voidedReason:     v.voidedReason,
+          notes:            v.notes,
+          ventas:           [v],
+        });
+      }
+    }
+    return Array.from(map.values());
+  }
 }
