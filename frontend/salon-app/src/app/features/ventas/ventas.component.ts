@@ -170,10 +170,10 @@ export class VentasComponent implements OnInit {
   ngOnInit(): void {
     this.clientesService.getClientes()
       .subscribe(r => this.clientesDisponibles.set(r.data ?? []));
-    if (environment.production) {
-      this.http.get<{ logoUrl?: string }>('/api/v1/tenant-profile')
-        .subscribe({ next: r => this.logoSalon.set(r.logoUrl ?? ''), error: () => {} });
-    }
+    this.http.get<any>(`${environment.apiUrl}/tenants/profile`).subscribe({
+      next: r => { if (r?.data?.logoUrl) this.logoSalon.set(this.resolveLogo(r.data.logoUrl)); },
+      error: () => {}
+    });
     this.agregarGrupo();
   }
 
@@ -544,6 +544,13 @@ export class VentasComponent implements OnInit {
 
   nuevaVentaTrasSalida(): void {
     this.abrirNuevaVenta();
+  }
+
+  private resolveLogo(url: string | null | undefined): string {
+    if (!url) return '';
+    if (url.startsWith('/')) return `${environment.apiUrl.replace(/\/api\/v\d+$/, '')}${url}`;
+    if (url.startsWith('http://')) return url.replace('http://', 'https://');
+    return url;
   }
 
   imprimirReciboActual(): void {
