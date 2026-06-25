@@ -87,5 +87,8 @@ public class Sale
     /// <summary>Marca la venta como liquidada (incluida en una liquidación cerrada).</summary>
     public void Settle() => Status = SaleStatus.Settled;
 
+    /// <summary>Marca la venta como parcialmente liquidada (ticket multi-colaborador con colaboradores pendientes).</summary>
+    public void PartiallySettle() => Status = SaleStatus.PartiallySettled;
+
     public void AssignToTicket(int ticketId) => TicketId = ticketId;
 }

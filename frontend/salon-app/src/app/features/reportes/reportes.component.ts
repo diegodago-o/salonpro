@@ -318,9 +318,10 @@ export class ReportesComponent {
   }
 
   statusLabel(s: string): string {
-    return s === 'Active'  ? 'Activa'
-         : s === 'Voided'  ? 'Anulada'
-         : s === 'Settled' ? 'Liquidada'
+    return s === 'Active'           ? 'Activa'
+         : s === 'Voided'           ? 'Anulada'
+         : s === 'Settled'          ? 'Liquidada'
+         : s === 'PartiallySettled' ? 'Parc. liquidada'
          : s;
   }
 

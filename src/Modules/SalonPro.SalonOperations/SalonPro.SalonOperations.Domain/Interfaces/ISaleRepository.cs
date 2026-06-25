@@ -14,6 +14,7 @@ public interface ISaleRepository
     Task<IEnumerable<Sale>> GetByIdsWithPaymentsAsync(IEnumerable<int> ids, CancellationToken ct = default);
     Task AddAsync(Sale sale, CancellationToken ct = default);
     Task MarkAsSettledAsync(IEnumerable<int> saleIds, CancellationToken ct = default);
+    Task<IEnumerable<Sale>> GetByTicketIdAsync(int ticketId, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
     Task LinkToTicketAsync(IEnumerable<int> saleIds, int ticketId, CancellationToken ct = default);
 }

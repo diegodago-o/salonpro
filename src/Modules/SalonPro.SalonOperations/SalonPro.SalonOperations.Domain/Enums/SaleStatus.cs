@@ -6,5 +6,7 @@ public enum SaleStatus
     Voided,
     Edited,
     /// <summary>Venta incluida en una liquidación cerrada/aprobada.</summary>
-    Settled
+    Settled,
+    /// <summary>Venta con múltiples colaboradores donde solo algunos han sido liquidados.</summary>
+    PartiallySettled
 }

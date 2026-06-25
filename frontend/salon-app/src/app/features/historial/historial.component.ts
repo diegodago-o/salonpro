@@ -452,7 +452,6 @@ ${g.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
         if (!g.stylistNames.includes(v.stylistName)) {
           g.stylistNames += `, ${v.stylistName}`;
         }
-        if (v.status !== 'Active') g.status = v.status;
         if (v.voidedReason) g.voidedReason = v.voidedReason;
       } else {
         map.set(key, {
@@ -480,6 +479,20 @@ ${g.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
         });
       }
     }
-    return Array.from(map.values());
+    // Calcular estado del grupo basado en el estado individual de cada venta
+    const groups = Array.from(map.values());
+    for (const g of groups) {
+      const statuses = g.ventas.map(v => v.status);
+      const anySettled  = statuses.some(s => s === 'Settled' || s === 'PartiallySettled');
+      const anyActive   = statuses.some(s => s === 'Active');
+      const allDone     = statuses.every(s => s === 'Settled' || s === 'Voided');
+      const anyVoided   = statuses.some(s => s === 'Voided');
+
+      if (allDone && statuses.some(s => s === 'Settled')) g.status = 'Settled';
+      else if (anySettled && anyActive)                   g.status = 'PartiallySettled';
+      else if (anyVoided && !anyActive && !anySettled)    g.status = 'Voided';
+      // else: todas Active → status ya es 'Active' por defecto
+    }
+    return groups;
   }
 }

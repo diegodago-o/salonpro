@@ -33,6 +33,7 @@
         <option value="all">Todos los estados</option>
         <option value="Active">Activa</option>
         <option value="Settled">Liquidada</option>
+        <option value="PartiallySettled">Parcialmente liquidada</option>
         <option value="Voided">Anulada</option>
       </select>
 
@@ -172,6 +173,8 @@
                     <span class="pill pill-success"><span class="pill-dot"></span>Activa</span>
                   } @else if (v.status === 'Settled') {
                     <span class="pill" style="background:rgba(99,102,241,.12);color:#4338ca"><span class="pill-dot" style="background:#4338ca"></span>Liquidada</span>
+                  } @else if (v.status === 'PartiallySettled') {
+                    <span class="pill" style="background:rgba(245,158,11,.12);color:#b45309"><span class="pill-dot" style="background:#b45309"></span>Parc. liquidada</span>
                   } @else {
                     <span class="pill pill-danger"><span class="pill-dot"></span>Anulada</span>
                   }
@@ -268,6 +271,8 @@
                 <span class="pill pill-success"><span class="pill-dot"></span>Activa</span>
               } @else if (det.status === 'Settled') {
                 <span class="pill" style="background:rgba(99,102,241,.12);color:#4338ca"><span class="pill-dot" style="background:#4338ca"></span>Liquidada</span>
+              } @else if (det.status === 'PartiallySettled') {
+                <span class="pill" style="background:rgba(245,158,11,.12);color:#b45309"><span class="pill-dot" style="background:#b45309"></span>Parcialmente liquidada</span>
               } @else {
                 <span class="pill pill-danger"><span class="pill-dot"></span>Anulada</span>
               }

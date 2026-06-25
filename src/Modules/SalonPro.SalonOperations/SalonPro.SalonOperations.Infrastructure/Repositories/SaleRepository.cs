@@ -78,6 +78,11 @@ public class SaleRepository(SalonOpsDbContext db) : ISaleRepository
         foreach (var sale in sales) sale.Settle();
     }
 
+    public async Task<IEnumerable<Sale>> GetByTicketIdAsync(int ticketId, CancellationToken ct = default) =>
+        await db.Sales
+            .Where(s => s.TicketId == ticketId)
+            .ToListAsync(ct);
+
     public async Task SaveChangesAsync(CancellationToken ct = default) =>
         await db.SaveChangesAsync(ct);
 

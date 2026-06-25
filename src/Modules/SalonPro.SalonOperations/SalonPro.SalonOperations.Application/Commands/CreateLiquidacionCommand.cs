@@ -25,7 +25,7 @@ public class CreateLiquidacionHandler(
         // Get sales for stylist in date range (filtered by branch if provided)
         var sales = (await saleRepo.GetByStylistAndDateRangeAsync(
             cmd.TenantId, req.StylistId, startDate, endDate, branchId: cmd.BranchId, ct: ct))
-            .Where(s => s.Status == SaleStatus.Active || s.Status == SaleStatus.Settled)
+            .Where(s => s.Status == SaleStatus.Active)
             .ToList();
 
         // Anticipos pendientes y libres (sin reserva) para este estilista

@@ -20,10 +20,42 @@ public class CloseLiquidacionHandler(
 
         liquidacion.Close();
 
-        // Marcar todas las ventas de la liquidación como liquidadas
-        // para que no aparezcan en próximas liquidaciones
+        // Marcar ventas: Settled si no hay hermanos pendientes en el mismo ticket,
+        // PartiallySettled si el ticket multi-colaborador tiene otros aún activos.
         var saleIds = liquidacion.Ventas.Select(v => v.SaleId).ToList();
-        await saleRepo.MarkAsSettledAsync(saleIds, ct);
+        var sales = await saleRepo.GetByIdsWithPaymentsAsync(saleIds, ct);
+
+        foreach (var sale in sales)
+        {
+            if (sale.TicketId == null)
+            {
+                // Venta de colaborador único — liquidada completamente
+                sale.Settle();
+            }
+            else
+            {
+                var siblings = (await saleRepo.GetByTicketIdAsync(sale.TicketId.Value, ct))
+                    .Where(s => s.Id != sale.Id)
+                    .ToList();
+
+                var allSiblingsDone = siblings.All(s =>
+                    s.Status == SaleStatus.Settled ||
+                    s.Status == SaleStatus.PartiallySettled ||
+                    s.Status == SaleStatus.Voided);
+
+                if (allSiblingsDone)
+                {
+                    sale.Settle();
+                    // Subir hermanos parcialmente liquidados a Settled
+                    foreach (var s in siblings.Where(s => s.Status == SaleStatus.PartiallySettled))
+                        s.Settle();
+                }
+                else
+                {
+                    sale.PartiallySettle();
+                }
+            }
+        }
 
         // Marcar los anticipos reservados para esta liquidación como Aplicados
         var anticipos = (await anticipoColabRepo.GetReservadosByLiquidacionAsync(cmd.Id, ct)).ToList();
