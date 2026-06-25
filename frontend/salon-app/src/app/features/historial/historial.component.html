@@ -3,7 +3,7 @@
     <div>
       <div class="eyebrow">Ventas</div>
       <h1><span class="serif">Consultar</span> <span class="serif-italic">ventas</span></h1>
-      <div class="deck">{{ ventasAgrupadasFiltradas().length }} ventas · {{ ventas().length }} transacciones</div>
+      <div class="deck">{{ ventasAgrupadasFiltradas().length }} ventas · {{ ventas().length }} participaciones de colaboradores</div>
     </div>
     <button class="btn btn-ghost" (click)="descargarExcel()" [disabled]="ventasFiltradas().length === 0">
       <sp-icon name="download" [size]="14" /> Excel
