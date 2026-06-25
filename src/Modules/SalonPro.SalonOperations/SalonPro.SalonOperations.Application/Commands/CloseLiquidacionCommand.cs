@@ -1,4 +1,5 @@
 using MediatR;
+using SalonPro.SalonOperations.Domain.Enums;
 using SalonPro.SalonOperations.Domain.Interfaces;
 using SalonPro.Shared.Exceptions;
 
