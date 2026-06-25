@@ -38,12 +38,12 @@
       <button class="btn btn-ghost btn-sm" (click)="cargarVentasHistoricas()" [disabled]="cargandoVentas()">
         <sp-icon name="refresh" [size]="13" /> {{ cargandoVentas() ? 'Cargando…' : 'Actualizar' }}
       </button>
-      @if (ventas().length > 0) {
-        <span style="margin-left:auto;font-size:12px;color:var(--ink-4)">{{ ventas().length }} ventas encontradas</span>
+      @if (ventasAgrupadas().length > 0) {
+        <span style="margin-left:auto;font-size:12px;color:var(--ink-4)">{{ ventasAgrupadas().length }} visitas encontradas</span>
       }
     </div>
 
-    @if (ventas().length === 0 && !cargandoVentas()) {
+    @if (ventasAgrupadas().length === 0 && !cargandoVentas()) {
       <div class="card" style="padding:60px;text-align:center">
         <div class="eyebrow" style="margin-bottom:8px">Sin ventas</div>
         <div style="color:var(--ink-4);font-size:14px">No hay ventas en el período seleccionado.</div>
@@ -60,7 +60,7 @@
                 <th>#</th>
                 <th>Fecha y hora</th>
                 <th>Cliente</th>
-                <th>Colaborador</th>
+                <th>Colaborador(es)</th>
                 <th>Método</th>
                 <th style="text-align:right">Total</th>
                 <th style="text-align:right">Com. colaborador</th>
@@ -68,24 +68,24 @@
               </tr>
             </thead>
             <tbody>
-              @for (v of ventas(); track v.id) {
-                <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'">
-                  <td class="mono" style="font-size:11px">{{ v.id }}</td>
+              @for (g of ventasAgrupadas(); track g.id) {
+                <tr [style.opacity]="g.status === 'Voided' ? '0.5' : '1'">
+                  <td class="mono" style="font-size:11px">{{ g.id }}</td>
                   <td>
-                    <div style="font-weight:500">{{ v.saleDateTime | date:'dd/MM/yyyy':'America/Bogota' }}</div>
-                    <div style="font-size:11px;color:var(--ink-4)">{{ v.saleDateTime | date:'HH:mm':'America/Bogota' }}</div>
+                    <div style="font-weight:500">{{ g.saleDateTime | date:'dd/MM/yyyy':'America/Bogota' }}</div>
+                    <div style="font-size:11px;color:var(--ink-4)">{{ g.saleDateTime | date:'HH:mm':'America/Bogota' }}</div>
                   </td>
-                  <td style="font-weight:500">{{ v.clientName }}</td>
-                  <td>{{ v.stylistName }}</td>
-                  <td>{{ v.paymentMethodName }}</td>
+                  <td style="font-weight:500">{{ g.clientName }}</td>
+                  <td>{{ g.stylistNames }}</td>
+                  <td>{{ g.paymentMethodName }}</td>
                   <td class="tnum serif" style="text-align:right;font-size:16px">
-                    {{ v.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                    {{ g.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
                   </td>
                   <td class="tnum" style="text-align:right;color:var(--accent-deep)">
-                    {{ v.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                    {{ g.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
                   </td>
                   <td>
-                    @if (v.status === 'Active') {
+                    @if (g.status === 'Active') {
                       <span class="pill pill-success"><span class="pill-dot"></span>Activa</span>
                     } @else {
                       <span class="pill pill-danger"><span class="pill-dot"></span>Anulada</span>

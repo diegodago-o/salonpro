@@ -8,7 +8,7 @@ import { BranchService } from '../../core/services/branch.service';
 import {
   ClientOption, PaymentEntry, PaymentMethodOption, ProductOption,
   SaleCalculation, SaleItem, SaleProductItem, SaleServiceItem,
-  ServiceOption, StylistOption, Sale
+  ServiceOption, StylistOption, Sale, SaleStatus
 } from '../../core/models/ventas.models';
 import { CreateTicketRequest } from '../../core/models/ticket.models';
 import { calculateSale } from '../../core/utils/sale-calculator';
@@ -20,6 +20,18 @@ type Vista = 'lista' | 'nueva-venta';
 interface GrupoHistorico {
   stylist: StylistOption | null;
   items: SaleItem[];
+}
+
+interface VentaAgrupada {
+  id: number;
+  saleDateTime: string;
+  clientName: string;
+  stylistNames: string;
+  paymentMethodName: string;
+  grossTotal: number;
+  stylistTotal: number;
+  status: SaleStatus;
+  ventas: Sale[];
 }
 
 @Component({
@@ -48,6 +60,8 @@ export class HistoricoComponent implements OnInit {
   readonly ventas            = signal<Sale[]>([]);
   readonly cargandoCatalogos = signal(true);
   readonly cargandoVentas    = signal(false);
+
+  readonly ventasAgrupadas = computed(() => this.agruparVentas(this.ventas()));
   readonly Math = Math;
 
   readonly clienteEncontrado = signal<ClientOption | null>(null);
@@ -566,6 +580,39 @@ export class HistoricoComponent implements OnInit {
     this.step.set(0);
     this.ventaExitosa.set(false);
     this.ventaExitosaData.set(null);
+  }
+
+  // ── Agrupamiento lista ────────────────────────────────
+  private agruparVentas(ventas: Sale[]): VentaAgrupada[] {
+    const map = new Map<string, VentaAgrupada>();
+    for (const v of ventas) {
+      const key = `${v.saleDateTime}|${v.clientDocument}`;
+      if (map.has(key)) {
+        const g = map.get(key)!;
+        g.ventas.push(v);
+        g.grossTotal   += v.grossTotal;
+        g.stylistTotal += v.stylistTotal;
+        if (!g.stylistNames.includes(v.stylistName)) {
+          g.stylistNames += `, ${v.stylistName}`;
+        }
+        const methods = new Set(g.paymentMethodName.split(' / '));
+        if (v.paymentMethodName) methods.add(v.paymentMethodName);
+        g.paymentMethodName = [...methods].join(' / ');
+      } else {
+        map.set(key, {
+          id:               v.id,
+          saleDateTime:     v.saleDateTime,
+          clientName:       v.clientName,
+          stylistNames:     v.stylistName,
+          paymentMethodName: v.paymentMethodName ?? '',
+          grossTotal:       v.grossTotal,
+          stylistTotal:     v.stylistTotal,
+          status:           v.status,
+          ventas:           [v],
+        });
+      }
+    }
+    return Array.from(map.values());
   }
 
   // ── Helpers ───────────────────────────────────────────
