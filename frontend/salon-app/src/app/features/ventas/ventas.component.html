@@ -336,9 +336,11 @@
           </div>
         }
 
-        <button class="add-group-btn" (click)="agregarGrupo()">
-          <sp-icon name="plus" [size]="14" /> Agregar otro colaborador
-        </button>
+        @if (grupos().some(g => g.stylist !== null)) {
+          <button class="add-group-btn" (click)="agregarGrupo()">
+            <sp-icon name="plus" [size]="14" /> Agregar otro colaborador
+          </button>
+        }
       </div>
 
       <!-- ── Columna lateral: Resumen + Pago ── -->
