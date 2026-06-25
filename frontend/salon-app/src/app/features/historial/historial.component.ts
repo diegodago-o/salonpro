@@ -108,7 +108,7 @@ export class HistorialComponent {
   );
 
   readonly totales = computed(() => {
-    const activas = this.ventasFiltradas().filter(v => v.status === 'Active');
+    const activas = this.ventasAgrupadasFiltradas().filter(v => v.status === 'Active');
     return {
       count:        activas.length,
       grossTotal:   activas.reduce((s, v) => s + v.grossTotal, 0),
