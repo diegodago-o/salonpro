@@ -115,21 +115,10 @@
           {{ ventaExitosaData()!.total | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
         </h2>
         <div style="color:var(--ink-3);font-size:13px">
-          {{ folioVenta() }} · {{ ventaExitosaData()!.stylistName }}
+          {{ folioVenta() }} · {{ ventaExitosaData()!.gruposNombres }}
         </div>
         <div style="margin-top:8px;padding:6px 14px;background:var(--warn-soft);color:var(--warn);border-radius:6px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600">
           <sp-icon name="calendar" [size]="13" /> Fecha: {{ ventaExitosaData()!.fecha }}
-        </div>
-        <hr class="hr-dotted" style="margin:24px 0" />
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
-          <div>
-            <div class="eyebrow" style="margin-bottom:4px">Salón</div>
-            <div class="serif tnum" style="font-size:22px">{{ ventaExitosaData()!.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-          </div>
-          <div>
-            <div class="eyebrow" style="margin-bottom:4px;color:var(--accent-deep)">Colaborador</div>
-            <div class="serif tnum" style="font-size:22px;color:var(--accent-deep)">{{ ventaExitosaData()!.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
-          </div>
         </div>
         <div style="display:flex;gap:10px;justify-content:center;margin-top:28px">
           <button class="btn btn-ghost" (click)="volverALista()"><sp-icon name="arrow-left" [size]="14" /> Volver al listado</button>
@@ -245,6 +234,18 @@
 
           <!-- ╔══ STEP 1: Colaborador ══╗ -->
           @if (step() === 1) {
+            <!-- Indicador de grupo cuando hay más de uno -->
+            @if (grupos().length > 1) {
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:10px 14px;background:var(--bone);border-radius:8px">
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">
+                  <span class="avatar" style="width:24px;height:24px;font-size:11px;background:var(--accent);color:white">{{ grupoActualIdx() + 1 }}</span>
+                  Colaborador {{ grupoActualIdx() + 1 }} de {{ grupos().length }}
+                </div>
+                <button class="btn btn-ghost btn-sm" style="color:var(--danger);font-size:12px" (click)="eliminarGrupoActual()">
+                  <sp-icon name="x" [size]="12" /> Eliminar este colaborador
+                </button>
+              </div>
+            }
             @if (cargandoCatalogos()) {
               <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
                 @for (s of [1,2,3,4]; track s) {
@@ -357,6 +358,16 @@
               </div>
               @if (productosInternosFiltrados().length === 0) { <div style="font-size:12px;color:var(--ink-4);margin-top:14px">Opcional · sin consumos internos</div> }
             }
+
+            <!-- Botón agregar otro colaborador -->
+            <div style="margin-top:24px;padding-top:20px;border-top:1px dashed var(--hair-3);display:flex;align-items:center;gap:12px">
+              <button class="btn btn-ghost btn-sm" (click)="agregarGrupo()">
+                <sp-icon name="plus" [size]="13" /> Agregar otro colaborador
+              </button>
+              @if (grupos().length > 1) {
+                <span style="font-size:12px;color:var(--ink-4)">{{ grupos().length }} colaboradores en esta venta</span>
+              }
+            </div>
           }
 
           <!-- ╔══ STEP 4: Pago ══╗ -->
@@ -495,7 +506,6 @@
 
           <!-- ╔══ STEP 5: Confirmar ══╗ -->
           @if (step() === 5) {
-            <!-- Aviso fecha histórica en el recibo -->
             <div style="margin-bottom:16px;padding:10px 14px;background:var(--warn-soft);border-left:3px solid var(--warn);border-radius:4px;font-size:13px;display:flex;align-items:center;gap:8px">
               <sp-icon name="calendar" [size]="14" style="color:var(--warn)" />
               <span>Fecha histórica: <strong>{{ fechaFormateada() }}</strong></span>
@@ -503,30 +513,41 @@
             <div class="receipt">
               <div style="text-align:center;padding-bottom:16px;border-bottom:1px dashed var(--hair-3);margin-bottom:12px">
                 <div class="serif" style="font-size:24px;font-weight:400">Venta Histórica</div>
-                <div class="eyebrow" style="margin-top:4px">Carga retroactiva</div>
+                <div class="eyebrow" style="margin-top:4px">{{ grupos().length > 1 ? grupos().length + ' colaboradores' : 'Carga retroactiva' }}</div>
               </div>
               <div class="row"><span style="color:var(--ink-3)">Fecha</span><span><strong>{{ fechaFormateada() }}</strong></span></div>
-              <div class="row"><span style="color:var(--ink-3)">Colaborador</span><span>{{ peluqueroSeleccionado()?.fullName }}</span></div>
-              <div class="row"><span style="color:var(--ink-3)">Participación</span><span class="tnum">{{ peluqueroSeleccionado()?.commissionPercent }}%</span></div>
               @if (formCliente.get('fullName')!.value) {
                 <div class="row"><span style="color:var(--ink-3)">Cliente</span><span>{{ formCliente.get('fullName')!.value }}</span></div>
               }
-              <hr class="hr-dotted" style="margin:8px 0" />
-              @for (item of itemsServicio(); track trackItem($index, item)) {
-                <div class="row"><span>{{ item.name }}{{ item.quantity > 1 ? ' ×' + item.quantity : '' }}</span><span class="tnum">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-              }
-              @for (item of itemsProductoVenta(); track trackItem($index, item)) {
-                <div class="row"><span>{{ item.name }}</span><span class="tnum">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-              }
-              @if (itemsProductoInterno().length > 0) {
-                <hr class="hr-dotted" style="margin:8px 0" />
-                <div style="font-size:11px;color:var(--ink-4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Consumo interno</div>
-                @for (item of itemsProductoInterno(); track trackItem($index, item)) {
-                  <div class="row" style="color:var(--ink-4);font-size:12px"><span>{{ item.name }}</span><span>—</span></div>
+
+              <!-- Sección por cada colaborador -->
+              @for (g of grupos(); track trackGrupo($index)) {
+                <hr class="hr-dotted" style="margin:10px 0" />
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                  <span class="avatar" style="width:22px;height:22px;font-size:10px;background:var(--accent);color:white;flex-shrink:0">{{ $index + 1 }}</span>
+                  <span style="font-weight:600;font-size:13px">{{ g.stylist?.fullName }}</span>
+                  <span style="font-size:11px;color:var(--ink-4);margin-left:auto">{{ g.stylist?.commissionPercent }}%</span>
+                </div>
+                @for (item of itemsServicioGrupo($index); track trackItem($index, item)) {
+                  <div class="row" style="padding-left:30px"><span>{{ item.name }}{{ item.quantity > 1 ? ' ×' + item.quantity : '' }}</span><span class="tnum">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
                 }
+                @for (item of itemsProductoVentaGrupo($index); track trackItem($index, item)) {
+                  <div class="row" style="padding-left:30px"><span>{{ item.name }}</span><span class="tnum">{{ subtotalItem(item) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+                }
+                @if (itemsProductoInternoGrupo($index).length > 0) {
+                  <div style="padding-left:30px;font-size:11px;color:var(--ink-4);margin-top:4px">
+                    Consumo interno: @for (item of itemsProductoInternoGrupo($index); track $index) { {{ item.name }}{{ !$last ? ', ' : '' }} }
+                  </div>
+                }
+                <div class="row" style="padding-left:30px;font-size:12px;color:var(--accent-deep);font-weight:600;margin-top:4px">
+                  <span>↳ Parte {{ g.stylist?.fullName?.split(' ')[0] }}</span>
+                  <span class="tnum">{{ calculoGrupoConfirmar($index).stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
+                </div>
               }
-              @if (calculo().grossTip > 0) {
-                <div class="row" style="color:var(--ink-3)"><span>Propina</span><span class="tnum">{{ calculo().grossTip | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+
+              <hr class="hr-dotted" style="margin:10px 0" />
+              @if (tipAmountSig() > 0) {
+                <div class="row" style="color:var(--ink-3)"><span>Propina</span><span class="tnum">{{ tipAmountSig() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
               }
               <div class="row total"><span>Total bruto</span><span class="tnum">{{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
               <hr class="hr-dotted" style="margin:8px 0" />
@@ -544,7 +565,7 @@
               }
               <hr class="hr-dotted" style="margin:8px 0" />
               <div class="row" style="font-size:13px;font-weight:600"><span style="color:var(--ink-3)">Parte salón</span><span class="tnum">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
-              <div class="row" style="font-size:13px;font-weight:600"><span style="color:var(--accent-deep)">Parte {{ (peluqueroSeleccionado()?.fullName ?? 'colaborador').split(' ')[0] }}</span><span class="tnum" style="color:var(--accent-deep)">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
+              <div class="row" style="font-size:13px;font-weight:600"><span style="color:var(--accent-deep)">Total colaboradores</span><span class="tnum" style="color:var(--accent-deep)">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span></div>
             </div>
             @if (errorMsg()) {
               <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-top:16px">{{ errorMsg() }}</div>
@@ -589,37 +610,49 @@
               {{ totalACobrar() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
             </div>
             <div style="font-size:11px;color:var(--ink-5);text-transform:uppercase;letter-spacing:0.12em">
-              {{ items().length }} ítem{{ items().length !== 1 ? 's' : '' }}
+              {{ totalItemsCount() }} ítem{{ totalItemsCount() !== 1 ? 's' : '' }} · {{ grupos().length }} colaborador{{ grupos().length !== 1 ? 'es' : '' }}
             </div>
             @if (historialDateValida()) {
               <div style="margin-top:12px;padding:6px 10px;background:rgba(255,255,255,0.08);border-radius:6px;font-size:11px;color:rgba(245,241,234,0.7);display:flex;align-items:center;gap:6px">
                 <sp-icon name="calendar" [size]="11" /> {{ fechaFormateada() }}
               </div>
             }
-            <hr style="margin:20px 0;border:0;border-top:1px dashed rgba(245,241,234,0.20)" />
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-              <span style="font-size:12px;color:var(--ink-5)">Colaborador</span>
-              <span style="font-size:13px">{{ peluqueroSeleccionado()?.fullName || '—' }}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-              <span style="font-size:12px;color:var(--ink-5)">Participación</span>
-              <span class="tnum" style="font-size:14px;font-weight:500">{{ peluqueroSeleccionado()?.commissionPercent ?? 0 }}%</span>
-            </div>
+            <hr style="margin:16px 0;border:0;border-top:1px dashed rgba(245,241,234,0.20)" />
+            <!-- Lista de colaboradores configurados -->
+            @for (g of grupos(); track trackGrupo($index)) {
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                <span class="avatar" [style.background]="g.stylist ? 'var(--accent)' : 'rgba(255,255,255,0.15)'" style="width:22px;height:22px;font-size:10px;color:white;flex-shrink:0">{{ $index + 1 }}</span>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                    {{ g.stylist?.fullName || '— sin seleccionar' }}
+                  </div>
+                  @if (g.stylist) {
+                    <div style="font-size:10px;color:var(--ink-5)">
+                      {{ g.stylist.commissionPercent }}% · {{ g.items.filter(i => i.type === 'Service').length }} servicio{{ g.items.filter(i => i.type === 'Service').length !== 1 ? 's' : '' }}
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+            <hr style="margin:12px 0;border:0;border-top:1px dashed rgba(245,241,234,0.20)" />
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
               <div style="background:rgba(255,255,255,0.06);padding:12px;border-radius:6px">
                 <div style="font-size:10px;color:var(--ink-5);text-transform:uppercase;letter-spacing:0.12em">Salón</div>
                 <div class="serif tnum" style="font-size:20px;margin-top:2px">{{ calculo().salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
               </div>
               <div style="background:var(--accent);padding:12px;border-radius:6px">
-                <div style="font-size:10px;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.12em">Colaborador</div>
+                <div style="font-size:10px;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.12em">Colaboradores</div>
                 <div class="serif tnum" style="font-size:20px;margin-top:2px;color:white">{{ calculo().stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
               </div>
             </div>
           </div>
 
-          @if (items().length > 0) {
+          <!-- Ítems del grupo actual (pasos 2 y 3) -->
+          @if (grupoActual().items.length > 0 && step() >= 2 && step() <= 3) {
             <div class="card" style="padding:20px;margin-top:12px">
-              <div class="eyebrow" style="margin-bottom:10px">Ítems</div>
+              <div class="eyebrow" style="margin-bottom:10px">
+                {{ peluqueroSeleccionado()?.fullName?.split(' ')[0] || 'Colaborador ' + (grupoActualIdx() + 1) }}
+              </div>
               <div style="display:flex;flex-direction:column;gap:8px">
                 @for (item of itemsServicio(); track trackItem($index, item)) {
                   <div style="display:flex;justify-content:space-between;font-size:12px;align-items:center">
