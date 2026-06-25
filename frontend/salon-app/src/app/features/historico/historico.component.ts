@@ -455,8 +455,8 @@ export class HistoricoComponent implements OnInit {
         Array.from({ length: i.quantity }, () => mapper(i))
       );
 
-    const docNumber = cv.documentNumber?.trim() || `WALK-${Date.now()}`;
-    const fullName  = cv.fullName?.trim()       || 'Consumidor final';
+    const docNumber = cv.documentNumber?.trim() || '222222';
+    const fullName  = cv.fullName?.trim()       || 'Consumidor Final';
 
     const request = {
       stylistId:           vv.stylistId!,

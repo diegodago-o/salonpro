@@ -463,8 +463,8 @@ export class VentasComponent implements OnInit {
     const fc     = this.formCliente.value;
     const branch = this.branchService.selectedBranch();
     const docType   = fc.documentType || 'CC';
-    const docNumber = fc.documentNumber || 'SIN_DOCUMENTO';
-    const fullName  = fc.fullName || 'Consumidor Final';
+    const docNumber = fc.documentNumber?.trim() || '222222';
+    const fullName  = fc.fullName?.trim()       || 'Consumidor Final';
     const tipAmt    = this.tieneEfectivo() ? 0 : this.tipAmount();
 
     // Fix 3: capturar datos del recibo antes de enviar
