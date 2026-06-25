@@ -311,6 +311,7 @@ export class VentasComponent implements OnInit {
       return;
     }
     this.estilistaTemp.set(s);
+    this.grupos.update(gs => gs.map((g, i) => i === idx ? { ...g, stylist: s } : g));
     this.pasoGrupo.set('servicios');
   }
 
