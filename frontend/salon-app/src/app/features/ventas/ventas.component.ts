@@ -174,6 +174,7 @@ export class VentasComponent implements OnInit {
       this.http.get<{ logoUrl?: string }>('/api/v1/tenant-profile')
         .subscribe({ next: r => this.logoSalon.set(r.logoUrl ?? ''), error: () => {} });
     }
+    this.agregarGrupo();
   }
 
   readonly errorCatalogos = signal<string | null>(null);
