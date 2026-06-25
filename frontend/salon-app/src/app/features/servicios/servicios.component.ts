@@ -37,26 +37,57 @@ export class ServiciosComponent {
     salonFeePercent:[0,  [Validators.min(0), Validators.max(100)]],
   });
 
+  // Todas las categorías (para el modal)
   readonly categorias = computed(() =>
     [...new Set(this.servicios().map(s => s.category))]
   );
 
-  // ── Selector de categoría ────────────────────────────
+  // ── Filtros ──────────────────────────────────────────
+  readonly filtroTexto     = signal('');
+  readonly filtroCategoria = signal('');
+  readonly filtroEstado    = signal('');
+
+  readonly serviciosFiltrados = computed(() => {
+    const texto = this.filtroTexto().toLowerCase().trim();
+    const cat   = this.filtroCategoria();
+    const est   = this.filtroEstado();
+    return this.servicios().filter(s => {
+      const matchTexto = !texto || s.name.toLowerCase().includes(texto);
+      const matchCat   = !cat   || s.category === cat;
+      const matchEst   = !est   || (est === 'activo' ? s.isActive : !s.isActive);
+      return matchTexto && matchCat && matchEst;
+    });
+  });
+
+  readonly categoriasFiltradas = computed(() =>
+    [...new Set(this.serviciosFiltrados().map(s => s.category))]
+  );
+
+  readonly hayFiltros = computed(() =>
+    !!this.filtroTexto() || !!this.filtroCategoria() || !!this.filtroEstado()
+  );
+
+  limpiarFiltros(): void {
+    this.filtroTexto.set('');
+    this.filtroCategoria.set('');
+    this.filtroEstado.set('');
+  }
+
+  // ── Selector de categoría (modal) ────────────────────
   readonly NUEVA_CAT = '__nueva__';
-  readonly catSeleccionada = signal<string>('');   // valor del <select>
+  readonly catSeleccionada = signal<string>('');
 
   onCatSelectChange(value: string): void {
     this.catSeleccionada.set(value);
     if (value !== this.NUEVA_CAT) {
       this.form.get('category')!.setValue(value);
     } else {
-      // Limpiar para que el usuario escriba
       this.form.get('category')!.setValue('');
     }
   }
 
   serviciosPorCategoria(cat: string): Servicio[] {
-    return this.servicios().filter(s => s.category === cat);
+    return this.serviciosFiltrados().filter(s => s.category === cat);
   }
 
   constructor() {

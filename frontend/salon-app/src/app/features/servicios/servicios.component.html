@@ -3,17 +3,63 @@
     <div>
       <div class="eyebrow">Catálogo</div>
       <h1><span class="serif">Gestión de</span> <span class="serif-italic">servicios</span></h1>
-      <div class="deck">{{ servicios().length }} servicios configurados</div>
+      <div class="deck">
+        {{ serviciosFiltrados().length }} servicios
+        @if (hayFiltros()) { <span style="color:var(--ink-4)">de {{ servicios().length }}</span> }
+        @else { configurados }
+      </div>
     </div>
     <button class="btn btn-primary" (click)="abrirNuevo()">
       <sp-icon name="plus" [size]="14" /> Nuevo servicio
     </button>
   </div>
 
+  <!-- Barra de filtros -->
+  <div class="filter-grid">
+    <div class="filter-field">
+      <span class="filter-label">Nombre del servicio</span>
+      <div class="search-wrap">
+        <sp-icon name="search" [size]="13" class="search-icon" />
+        <input class="input search-input"
+          type="search"
+          [value]="filtroTexto()"
+          (input)="filtroTexto.set($any($event.target).value)"
+          placeholder="Buscar por nombre…" />
+      </div>
+    </div>
+    <div class="filter-field">
+      <span class="filter-label">Categoría</span>
+      <select class="input filter-select"
+        (change)="filtroCategoria.set($any($event.target).value)">
+        <option value="" [selected]="filtroCategoria() === ''">Todas las categorías</option>
+        @for (c of categorias(); track c) {
+          <option [value]="c" [selected]="filtroCategoria() === c">{{ c }}</option>
+        }
+      </select>
+    </div>
+    <div class="filter-field">
+      <span class="filter-label">Estado</span>
+      <select class="input filter-select"
+        (change)="filtroEstado.set($any($event.target).value)">
+        <option value=""       [selected]="filtroEstado() === ''">Todos</option>
+        <option value="activo" [selected]="filtroEstado() === 'activo'">Activos</option>
+        <option value="inactivo" [selected]="filtroEstado() === 'inactivo'">Inactivos</option>
+      </select>
+    </div>
+  </div>
+
+  @if (hayFiltros()) {
+    <div style="margin-bottom:12px">
+      <button class="btn btn-ghost btn-sm" (click)="limpiarFiltros()">
+        <sp-icon name="x" [size]="12" /> Limpiar filtros
+      </button>
+    </div>
+  }
+
   @if (cargando()) {
     <div style="padding:40px;text-align:center;color:var(--ink-4)">Cargando servicios…</div>
   } @else {
-    @for (cat of categorias(); track cat) {
+    @for (cat of categoriasFiltradas(); track cat) {
       <div style="margin-bottom:28px">
         <div class="section-header">
           <h2 class="serif" style="font-size:26px;font-weight:400">{{ cat }}</h2>
@@ -72,12 +118,19 @@
       </div>
     }
 
-    @if (servicios().length === 0) {
+    @if (serviciosFiltrados().length === 0) {
       <div class="card" style="padding:60px;text-align:center;color:var(--ink-4)">
-        <div style="font-size:14px;margin-top:12px">No hay servicios configurados</div>
-        <button class="btn btn-primary" style="margin-top:20px" (click)="abrirNuevo()">
-          <sp-icon name="plus" [size]="14" /> Crear primer servicio
-        </button>
+        @if (hayFiltros()) {
+          <div style="font-size:14px;margin-top:12px">No hay servicios que coincidan con los filtros</div>
+          <button class="btn btn-ghost" style="margin-top:16px" (click)="limpiarFiltros()">
+            <sp-icon name="x" [size]="12" /> Limpiar filtros
+          </button>
+        } @else {
+          <div style="font-size:14px;margin-top:12px">No hay servicios configurados</div>
+          <button class="btn btn-primary" style="margin-top:20px" (click)="abrirNuevo()">
+            <sp-icon name="plus" [size]="14" /> Crear primer servicio
+          </button>
+        }
       </div>
     }
   }
