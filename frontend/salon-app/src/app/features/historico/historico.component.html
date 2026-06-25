@@ -540,7 +540,7 @@
                   </div>
                 }
                 <div class="row" style="padding-left:30px;font-size:12px;color:var(--accent-deep);font-weight:600;margin-top:4px">
-                  <span>↳ Parte {{ g.stylist?.fullName?.split(' ')[0] }}</span>
+                  <span>↳ Parte {{ (g.stylist?.fullName ?? '').split(' ')[0] }}</span>
                   <span class="tnum">{{ calculoGrupoConfirmar($index).stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
                 </div>
               }
@@ -651,7 +651,7 @@
           @if (grupoActual().items.length > 0 && step() >= 2 && step() <= 3) {
             <div class="card" style="padding:20px;margin-top:12px">
               <div class="eyebrow" style="margin-bottom:10px">
-                {{ peluqueroSeleccionado()?.fullName?.split(' ')[0] || 'Colaborador ' + (grupoActualIdx() + 1) }}
+                {{ (peluqueroSeleccionado()?.fullName ?? '').split(' ')[0] || 'Colaborador ' + (grupoActualIdx() + 1) }}
               </div>
               <div style="display:flex;flex-direction:column;gap:8px">
                 @for (item of itemsServicio(); track trackItem($index, item)) {
