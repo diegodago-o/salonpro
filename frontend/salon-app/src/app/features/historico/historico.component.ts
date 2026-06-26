@@ -647,6 +647,17 @@ export class HistoricoComponent implements OnInit {
 
   subtotalItem(item: SaleItem): number { return item.price * item.quantity; }
 
+  itemStylistPct(item: SaleItem, commissionPercent: number): number {
+    if (item.type === 'Service') return commissionPercent;
+    if (item.type === 'ProductSale') return (item as SaleProductItem).stylistCommissionPercent;
+    return 0;
+  }
+
+  itemStylistAmount(item: SaleItem, commissionPercent: number): number {
+    const gross = item.price * item.quantity;
+    return Math.round(gross * this.itemStylistPct(item, commissionPercent) / 100);
+  }
+
   /** Cálculo financiero de un grupo específico para el paso de confirmar */
   calculoGrupoConfirmar(idx: number): SaleCalculation {
     return this.calcularParaGrupo(idx, this.totalACobrar(), this.deductionTotalAmount());
