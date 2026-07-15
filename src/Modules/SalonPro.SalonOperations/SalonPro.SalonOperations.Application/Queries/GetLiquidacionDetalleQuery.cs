@@ -57,26 +57,31 @@ public class GetLiquidacionDetalleHandler(ILiquidacionRepository repo, ISaleRepo
             {
                 var saleGrossAll = sale.GrossServices + sale.GrossProducts + sale.TipAmount;
                 var dedPct = saleGrossAll > 0 ? sale.TotalDeductions / saleGrossAll : 0m;
-                var commPct = sale.CommissionPercent / 100m;
-                var commPctLabel = (int)Math.Round(sale.CommissionPercent);
+                var fallbackCommPct = sale.CommissionPercent / 100m; // para ventas antiguas
 
                 foreach (var item in sale.Items.Where(i =>
                     i.Type == SalonPro.SalonOperations.Domain.Enums.SaleItemType.Service))
                 {
-                    var subtotal = item.UnitPrice * item.Quantity;
-                    var netBase = subtotal * (1 - dedPct);
+                    var subtotal    = item.UnitPrice * item.Quantity;
+                    var netBase     = subtotal * (1 - dedPct);
+                    var itemCommPct = item.StylistCommissionPercent > 0
+                        ? item.StylistCommissionPercent / 100m
+                        : fallbackCommPct;
+                    var itemCommLabel = (int)Math.Round(item.StylistCommissionPercent > 0
+                        ? item.StylistCommissionPercent
+                        : sale.CommissionPercent);
                     decimal stylistAmt;
                     if (item.SalonFeePercent > 0)
                     {
                         var fee = netBase * item.SalonFeePercent / 100m;
-                        stylistAmt = Math.Round((netBase - fee) * commPct, 0);
+                        stylistAmt = Math.Round((netBase - fee) * itemCommPct, 0);
                     }
                     else
                     {
-                        stylistAmt = Math.Round(netBase * commPct, 0);
+                        stylistAmt = Math.Round(netBase * itemCommPct, 0);
                     }
                     dynCommServices += stylistAmt;
-                    serviceCommItems.Add($"{item.Name} · {commPctLabel}% → ${stylistAmt:N0}");
+                    serviceCommItems.Add($"{item.Name} · {itemCommLabel}% → ${stylistAmt:N0}");
                 }
 
                 foreach (var item in sale.Items.Where(i =>

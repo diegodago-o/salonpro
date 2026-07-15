@@ -17,9 +17,11 @@ public class UpdateServiceHandler(ISalonServiceRepository repo)
         if (service.TenantId != cmd.TenantId) throw new ForbiddenException();
         if (service.BranchId != cmd.BranchId) throw new ForbiddenException();
         var req = cmd.Request;
-        service.Update(req.Name, req.Category, req.Price, req.HasSalonFee, req.SalonFeePercent);
+        service.Update(req.Name, req.Category, req.Price, req.HasSalonFee, req.SalonFeePercent,
+            req.StylistCommissionPercent);
         await repo.SaveChangesAsync(ct);
         return new SalonServiceDto(service.Id, service.Name, service.Category,
-            service.Price, service.HasSalonFee, service.SalonFeePercent, service.IsActive);
+            service.Price, service.HasSalonFee, service.SalonFeePercent,
+            service.StylistCommissionPercent, service.IsActive);
     }
 }

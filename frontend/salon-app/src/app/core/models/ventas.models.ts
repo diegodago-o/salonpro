@@ -8,6 +8,8 @@ export interface ServiceOption {
   price: number;
   hasSalonFee: boolean;
   salonFeePercent: number;
+  /** Porcentaje de participación del estilista para este servicio (0–100). */
+  stylistCommissionPercent: number;
 }
 
 export interface ProductOption {
@@ -55,6 +57,8 @@ export interface SaleServiceItem {
   quantity: number;    // editable, mín 1
   hasSalonFee: boolean;
   salonFeePercent: number;
+  /** Porcentaje de participación del estilista para este servicio (0–100). */
+  stylistCommissionPercent: number;
 }
 
 export interface SaleProductItem {
@@ -90,7 +94,6 @@ export interface SaleCalculation {
   netTip: number;
 
   // Comisiones
-  stylistCommPct: number;
   salonFeeServices: number;     // suma de fees por salón (hasSalonFee) sobre base neta
   stylistCommServices: number;
   salonCommServices: number;

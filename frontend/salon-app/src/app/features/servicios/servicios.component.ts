@@ -30,11 +30,12 @@ export class ServiciosComponent {
   readonly modoEdicion    = computed(() => this.editandoId() !== null);
 
   readonly form = this.fb.group({
-    name:           ['', Validators.required],
-    category:       ['', Validators.required],
-    price:          [0,  [Validators.required, Validators.min(1)]],
-    hasSalonFee:    [false],
-    salonFeePercent:[0,  [Validators.min(0), Validators.max(100)]],
+    name:                     ['', Validators.required],
+    category:                 ['', Validators.required],
+    price:                    [0,  [Validators.required, Validators.min(1)]],
+    hasSalonFee:              [false],
+    salonFeePercent:          [0,  [Validators.min(0), Validators.max(100)]],
+    stylistCommissionPercent: [0,  [Validators.required, Validators.min(0), Validators.max(100)]],
   });
 
   // Todas las categorías (para el modal)
@@ -108,7 +109,7 @@ export class ServiciosComponent {
 
   abrirNuevo(): void {
     this.editandoId.set(null);
-    this.form.reset({ name: '', category: '', price: 0, hasSalonFee: false, salonFeePercent: 0 });
+    this.form.reset({ name: '', category: '', price: 0, hasSalonFee: false, salonFeePercent: 0, stylistCommissionPercent: 0 });
     this.catSeleccionada.set('');
     this.errorMsg.set(null);
     this.modalAbierto.set(true);
@@ -118,7 +119,8 @@ export class ServiciosComponent {
     this.editandoId.set(s.id);
     this.form.patchValue({
       name: s.name, category: s.category, price: s.price,
-      hasSalonFee: s.hasSalonFee, salonFeePercent: s.salonFeePercent
+      hasSalonFee: s.hasSalonFee, salonFeePercent: s.salonFeePercent,
+      stylistCommissionPercent: s.stylistCommissionPercent
     });
     // Si la categoría ya existe en la lista, la preseleccionamos en el select
     const existe = this.categorias().includes(s.category);
@@ -139,11 +141,12 @@ export class ServiciosComponent {
 
     const v = this.form.value;
     const req = {
-      name:           v.name!,
-      category:       v.category!,
-      price:          v.price!,
-      hasSalonFee:    v.hasSalonFee ?? false,
-      salonFeePercent: v.hasSalonFee ? (v.salonFeePercent ?? 0) : 0,
+      name:                     v.name!,
+      category:                 v.category!,
+      price:                    v.price!,
+      hasSalonFee:              v.hasSalonFee ?? false,
+      salonFeePercent:          v.hasSalonFee ? (v.salonFeePercent ?? 0) : 0,
+      stylistCommissionPercent: v.stylistCommissionPercent ?? 0,
     };
 
     const branchId = this.branchService.currentBranchId;

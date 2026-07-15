@@ -5,6 +5,8 @@ export interface Servicio {
   price: number;
   hasSalonFee: boolean;
   salonFeePercent: number;
+  /** Porcentaje de participación del estilista para este servicio (0–100). */
+  stylistCommissionPercent: number;
   isActive: boolean;
 }
 
@@ -14,6 +16,7 @@ export interface CreateServicioRequest {
   price: number;
   hasSalonFee: boolean;
   salonFeePercent: number;
+  stylistCommissionPercent: number;
 }
 
 export interface Producto {

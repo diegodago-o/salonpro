@@ -73,6 +73,7 @@
                   <th>Servicio</th>
                   <th style="text-align:right">Precio</th>
                   <th>Fee salón</th>
+                  <th>Participación</th>
                   <th>Estado</th>
                   <th></th>
                 </tr>
@@ -87,6 +88,13 @@
                     <td>
                       @if (s.hasSalonFee) {
                         <span class="pill pill-accent">{{ s.salonFeePercent }}%</span>
+                      } @else {
+                        <span style="color:var(--ink-4);font-size:12px">—</span>
+                      }
+                    </td>
+                    <td>
+                      @if (s.stylistCommissionPercent > 0) {
+                        <span class="pill pill-success">{{ s.stylistCommissionPercent }}%</span>
                       } @else {
                         <span style="color:var(--ink-4);font-size:12px">—</span>
                       }
@@ -195,6 +203,12 @@
             <input class="input mono" type="number" formControlName="salonFeePercent" min="0" max="100" placeholder="4.5" />
           </label>
         }
+
+        <!-- Participación colaborador -->
+        <label class="field" style="margin-bottom:14px">
+          <span class="label">Participación colaborador (%)</span>
+          <input class="input mono" type="number" formControlName="stylistCommissionPercent" min="0" max="100" placeholder="0" />
+        </label>
 
         @if (errorMsg()) {
           <div style="padding:10px;background:var(--danger-soft);color:var(--danger);border-radius:6px;font-size:12px;margin-bottom:14px">

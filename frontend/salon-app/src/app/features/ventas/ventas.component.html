@@ -207,7 +207,7 @@
                             <div style="font-size:10px;color:var(--ink-4);margin-bottom:2px">{{ s.employeeCode }}</div>
                           }
                           <div style="font-weight:600;font-size:13px">{{ s.fullName }}</div>
-                          <div style="font-size:11px;color:var(--ink-4)">{{ s.commissionPercent }}% participación</div>
+                          <div style="font-size:11px;color:var(--ink-4)">Colaborador</div>
                         </button>
                       }
                     </div>
@@ -248,6 +248,9 @@
                           <div class="item-card-price">{{ s.price | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</div>
                           @if (s.hasSalonFee) {
                             <div class="item-card-badge">Fee salón {{ s.salonFeePercent }}%</div>
+                          }
+                          @if (s.stylistCommissionPercent > 0) {
+                            <div class="item-card-badge" style="background:var(--success-soft,#f0fdf4);color:var(--success,#16a34a)">Part. {{ s.stylistCommissionPercent }}%</div>
                           }
                         </button>
                       }
@@ -442,11 +445,11 @@
                     </div>
                   }
                   <div class="desglose-row desglose-salon">
-                    <span>Salón ({{ 100 - g.stylist.commissionPercent }}%)</span>
+                    <span>Salón</span>
                     <span class="tnum">{{ g.calc.salonTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
                   </div>
                   <div class="desglose-row desglose-colaborador">
-                    <span>{{ g.stylist.fullName.split(' ')[0] }} ({{ g.stylist.commissionPercent }}%)</span>
+                    <span>{{ g.stylist.fullName.split(' ')[0] }}</span>
                     <span class="tnum">{{ g.calc.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}</span>
                   </div>
                 </div>

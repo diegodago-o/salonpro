@@ -74,23 +74,26 @@ public class CreateLiquidacionHandler(
 
             // Commission per item type
             var saleDedPct  = saleGrossAll > 0 ? sale.TotalDeductions / saleGrossAll : 0m;
-            var saleCommPct = sale.CommissionPercent / 100m;
+            var saleCommPct = sale.CommissionPercent / 100m; // fallback para ventas antiguas
             decimal saleCommServices = 0m;
             decimal saleCommProducts = 0m;
 
             foreach (var item in sale.Items.Where(i => i.Type == SaleItemType.Service))
             {
-                var subtotal = item.UnitPrice * item.Quantity;
-                var netBase  = subtotal * (1 - saleDedPct);
+                var subtotal    = item.UnitPrice * item.Quantity;
+                var netBase     = subtotal * (1 - saleDedPct);
+                var itemCommPct = item.StylistCommissionPercent > 0
+                    ? item.StylistCommissionPercent / 100m
+                    : saleCommPct;
                 decimal amt;
                 if (item.SalonFeePercent > 0)
                 {
                     var fee = netBase * item.SalonFeePercent / 100m;
-                    amt = Math.Round((netBase - fee) * saleCommPct, 2);
+                    amt = Math.Round((netBase - fee) * itemCommPct, 2);
                 }
                 else
                 {
-                    amt = Math.Round(netBase * saleCommPct, 2);
+                    amt = Math.Round(netBase * itemCommPct, 2);
                 }
                 saleCommServices += amt;
             }

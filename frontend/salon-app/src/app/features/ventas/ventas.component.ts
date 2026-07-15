@@ -338,7 +338,6 @@ export class VentasComponent implements OnInit {
         deductionAmount: totalBruto > 0
           ? Math.round(deduccionTotal * (g.items.reduce((s, i) => s + i.price, 0) + tipForGroup) / totalBruto)
           : 0,
-        stylistCommPct: g.stylist.commissionPercent,
       });
       return { stylist: g.stylist, calc };
     }).filter((x): x is { stylist: StylistOption; calc: SaleCalculation } => x !== null);
@@ -356,7 +355,8 @@ export class VentasComponent implements OnInit {
     const nuevo: SaleServiceItem = {
       type: 'Service', serviceId: svc.id, name: svc.name,
       price: svc.price, quantity: 1,
-      hasSalonFee: svc.hasSalonFee, salonFeePercent: svc.salonFeePercent
+      hasSalonFee: svc.hasSalonFee, salonFeePercent: svc.salonFeePercent,
+      stylistCommissionPercent: svc.stylistCommissionPercent
     };
     this.serviciosTemp.update(s => [...s, nuevo]);
   }
@@ -368,7 +368,8 @@ export class VentasComponent implements OnInit {
     const nuevo: SaleServiceItem = {
       type: 'Service', serviceId: svc.id, name: svc.name,
       price: precio, quantity: 1,
-      hasSalonFee: svc.hasSalonFee, salonFeePercent: svc.salonFeePercent
+      hasSalonFee: svc.hasSalonFee, salonFeePercent: svc.salonFeePercent,
+      stylistCommissionPercent: svc.stylistCommissionPercent
     };
     this.serviciosTemp.update(s => [...s, nuevo]);
     this.pickerServ.set(null);
@@ -609,11 +610,12 @@ ${rec.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</
 
   grupoParticipacion(g: SaleGroup): number {
     if (!g.stylist) return 0;
-    const items = g.items;
-    const grossServices = items.filter(i => i.type === 'Service').reduce((s, i) => s + i.price, 0);
-    const grossProducts = items.filter(i => i.type === 'ProductSale').reduce((s, i) => s + i.price, 0);
-    const pct = g.stylist.commissionPercent / 100;
-    return Math.round((grossServices + grossProducts) * pct);
+    return g.items
+      .filter(i => i.type === 'Service' || i.type === 'ProductSale')
+      .reduce((sum, i) => {
+        const pct = (i as SaleServiceItem).stylistCommissionPercent ?? 0;
+        return sum + Math.round(i.price * pct / 100);
+      }, 0);
   }
 
   tieneItemsEnGrupo(idx: number): boolean {

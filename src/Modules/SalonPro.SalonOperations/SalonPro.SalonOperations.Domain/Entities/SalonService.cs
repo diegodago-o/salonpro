@@ -10,13 +10,15 @@ public class SalonService
     public decimal Price { get; private set; }
     public bool HasSalonFee { get; private set; }
     public decimal SalonFeePercent { get; private set; }
+    /// <summary>Porcentaje de participación del estilista para este servicio (0–100).</summary>
+    public decimal StylistCommissionPercent { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
     private SalonService() { }
 
     public static SalonService Create(int tenantId, int branchId, string name, string category, decimal price,
-        bool hasSalonFee, decimal salonFeePercent)
+        bool hasSalonFee, decimal salonFeePercent, decimal stylistCommissionPercent = 0)
     {
         return new SalonService
         {
@@ -27,18 +29,21 @@ public class SalonService
             Price = price,
             HasSalonFee = hasSalonFee,
             SalonFeePercent = salonFeePercent,
+            StylistCommissionPercent = stylistCommissionPercent,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
     }
 
-    public void Update(string name, string category, decimal price, bool hasSalonFee, decimal salonFeePercent)
+    public void Update(string name, string category, decimal price, bool hasSalonFee, decimal salonFeePercent,
+        decimal stylistCommissionPercent)
     {
         Name = name.Trim();
         Category = category.Trim();
         Price = price;
         HasSalonFee = hasSalonFee;
         SalonFeePercent = salonFeePercent;
+        StylistCommissionPercent = stylistCommissionPercent;
     }
 
     public void SetActive(bool isActive) => IsActive = isActive;

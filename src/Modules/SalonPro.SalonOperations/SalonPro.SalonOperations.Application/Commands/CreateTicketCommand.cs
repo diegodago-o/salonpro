@@ -160,24 +160,24 @@ public class CreateTicketHandler(
                 ? Math.Round(totalDeductionsTicket * groupGrossTotal / ticketGrossTotal, 2)
                 : 0m;
 
-            decimal pct    = groupGrossTotal > 0 ? groupDeductions / groupGrossTotal : 0m;
-            decimal commPct = grp.CommissionPercent / 100m;
+            decimal pct = groupGrossTotal > 0 ? groupDeductions / groupGrossTotal : 0m;
 
             decimal stylistCommServices = 0, salonCommServices = 0;
             foreach (var (svc, price) in gd.Services)
             {
-                var itemBase = price * (1 - pct);
+                var itemBase   = price * (1 - pct);
+                var svcCommPct = svc.StylistCommissionPercent / 100m;
                 if (svc.HasSalonFee && svc.SalonFeePercent > 0)
                 {
                     var fee       = Math.Round(itemBase * svc.SalonFeePercent / 100, 2);
                     var remainder = itemBase - fee;
-                    stylistCommServices += Math.Round(remainder * commPct, 2);
-                    salonCommServices   += Math.Round(remainder * (1 - commPct), 2) + fee;
+                    stylistCommServices += Math.Round(remainder * svcCommPct, 2);
+                    salonCommServices   += Math.Round(remainder * (1 - svcCommPct), 2) + fee;
                 }
                 else
                 {
-                    stylistCommServices += Math.Round(itemBase * commPct, 2);
-                    salonCommServices   += Math.Round(itemBase * (1 - commPct), 2);
+                    stylistCommServices += Math.Round(itemBase * svcCommPct, 2);
+                    salonCommServices   += Math.Round(itemBase * (1 - svcCommPct), 2);
                 }
             }
 
@@ -207,7 +207,8 @@ public class CreateTicketHandler(
 
             foreach (var (svc, price) in gd.Services)
                 sale.Items.Add(SaleItem.CreateForSale(sale, SaleItemType.Service, svc.Id, svc.Name,
-                    price, 1, svc.HasSalonFee ? svc.SalonFeePercent : 0));
+                    price, 1, svc.HasSalonFee ? svc.SalonFeePercent : 0,
+                    stylistCommissionPercent: svc.StylistCommissionPercent));
 
             foreach (var (prod, price) in gd.ProductsSold)
             {

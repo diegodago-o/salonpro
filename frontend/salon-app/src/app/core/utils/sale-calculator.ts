@@ -8,12 +8,10 @@ export interface SaleInput {
    *  (servicios + productos + propina), ya que el procesador cobra el %
    *  sobre el total de la transacción. */
   deductionAmount: number;
-  stylistCommPct: number; // % del colaborador (ej: 50)
 }
 
 export function calculateSale(input: SaleInput): SaleCalculation {
-  const { items, tipAmount, deductionAmount, stylistCommPct } = input;
-  const sPct = stylistCommPct / 100;
+  const { items, tipAmount, deductionAmount } = input;
 
   // PASO 1 — Totales brutos (precio × cantidad)
   const grossServices = items
@@ -30,10 +28,9 @@ export function calculateSale(input: SaleInput): SaleCalculation {
 
   const grossTip   = tipAmount;
   const grossItems = grossServices + grossProducts;
-  // Base total sobre la que se distribuye la deducción (el procesador cobra sobre todo)
   const grossAll   = grossItems + grossTip;
 
-  // PASO 2 — Deducciones: distribuidas proporcionalmente sobre grossAll (servicios+productos+propina)
+  // PASO 2 — Deducciones: distribuidas proporcionalmente sobre grossAll
   const totalDeductions   = round(deductionAmount);
   const deductionServices = grossAll > 0 ? round(totalDeductions * grossServices / grossAll) : 0;
   const deductionProducts = grossAll > 0 ? round(totalDeductions * grossProducts / grossAll) : 0;
@@ -44,15 +41,15 @@ export function calculateSale(input: SaleInput): SaleCalculation {
   const baseProducts = grossProducts - deductionProducts;
   const netTip       = grossTip - deductionTip;
 
-  // PASO 4 — Comisiones de servicios (por ítem para respetar salonFee individual)
+  // PASO 4 — Comisiones de servicios: % por servicio (igual que productos)
   let salonFeeServices    = 0;
   let stylistCommServices = 0;
   let salonCommServices   = 0;
 
   for (const item of items.filter(i => i.type === 'Service') as SaleServiceItem[]) {
-    // Fracción sobre grossAll para que la deducción sea proporcional al total de transacción
     const frac     = grossAll > 0 ? (item.price * item.quantity) / grossAll : 0;
     const itemBase = item.price * item.quantity - round(totalDeductions * frac);
+    const sPct     = (item.stylistCommissionPercent ?? 0) / 100;
 
     if (item.hasSalonFee && item.salonFeePercent > 0) {
       const fee       = round(itemBase * item.salonFeePercent / 100);
@@ -85,14 +82,13 @@ export function calculateSale(input: SaleInput): SaleCalculation {
   const stylistTotal = stylistCommServices + stylistCommProducts + netTip;
   const salonTotal   = salonCommServices   + salonCommProducts;
 
-  // deductionPct: porcentaje efectivo sobre el total (referencia informativa para la UI)
   const deductionPct = grossAll > 0 ? (totalDeductions / grossAll) * 100 : 0;
 
   return {
     grossServices, grossProducts, grossTip, internalConsumption,
     deductionPct, deductionServices, deductionProducts, deductionTip, totalDeductions,
     baseServices, baseProducts, netTip,
-    stylistCommPct, salonFeeServices, stylistCommServices, salonCommServices,
+    salonFeeServices, stylistCommServices, salonCommServices,
     stylistCommProducts, salonCommProducts,
     stylistTotal, salonTotal,
   };

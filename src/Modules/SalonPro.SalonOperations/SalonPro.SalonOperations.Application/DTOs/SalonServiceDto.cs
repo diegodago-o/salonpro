@@ -7,4 +7,5 @@ public record SalonServiceDto(
     decimal Price,
     bool HasSalonFee,
     decimal SalonFeePercent,
+    decimal StylistCommissionPercent,
     bool IsActive);

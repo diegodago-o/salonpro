@@ -10,7 +10,8 @@ public record CreateServiceRequest(
     string Category,
     decimal Price,
     bool HasSalonFee,
-    decimal SalonFeePercent);
+    decimal SalonFeePercent,
+    decimal StylistCommissionPercent);
 
 public record CreateServiceCommand(int TenantId, int BranchId, CreateServiceRequest Request) : IRequest<SalonServiceDto>;
 
@@ -21,10 +22,11 @@ public class CreateServiceHandler(ISalonServiceRepository repo)
     {
         var req = cmd.Request;
         var service = SalonService.Create(cmd.TenantId, cmd.BranchId, req.Name, req.Category,
-            req.Price, req.HasSalonFee, req.SalonFeePercent);
+            req.Price, req.HasSalonFee, req.SalonFeePercent, req.StylistCommissionPercent);
         await repo.AddAsync(service, ct);
         await repo.SaveChangesAsync(ct);
         return new SalonServiceDto(service.Id, service.Name, service.Category,
-            service.Price, service.HasSalonFee, service.SalonFeePercent, service.IsActive);
+            service.Price, service.HasSalonFee, service.SalonFeePercent,
+            service.StylistCommissionPercent, service.IsActive);
     }
 }
