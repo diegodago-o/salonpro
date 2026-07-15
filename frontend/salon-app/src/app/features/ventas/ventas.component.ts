@@ -140,6 +140,12 @@ export class VentasComponent implements OnInit {
     !this.guardando()
   );
 
+  readonly puedeRegistrarSinPago = computed(() =>
+    this.grupos().length > 0 &&
+    this.grupos().every(g => g.stylist !== null && g.items.length > 0) &&
+    !this.guardando()
+  );
+
   // ── Recibo y éxito ────────────────────────────────────
   readonly ventaExitosa = signal(false);
   readonly ventaRecibo  = signal<ReciboVenta | null>(null);  // Fix 3
@@ -533,6 +539,72 @@ export class VentasComponent implements OnInit {
       next: () => {
         this.guardando.set(false);
         this.ventaRecibo.set(recibo);   // Fix 3
+        this.ventaExitosa.set(true);
+      },
+      error: (e) => {
+        const msg = e?.error?.message || e?.error?.errors?.[0] || 'Error al registrar la venta.';
+        this.errorMsg.set(msg);
+        this.guardando.set(false);
+      }
+    });
+  }
+
+  registrarSinPago(): void {
+    if (!this.puedeRegistrarSinPago()) return;
+    this.errorMsg.set(null);
+    this.guardando.set(true);
+
+    const fc     = this.formCliente.value;
+    const branch = this.branchService.selectedBranch();
+    const docType   = fc.documentType || 'CC';
+    const docNumber = fc.documentNumber?.trim() || '222222';
+    const fullName  = fc.fullName?.trim() || 'Consumidor Final';
+
+    const recibo: ReciboVenta = {
+      clientName: fullName,
+      fecha: new Date().toISOString(),
+      grupos: this.grupos().map(g => ({
+        stylistName: g.stylist!.fullName,
+        items: g.items.map(i => ({ name: i.name, price: i.price })),
+      })),
+      pagos: [],
+      subtotal: this.totalGrupos(),
+      tipAmount: 0,
+      total: this.totalGrupos(),
+    };
+
+    const request = {
+      clientDocumentType:   docType,
+      clientDocumentNumber: docNumber,
+      clientFullName:       fullName,
+      clientEmail:          fc.email || undefined,
+      clientPhone:          fc.phone || undefined,
+      branchId:   branch?.id,
+      branchName: branch?.name,
+      payments:   [],
+      tipAmount:  0,
+      tipGroupIndex: 0,
+      notes: this.notas() || undefined,
+      groups: this.grupos().map(g => ({
+        stylistId:         g.stylist!.id,
+        stylistName:       g.stylist!.fullName,
+        commissionPercent: g.stylist!.commissionPercent,
+        services: g.items
+          .filter(i => i.type === 'Service')
+          .map(i => ({ serviceId: (i as SaleServiceItem).serviceId, price: i.price })),
+        productsSold: g.items
+          .filter(i => i.type === 'ProductSale')
+          .map(i => ({ productId: (i as SaleProductItem).productId, price: i.price })),
+        productsInternal: g.items
+          .filter(i => i.type === 'ProductInternal')
+          .map(i => ({ productId: (i as SaleProductItem).productId, price: i.price })),
+      })),
+    };
+
+    this.ticketService.crearTicket(request).subscribe({
+      next: () => {
+        this.guardando.set(false);
+        this.ventaRecibo.set(recibo);
         this.ventaExitosa.set(true);
       },
       error: (e) => {

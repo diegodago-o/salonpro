@@ -53,6 +53,8 @@ public record SaleDto(
     string Status,
     string? VoidedReason,
     string? Notes,
+    // Status helpers
+    bool IsPendingPayment,
     // Detail (null on list, populated on GetById)
     IEnumerable<SaleItemDto>? Items,
     IEnumerable<SalePaymentDto>? Payments

@@ -1,6 +1,7 @@
 using MediatR;
 using SalonPro.SalonOperations.Application.DTOs;
 using SalonPro.SalonOperations.Domain.Entities;
+using SalonPro.SalonOperations.Domain.Enums;
 using SalonPro.SalonOperations.Domain.Interfaces;
 
 namespace SalonPro.SalonOperations.Application.Queries;
@@ -39,6 +40,7 @@ public static class SaleDtoMapper
             s.TipAmount, s.TotalDeductions, s.GrossTotal,
             s.StylistTotal, s.SalonTotal,
             s.Status.ToString(), s.VoidedReason, s.Notes,
+            s.Status == SaleStatus.PendingPayment,
             items, payments);
     }
 }

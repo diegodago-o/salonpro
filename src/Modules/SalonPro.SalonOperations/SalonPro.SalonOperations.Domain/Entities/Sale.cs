@@ -91,4 +91,16 @@ public class Sale
     public void PartiallySettle() => Status = SaleStatus.PartiallySettled;
 
     public void AssignToTicket(int ticketId) => TicketId = ticketId;
+
+    public void SetPendingPayment() => Status = SaleStatus.PendingPayment;
+
+    public void Activate() => Status = SaleStatus.Active;
+
+    public void RegisterPayment(decimal totalDeductions, decimal stylistTotal, decimal salonTotal)
+    {
+        TotalDeductions = totalDeductions;
+        StylistTotal = stylistTotal;
+        SalonTotal = salonTotal;
+        Status = SaleStatus.Active;
+    }
 }

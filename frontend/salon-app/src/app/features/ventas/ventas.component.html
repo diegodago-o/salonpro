@@ -513,7 +513,12 @@
             [disabled]="!puedeRegistrar()"
             (click)="registrarVenta()">
             @if (guardando()) { Guardando… }
-            @else { <sp-icon name="check" [size]="14" /> Registrar venta }
+            @else { <sp-icon name="check" [size]="14" /> Registrar y cobrar }
+          </button>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px"
+            [disabled]="!puedeRegistrarSinPago()"
+            (click)="registrarSinPago()">
+            <sp-icon name="clock" [size]="14" /> Registrar sin cobrar
           </button>
         </div>
       </div>

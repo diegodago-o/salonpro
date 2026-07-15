@@ -65,6 +65,7 @@
                 <th style="text-align:right">Total</th>
                 <th style="text-align:right">Com. colaborador</th>
                 <th>Estado</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -77,18 +78,27 @@
                   </td>
                   <td style="font-weight:500">{{ g.clientName }}</td>
                   <td>{{ g.stylistNames }}</td>
-                  <td>{{ g.paymentMethodName }}</td>
+                  <td>{{ g.status === 'PendingPayment' ? '—' : g.paymentMethodName }}</td>
                   <td class="tnum serif" style="text-align:right;font-size:16px">
                     {{ g.grossTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
                   </td>
                   <td class="tnum" style="text-align:right;color:var(--accent-deep)">
-                    {{ g.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+                    {{ g.status === 'PendingPayment' ? '—' : (g.stylistTotal | currency:'COP':'symbol-narrow':'1.0-0':'es-CO') }}
                   </td>
                   <td>
-                    @if (g.status === 'Active') {
+                    @if (g.status === 'PendingPayment') {
+                      <span class="pill" style="background:rgba(234,88,12,.12);color:#ea580c"><span class="pill-dot" style="background:#ea580c"></span>Pendiente pago</span>
+                    } @else if (g.status === 'Active') {
                       <span class="pill pill-success"><span class="pill-dot"></span>Activa</span>
                     } @else {
                       <span class="pill pill-danger"><span class="pill-dot"></span>Anulada</span>
+                    }
+                  </td>
+                  <td>
+                    @if (g.status === 'PendingPayment') {
+                      <button class="btn btn-sm btn-primary" (click)="abrirModalPago(g)">
+                        Pagar
+                      </button>
                     }
                   </td>
                 </tr>
@@ -99,6 +109,79 @@
       </div>
     }
   </div>
+
+  <!-- ── Modal pago pendiente ── -->
+  @if (modalPagoVenta()) {
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px"
+         (click)="cerrarModalPago()">
+      <div class="card" style="width:100%;max-width:440px;padding:28px"
+           (click)="$event.stopPropagation()">
+
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+          <div>
+            <div class="eyebrow" style="margin-bottom:2px">Registrar pago</div>
+            <div style="font-size:15px;font-weight:600">{{ modalPagoVenta()!.clientName }}</div>
+            <div style="font-size:12px;color:var(--ink-4);margin-top:2px">{{ modalPagoVenta()!.stylistNames }}</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" (click)="cerrarModalPago()" [disabled]="guardandoPago()">✕</button>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--surface-2);border-radius:8px;margin-bottom:20px">
+          <span style="font-size:13px;color:var(--ink-3)">Total a cobrar</span>
+          <span class="tnum serif" style="font-size:22px;font-weight:400">
+            {{ modalTotal() | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+          </span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+          @for (p of modalPagos(); track $index; let idx = $index) {
+            <div style="display:flex;gap:8px;align-items:center">
+              <select class="select" style="flex:1"
+                (change)="modalActualizarMetodo(idx, +$any($event.target).value)">
+                <option value="" [selected]="!p.paymentMethodId" disabled>Método de pago</option>
+                @for (m of modalMetodosDisponibles(idx); track m.id) {
+                  <option [value]="m.id" [selected]="m.id === p.paymentMethodId">{{ m.name }}</option>
+                }
+              </select>
+              <input type="number" class="input" style="width:130px;text-align:right"
+                [value]="p.amount || ''"
+                (input)="modalActualizarMonto(idx, +$any($event.target).value)"
+                placeholder="Monto" min="0" />
+              @if (modalPagos().length > 1) {
+                <button class="btn btn-ghost btn-sm" (click)="modalQuitarPago(idx)" style="padding:0 8px">✕</button>
+              }
+            </div>
+          }
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <button class="btn btn-ghost btn-sm" (click)="modalAgregarPago()"
+            [disabled]="modalPagos().length >= metodosPago().length">
+            + Agregar método
+          </button>
+          @if (Math.abs(modalDiferencia()) >= 1) {
+            <span style="font-size:12px;color:var(--warn)">
+              {{ modalDiferencia() > 0 ? 'Faltan' : 'Sobran' }}
+              {{ Math.abs(modalDiferencia()) | currency:'COP':'symbol-narrow':'1.0-0':'es-CO' }}
+            </span>
+          }
+        </div>
+
+        @if (errorPagoMsg()) {
+          <div style="background:rgba(220,38,38,.1);color:#dc2626;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px">{{ errorPagoMsg() }}</div>
+        }
+
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-ghost" (click)="cerrarModalPago()" [disabled]="guardandoPago()">Cancelar</button>
+          <button class="btn btn-primary" (click)="confirmarPago()"
+            [disabled]="!modalPagosValidos() || guardandoPago()">
+            @if (guardandoPago()) { Guardando… }
+            @else { <sp-icon name="check" [size]="14" /> Confirmar pago }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 
 <!-- ══════════════════════════════════════════════ WIZARD ══ -->
 } @else if (vista() === 'nueva-venta') {

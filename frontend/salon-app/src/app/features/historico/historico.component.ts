@@ -51,6 +51,24 @@ export class HistoricoComponent implements OnInit {
   readonly errorMsg   = signal<string | null>(null);
   readonly successMsg = signal<string | null>(null);
 
+  // ── Modal de pago pendiente ───────────────────────────
+  readonly modalPagoVenta     = signal<VentaAgrupada | null>(null);
+  readonly modalPagos         = signal<PaymentEntry[]>([{ paymentMethodId: null, amount: 0 }]);
+  readonly guardandoPago      = signal(false);
+  readonly errorPagoMsg       = signal<string | null>(null);
+
+  readonly modalTotal = computed(() => this.modalPagoVenta()?.grossTotal ?? 0);
+  readonly modalTotalPagado = computed(() =>
+    this.modalPagos().reduce((s, p) => s + (p.amount || 0), 0)
+  );
+  readonly modalDiferencia = computed(() => this.modalTotal() - this.modalTotalPagado());
+  readonly modalPagosValidos = computed(() => {
+    const ps = this.modalPagos();
+    return ps.length > 0
+      && ps.every(p => p.paymentMethodId !== null && p.amount > 0)
+      && Math.abs(this.modalDiferencia()) < 1;
+  });
+
   // ── Catálogos ─────────────────────────────────────────
   readonly servicios    = signal<ServiceOption[]>([]);
   readonly productos    = signal<ProductOption[]>([]);
@@ -579,6 +597,70 @@ export class HistoricoComponent implements OnInit {
     this.step.set(0);
     this.ventaExitosa.set(false);
     this.ventaExitosaData.set(null);
+  }
+
+  // ── Modal pago pendiente ──────────────────────────────
+  abrirModalPago(g: VentaAgrupada): void {
+    this.modalPagoVenta.set(g);
+    this.modalPagos.set([{ paymentMethodId: null, amount: g.grossTotal }]);
+    this.errorPagoMsg.set(null);
+  }
+
+  cerrarModalPago(): void {
+    if (this.guardandoPago()) return;
+    this.modalPagoVenta.set(null);
+    this.errorPagoMsg.set(null);
+  }
+
+  modalAgregarPago(): void {
+    this.modalPagos.update(ps => [...ps, { paymentMethodId: null, amount: 0 }]);
+  }
+
+  modalQuitarPago(idx: number): void {
+    if (this.modalPagos().length <= 1) return;
+    this.modalPagos.update(ps => ps.filter((_, i) => i !== idx));
+  }
+
+  modalActualizarMetodo(idx: number, methodId: number): void {
+    this.modalPagos.update(ps => ps.map((p, i) => i === idx ? { ...p, paymentMethodId: methodId } : p));
+  }
+
+  modalActualizarMonto(idx: number, amount: number): void {
+    this.modalPagos.update(ps => ps.map((p, i) => i === idx ? { ...p, amount: Math.max(0, amount || 0) } : p));
+  }
+
+  modalMetodosDisponibles(indexActual: number): PaymentMethodOption[] {
+    const usados = this.modalPagos()
+      .map((p, i) => i !== indexActual ? p.paymentMethodId : null)
+      .filter(id => id !== null);
+    return this.metodosPago().filter(m => !usados.includes(m.id));
+  }
+
+  confirmarPago(): void {
+    if (!this.modalPagosValidos() || this.guardandoPago()) return;
+    const venta = this.modalPagoVenta();
+    if (!venta) return;
+
+    this.guardandoPago.set(true);
+    this.errorPagoMsg.set(null);
+
+    const payments = this.modalPagos()
+      .filter(p => p.paymentMethodId !== null && p.amount > 0)
+      .map(p => ({ paymentMethodId: p.paymentMethodId!, amount: p.amount }));
+
+    this.ventasService.registrarPago(venta.id, payments).subscribe({
+      next: () => {
+        this.guardandoPago.set(false);
+        this.modalPagoVenta.set(null);
+        this.successMsg.set('Pago registrado correctamente.');
+        setTimeout(() => this.successMsg.set(null), 4000);
+        this.cargarVentasHistoricas();
+      },
+      error: (err: any) => {
+        this.errorPagoMsg.set(err?.error?.message || 'Error al registrar el pago.');
+        this.guardandoPago.set(false);
+      }
+    });
   }
 
   // ── Agrupamiento lista ────────────────────────────────

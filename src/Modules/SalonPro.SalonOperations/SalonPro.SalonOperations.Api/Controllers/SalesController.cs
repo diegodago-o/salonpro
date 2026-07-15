@@ -60,4 +60,12 @@ public class SalesController(IMediator mediator) : ControllerBase
         await mediator.Send(new VoidSaleCommand(id, GetTenantId(), request), ct);
         return Ok(ApiResponse.Ok("Venta anulada."));
     }
+
+    [HttpPost("{id:int}/pay")]
+    public async Task<ActionResult<ApiResponse<SaleDto>>> RegisterPayment(
+        int id, [FromBody] RegisterSalePaymentRequest request, CancellationToken ct)
+    {
+        var result = await mediator.Send(new RegisterSalePaymentCommand(GetTenantId(), id, request), ct);
+        return Ok(ApiResponse<SaleDto>.Ok(result, "Pago registrado."));
+    }
 }

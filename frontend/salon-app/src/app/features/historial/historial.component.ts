@@ -7,7 +7,7 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { forkJoin, of } from 'rxjs';
 import { VentasService } from '../../core/services/ventas.service';
 import { BranchService } from '../../core/services/branch.service';
-import { Sale, SaleStatus, SaleItemDto, SalePaymentDto } from '../../core/models/ventas.models';
+import { Sale, SaleStatus, SaleItemDto, SalePaymentDto, PaymentMethodOption, PaymentEntry } from '../../core/models/ventas.models';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { environment } from '../../../environments/environment';
 import * as XLSX from 'xlsx';
@@ -65,6 +65,25 @@ export class HistorialComponent {
   readonly loading       = signal(true);
   readonly loadingDetail = signal(false);
   readonly mostrarModal  = signal(false);
+
+  readonly metodosPago  = signal<PaymentMethodOption[]>([]);
+  readonly modalPagoVenta  = signal<VentaGrupo | null>(null);
+  readonly modalPagos      = signal<PaymentEntry[]>([{ paymentMethodId: null, amount: 0 }]);
+  readonly guardandoPago   = signal(false);
+  readonly errorPagoMsg    = signal<string | null>(null);
+  readonly successPagoMsg  = signal<string | null>(null);
+
+  readonly modalTotal = computed(() => this.modalPagoVenta()?.grossTotal ?? 0);
+  readonly modalTotalPagado = computed(() =>
+    this.modalPagos().reduce((s, p) => s + (p.amount || 0), 0)
+  );
+  readonly modalDiferencia = computed(() => this.modalTotal() - this.modalTotalPagado());
+  readonly modalPagosValidos = computed(() => {
+    const ps = this.modalPagos();
+    return ps.length > 0
+      && ps.every(p => p.paymentMethodId !== null && p.amount > 0)
+      && Math.abs(this.modalDiferencia()) < 1;
+  });
 
   // Ahora el detalle es del grupo completo
   readonly ventaDetalleGrupo = signal<VentaGrupoDetalle | null>(null);
@@ -130,6 +149,7 @@ export class HistorialComponent {
       next: r => { if (r?.data?.logoUrl) this.logoSalon.set(this.resolveLogo(r.data.logoUrl)); },
       error: () => {}
     });
+    this.ventasService.getMetodosPago().subscribe({ next: r => this.metodosPago.set(r.data ?? []), error: () => {} });
   }
 
   // ── Helpers ──────────────────────────────────────────
@@ -434,6 +454,72 @@ ${g.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
     return Math.round(sale.tipAmount - sale.totalDeductions * frac);
   }
 
+  // ── Modal pago pendiente ──────────────────────────────
+  abrirModalPago(g: VentaGrupo): void {
+    this.modalPagoVenta.set(g);
+    this.modalPagos.set([{ paymentMethodId: null, amount: g.grossTotal }]);
+    this.errorPagoMsg.set(null);
+  }
+
+  cerrarModalPago(): void {
+    if (this.guardandoPago()) return;
+    this.modalPagoVenta.set(null);
+    this.errorPagoMsg.set(null);
+  }
+
+  modalAgregarPago(): void {
+    this.modalPagos.update(ps => [...ps, { paymentMethodId: null, amount: 0 }]);
+  }
+
+  modalQuitarPago(idx: number): void {
+    if (this.modalPagos().length <= 1) return;
+    this.modalPagos.update(ps => ps.filter((_, i) => i !== idx));
+  }
+
+  modalActualizarMetodo(idx: number, methodId: number): void {
+    this.modalPagos.update(ps => ps.map((p, i) => i === idx ? { ...p, paymentMethodId: methodId } : p));
+  }
+
+  modalActualizarMonto(idx: number, amount: number): void {
+    this.modalPagos.update(ps => ps.map((p, i) => i === idx ? { ...p, amount: Math.max(0, amount || 0) } : p));
+  }
+
+  modalMetodosDisponibles(indexActual: number): PaymentMethodOption[] {
+    const usados = this.modalPagos()
+      .map((p, i) => i !== indexActual ? p.paymentMethodId : null)
+      .filter(id => id !== null);
+    return this.metodosPago().filter(m => !usados.includes(m.id));
+  }
+
+  readonly Math = Math;
+
+  confirmarPago(): void {
+    if (!this.modalPagosValidos() || this.guardandoPago()) return;
+    const venta = this.modalPagoVenta();
+    if (!venta) return;
+
+    this.guardandoPago.set(true);
+    this.errorPagoMsg.set(null);
+
+    const payments = this.modalPagos()
+      .filter(p => p.paymentMethodId !== null && p.amount > 0)
+      .map(p => ({ paymentMethodId: p.paymentMethodId!, amount: p.amount }));
+
+    this.ventasService.registrarPago(venta.id, payments).subscribe({
+      next: () => {
+        this.guardandoPago.set(false);
+        this.modalPagoVenta.set(null);
+        this.successPagoMsg.set('Pago registrado correctamente.');
+        setTimeout(() => this.successPagoMsg.set(null), 4000);
+        this.cargar();
+      },
+      error: (err: any) => {
+        this.errorPagoMsg.set(err?.error?.message || 'Error al registrar el pago.');
+        this.guardandoPago.set(false);
+      }
+    });
+  }
+
   // Agrupar ventas individuales por visita (mismo saleDateTime + clientDocument)
   private agruparVentas(ventas: Sale[]): VentaGrupo[] {
     const map = new Map<string, VentaGrupo>();
@@ -483,12 +569,14 @@ ${g.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
     const groups = Array.from(map.values());
     for (const g of groups) {
       const statuses = g.ventas.map(v => v.status);
+      const allPending  = statuses.every(s => s === 'PendingPayment');
       const anySettled  = statuses.some(s => s === 'Settled' || s === 'PartiallySettled');
       const anyActive   = statuses.some(s => s === 'Active');
       const allDone     = statuses.every(s => s === 'Settled' || s === 'Voided');
       const anyVoided   = statuses.some(s => s === 'Voided');
 
-      if (allDone && statuses.some(s => s === 'Settled')) g.status = 'Settled';
+      if (allPending)                                     g.status = 'PendingPayment';
+      else if (allDone && statuses.some(s => s === 'Settled')) g.status = 'Settled';
       else if (anySettled && anyActive)                   g.status = 'PartiallySettled';
       else if (anyVoided && !anyActive && !anySettled)    g.status = 'Voided';
       // else: todas Active → status ya es 'Active' por defecto

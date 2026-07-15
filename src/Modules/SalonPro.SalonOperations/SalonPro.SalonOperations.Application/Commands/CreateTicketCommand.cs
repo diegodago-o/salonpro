@@ -205,6 +205,9 @@ public class CreateTicketHandler(
                 groupTip, groupDeductions, stylistTotal, salonTotal,
                 req.Notes, saleDateTime);
 
+            if (!req.Payments.Any())
+                sale.SetPendingPayment();
+
             foreach (var (svc, price) in gd.Services)
                 sale.Items.Add(SaleItem.CreateForSale(sale, SaleItemType.Service, svc.Id, svc.Name,
                     price, 1, svc.HasSalonFee ? svc.SalonFeePercent : 0,

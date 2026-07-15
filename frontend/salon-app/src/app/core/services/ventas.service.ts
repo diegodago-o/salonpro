@@ -50,7 +50,7 @@ const MOCK_SALES: Sale[] = [
     paymentMethodName: 'Tarjeta crédito',
     grossServices: 147000, grossProducts: 0, internalConsumption: 0,
     grossTotal: 157000, totalDeductions: 10990, stylistTotal: 65751, salonTotal: 80259,
-    tipAmount: 10000, status: 'Active'
+    tipAmount: 10000, status: 'Active', isPendingPayment: false
   }
 ];
 
@@ -151,7 +151,7 @@ export class VentasService {
         paymentMethodName: request.payments?.length ? MOCK_PAYMENT_METHODS.find(p => p.id === request.payments[0].paymentMethodId)?.name ?? '' : '',
         grossServices: 0, grossProducts: 0, internalConsumption: 0,
         grossTotal: 0, totalDeductions: 0, stylistTotal: 0, salonTotal: 0,
-        tipAmount: request.tipAmount, status: 'Active'
+        tipAmount: request.tipAmount, status: 'Active', isPendingPayment: false
       };
       this.mockSales.unshift(nueva);
       return of({ success: true, data: nueva, message: 'Venta registrada', errors: [] });
@@ -166,5 +166,20 @@ export class VentasService {
       return of({ success: true, data: undefined, message: 'Venta anulada', errors: [] });
     }
     return this.http.patch<ApiResponse<void>>(`${this.api}/sales/${id}/void`, { reason });
+  }
+
+  registrarPago(saleId: number, payments: { paymentMethodId: number; amount: number }[]): Observable<ApiResponse<Sale>> {
+    if (!environment.production) {
+      const sale = this.mockSales.find(s => s.id === saleId);
+      if (sale) {
+        sale.status = 'Active';
+        sale.isPendingPayment = false;
+        sale.paymentMethodName = payments.length
+          ? MOCK_PAYMENT_METHODS.find(p => p.id === payments[0].paymentMethodId)?.name ?? ''
+          : '';
+      }
+      return of({ success: true, data: sale!, message: 'Pago registrado', errors: [] });
+    }
+    return this.http.post<ApiResponse<Sale>>(`${this.api}/sales/${saleId}/pay`, { payments });
   }
 }

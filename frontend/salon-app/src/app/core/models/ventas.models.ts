@@ -1,5 +1,5 @@
 export type SaleDetailType = 'Service' | 'ProductSale' | 'ProductInternal';
-export type SaleStatus = 'Active' | 'Voided' | 'Edited' | 'Settled' | 'PartiallySettled';
+export type SaleStatus = 'Active' | 'Voided' | 'Edited' | 'Settled' | 'PartiallySettled' | 'PendingPayment';
 
 export interface ServiceOption {
   id: number;
@@ -183,6 +183,7 @@ export interface Sale {
   salonTotal: number;
   // Estado
   status: SaleStatus;
+  isPendingPayment: boolean;
   voidedReason?: string;
   notes?: string;
   // Detalle (null en lista, cargado al abrir modal)
