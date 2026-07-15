@@ -69,6 +69,35 @@ export class HistoricoComponent implements OnInit {
       && Math.abs(this.modalDiferencia()) < 1;
   });
 
+  readonly modalDeduccionesCalc = computed(() =>
+    this.modalPagos().reduce((sum, p) => {
+      const m = this.metodosPago().find(m => m.id === p.paymentMethodId);
+      return sum + (m?.hasDeduction ? Math.round((p.amount || 0) * (m.deductionPercent ?? 0) / 100) : 0);
+    }, 0)
+  );
+
+  readonly modalResumen = computed(() => {
+    const venta = this.modalPagoVenta();
+    if (!venta) return null;
+    const gross = venta.grossTotal;
+    const ded = this.modalDeduccionesCalc();
+    const commPct = (venta.ventas[0]?.commissionPercent ?? 0) / 100;
+    const neto = gross - ded;
+    return {
+      totalDeductions: ded,
+      deduccionesDetalle: this.modalPagos()
+        .filter(p => p.paymentMethodId !== null && (p.amount || 0) > 0)
+        .map(p => {
+          const m = this.metodosPago().find(m => m.id === p.paymentMethodId);
+          if (!m?.hasDeduction || !m.deductionPercent) return null;
+          return { name: m.name, pct: m.deductionPercent, amount: Math.round((p.amount || 0) * m.deductionPercent / 100) };
+        })
+        .filter((d): d is { name: string; pct: number; amount: number } => d !== null),
+      parteEstilista: Math.round(neto * commPct),
+      parteSalon: Math.round(neto * (1 - commPct)),
+    };
+  });
+
   // ── Catálogos ─────────────────────────────────────────
   readonly servicios    = signal<ServiceOption[]>([]);
   readonly productos    = signal<ProductOption[]>([]);

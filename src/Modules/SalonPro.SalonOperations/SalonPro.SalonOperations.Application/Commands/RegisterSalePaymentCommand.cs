@@ -96,12 +96,7 @@ public class RegisterSalePaymentHandler(
         foreach (var (methodId, methodName, amount, deductionPct_) in paymentDetails)
             sale.Payments.Add(SalePayment.CreateForSale(sale, methodId, methodName, amount, deductionPct_));
 
-        // 5. Activate sibling sales in the same ticket (multi-stylist)
-        var siblings = await saleRepo.GetByTicketIdAsync(cmd.SaleId, ct);
-        foreach (var sibling in siblings.Where(s => s.Id != sale.Id && s.Status == SaleStatus.PendingPayment))
-            sibling.Activate();
-
-        // 6. Persist
+        // 5. Persist
         await saleRepo.SaveChangesAsync(ct);
 
         return SaleDtoMapper.ToDto(sale, includeItems: true);
