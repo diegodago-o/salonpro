@@ -13,6 +13,6 @@ public class GetServicesHandler(ISalonServiceRepository repo)
     {
         var services = await repo.GetAllByBranchAsync(query.TenantId, query.BranchId, ct);
         return services.Select(s => new SalonServiceDto(
-            s.Id, s.Name, s.Category, s.Price, s.HasSalonFee, s.SalonFeePercent, s.IsActive));
+            s.Id, s.Name, s.Category, s.Price, s.HasSalonFee, s.SalonFeePercent, s.StylistCommissionPercent, s.IsActive));
     }
 }

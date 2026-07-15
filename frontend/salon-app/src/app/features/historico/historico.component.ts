@@ -200,14 +200,13 @@ export class HistoricoComponent implements OnInit {
     const dedTotal = this.deductionTotalAmount();
 
     if (grupos.length === 0)
-      return calculateSale({ items: [], tipAmount: 0, deductionAmount: 0, stylistCommPct: 0 });
+      return calculateSale({ items: [], tipAmount: 0, deductionAmount: 0 });
 
     if (grupos.length === 1)
       return calculateSale({
         items: grupos[0].items,
         tipAmount: this.tipAmountSig(),
         deductionAmount: dedTotal,
-        stylistCommPct: grupos[0].stylist?.commissionPercent ?? 0,
       });
 
     // Multi-grupo: suma de cálculos proporcionales
@@ -675,7 +674,6 @@ export class HistoricoComponent implements OnInit {
       items:          g.items,
       tipAmount:      idx === tipIdx ? this.tipAmountSig() : 0,
       deductionAmount: groupDed,
-      stylistCommPct: g.stylist?.commissionPercent ?? 0,
     });
   }
 

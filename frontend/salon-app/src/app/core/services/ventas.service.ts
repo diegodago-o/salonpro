@@ -10,13 +10,13 @@ import {
 
 // ── Mock data ─────────────────────────────────────────────
 const MOCK_SERVICES: ServiceOption[] = [
-  { id: 1, name: 'Corte dama', category: 'Corte', price: 35000, hasSalonFee: false, salonFeePercent: 0 },
-  { id: 2, name: 'Corte hombre', category: 'Corte', price: 25000, hasSalonFee: false, salonFeePercent: 0 },
-  { id: 3, name: 'Tintura completa', category: 'Tintura', price: 80000, hasSalonFee: true, salonFeePercent: 4.5 },
-  { id: 4, name: 'Manicure', category: 'Manos', price: 30000, hasSalonFee: false, salonFeePercent: 0 },
-  { id: 5, name: 'Pedicure', category: 'Pies', price: 35000, hasSalonFee: false, salonFeePercent: 0 },
-  { id: 6, name: 'Barba', category: 'Barba', price: 20000, hasSalonFee: false, salonFeePercent: 0 },
-  { id: 7, name: 'Alisado', category: 'Tratamiento', price: 120000, hasSalonFee: true, salonFeePercent: 4.5 },
+  { id: 1, name: 'Corte dama', category: 'Corte', price: 35000, hasSalonFee: false, salonFeePercent: 0, stylistCommissionPercent: 0 },
+  { id: 2, name: 'Corte hombre', category: 'Corte', price: 25000, hasSalonFee: false, salonFeePercent: 0, stylistCommissionPercent: 0 },
+  { id: 3, name: 'Tintura completa', category: 'Tintura', price: 80000, hasSalonFee: true, salonFeePercent: 4.5, stylistCommissionPercent: 0 },
+  { id: 4, name: 'Manicure', category: 'Manos', price: 30000, hasSalonFee: false, salonFeePercent: 0, stylistCommissionPercent: 0 },
+  { id: 5, name: 'Pedicure', category: 'Pies', price: 35000, hasSalonFee: false, salonFeePercent: 0, stylistCommissionPercent: 0 },
+  { id: 6, name: 'Barba', category: 'Barba', price: 20000, hasSalonFee: false, salonFeePercent: 0, stylistCommissionPercent: 0 },
+  { id: 7, name: 'Alisado', category: 'Tratamiento', price: 120000, hasSalonFee: true, salonFeePercent: 4.5, stylistCommissionPercent: 0 },
 ];
 
 const MOCK_PRODUCTS: ProductOption[] = [
