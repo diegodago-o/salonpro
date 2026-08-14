@@ -87,6 +87,12 @@
         <div class="section-card">
           <div class="section-label">Cliente (opcional)</div>
 
+          <label class="field" style="margin-bottom:12px">
+            <span class="label">Ficha <span style="color:var(--danger,#e53e3e)">*</span></span>
+            <input class="input" [value]="ficha()" (input)="ficha.set($any($event.target).value)"
+              placeholder="Número de ficha" />
+          </label>
+
           @if (clienteSeleccionado(); as cli) {
             <!-- Cliente ya seleccionado: mostrar info + botón cambiar -->
             <div class="cliente-seleccionado">

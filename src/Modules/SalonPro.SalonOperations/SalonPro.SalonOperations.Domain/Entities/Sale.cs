@@ -31,6 +31,7 @@ public class Sale
     public string? VoidedReason { get; private set; }
     public DateTime? VoidedAt { get; private set; }
     public string? Notes { get; private set; }
+    public string? Ficha { get; private set; }
     public int? TicketId { get; private set; }
 
     public ICollection<SaleItem> Items { get; private set; } = [];
@@ -45,7 +46,7 @@ public class Sale
         int? cashRegisterId, int? branchId, string? branchName, decimal commissionPercent,
         decimal grossServices, decimal grossProducts, decimal internalConsumption,
         decimal tipAmount, decimal totalDeductions, decimal stylistTotal, decimal salonTotal,
-        string? notes, DateTime? saleDateTime = null)
+        string? notes, DateTime? saleDateTime = null, string? ficha = null)
     {
         var grossTotal = grossServices + grossProducts + tipAmount;
         return new Sale
@@ -73,7 +74,8 @@ public class Sale
             SalonTotal = salonTotal,
             GrossTotal = grossTotal,
             Status = SaleStatus.Active,
-            Notes = notes
+            Notes = notes,
+            Ficha = ficha
         };
     }
 

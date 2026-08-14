@@ -29,7 +29,8 @@ public record CreateTicketRequest(
     string? Notes,
     List<StylistGroupRequest> Groups,
     string? SaleDateTime = null,
-    int TipGroupIndex = 0);
+    int TipGroupIndex = 0,
+    string? Ficha = null);
 
 public record CreateTicketCommand(int TenantId, int? CashRegisterId, CreateTicketRequest Request) : IRequest<TicketDto>;
 
@@ -203,7 +204,7 @@ public class CreateTicketHandler(
                 grp.CommissionPercent,
                 gd.GrossServices, gd.GrossProducts, internalConsumption,
                 groupTip, groupDeductions, stylistTotal, salonTotal,
-                req.Notes, saleDateTime);
+                req.Notes, saleDateTime, req.Ficha);
 
             if (!req.Payments.Any())
                 sale.SetPendingPayment();

@@ -503,6 +503,10 @@ namespace SalonPro.SalonOperations.Infrastructure.Migrations
                     b.Property<decimal>("InternalConsumption")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("Ficha")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");

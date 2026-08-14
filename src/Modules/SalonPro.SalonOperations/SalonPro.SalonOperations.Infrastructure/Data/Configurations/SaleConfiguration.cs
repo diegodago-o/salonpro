@@ -33,6 +33,7 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
         builder.Property(s => s.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(s => s.VoidedReason).HasMaxLength(500);
         builder.Property(s => s.Notes).HasMaxLength(500);
+        builder.Property(s => s.Ficha).HasMaxLength(100);
         builder.Property(s => s.SaleDateTime).HasDefaultValueSql("GETUTCDATE()");
         builder.Ignore(s => s.TicketId);
 

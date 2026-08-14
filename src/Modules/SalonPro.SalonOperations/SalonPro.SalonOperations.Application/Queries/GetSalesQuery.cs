@@ -39,7 +39,7 @@ public static class SaleDtoMapper
             s.GrossServices, s.GrossProducts, s.InternalConsumption,
             s.TipAmount, s.TotalDeductions, s.GrossTotal,
             s.StylistTotal, s.SalonTotal,
-            s.Status.ToString(), s.VoidedReason, s.Notes,
+            s.Status.ToString(), s.VoidedReason, s.Notes, s.Ficha,
             s.Status == SaleStatus.PendingPayment,
             items, payments);
     }

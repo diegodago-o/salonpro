@@ -491,6 +491,11 @@
 
           <!-- ╔══ STEP 4: Pago ══╗ -->
           @if (step() === 4) {
+            <label class="field" style="margin-bottom:16px">
+              <span class="label">Ficha <span style="color:var(--danger,#e53e3e)">*</span></span>
+              <input class="input" [value]="ficha()" (input)="ficha.set($any($event.target).value)"
+                placeholder="Número de ficha" />
+            </label>
             <div [formGroup]="formCliente">
               <div class="eyebrow" style="margin-bottom:8px">Cliente (opcional)</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">

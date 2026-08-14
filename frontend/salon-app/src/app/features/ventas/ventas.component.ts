@@ -111,6 +111,7 @@ export class VentasComponent implements OnInit {
   readonly tipStylistIdx  = signal<number>(0);  // Fix 1: índice del grupo que recibe la propina
   readonly pagos          = signal<PaymentEntry[]>([{ paymentMethodId: null, amount: 0 }]);
   readonly notas          = signal('');
+  readonly ficha          = signal('');
 
   // Fix 2: detectar si algún método seleccionado es efectivo
   readonly tieneEfectivo = computed(() =>
@@ -137,12 +138,14 @@ export class VentasComponent implements OnInit {
     this.grupos().length > 0 &&
     this.grupos().every(g => g.stylist !== null && g.items.length > 0) &&
     Math.abs(this.diferencia()) < 1 &&
+    this.ficha().trim().length > 0 &&
     !this.guardando()
   );
 
   readonly puedeRegistrarSinPago = computed(() =>
     this.grupos().length > 0 &&
     this.grupos().every(g => g.stylist !== null && g.items.length > 0) &&
+    this.ficha().trim().length > 0 &&
     !this.guardando()
   );
 
@@ -223,6 +226,7 @@ export class VentasComponent implements OnInit {
     this.tipStylistIdx.set(0);
     this.pagos.set([{ paymentMethodId: null, amount: 0 }]);
     this.notas.set('');
+    this.ficha.set('');
     this.errorMsg.set(null);
     this.ventaExitosa.set(false);
     this.ventaRecibo.set(null);
@@ -519,6 +523,7 @@ export class VentasComponent implements OnInit {
       tipAmount:     tipAmt,
       tipGroupIndex: this.tipStylistIdx(),   // Fix 1
       notes:     this.notas() || undefined,
+      ficha:     this.ficha().trim() || undefined,
       groups:    this.grupos().map(g => ({
         stylistId:         g.stylist!.id,
         stylistName:       g.stylist!.fullName,
@@ -585,6 +590,7 @@ export class VentasComponent implements OnInit {
       tipAmount:  0,
       tipGroupIndex: 0,
       notes: this.notas() || undefined,
+      ficha: this.ficha().trim() || undefined,
       groups: this.grupos().map(g => ({
         stylistId:         g.stylist!.id,
         stylistName:       g.stylist!.fullName,

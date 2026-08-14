@@ -186,6 +186,7 @@ export interface Sale {
   isPendingPayment: boolean;
   voidedReason?: string;
   notes?: string;
+  ficha?: string;
   // Detalle (null en lista, cargado al abrir modal)
   items?: SaleItemDto[];
   payments?: SalePaymentDto[];

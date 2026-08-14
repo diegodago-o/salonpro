@@ -160,6 +160,8 @@ export class HistoricoComponent implements OnInit {
   readonly filtroAnio = signal<string>(new Date().getFullYear().toString());
   readonly filtroMes  = signal<string>('');
 
+  readonly ficha = signal('');
+
   // ── Wizard steps (6 pasos) ────────────────────────────
   readonly wizardSteps = [
     { n: '00', t: 'Fecha',       sub: 'Elige la fecha y hora de la venta histórica' },
@@ -299,9 +301,10 @@ export class HistoricoComponent implements OnInit {
 
   readonly puedeRegistrar = computed(() =>
     this.grupos().length > 0
-    && this.grupos().every(g => g.stylist !== null && g.items.some(i => i.type === 'Service'))
+    && this.grupos().every(g => g.stylist !== null && g.items.some(i => i.type !== 'ProductInternal'))
     && this.pagosValidos()
     && this.historialDateValida()
+    && this.ficha().trim().length > 0
     && !this.guardando()
   );
 
@@ -551,6 +554,7 @@ export class HistoricoComponent implements OnInit {
       tipAmount:      this.tipAmountSig(),
       tipGroupIndex:  this.grupos().length > 1 ? this.tipGrupoIdx() : 0,
       notes:          this.formVenta.value.notes ?? undefined,
+      ficha:          this.ficha().trim() || undefined,
       saleDateTime:   this.saleDateTimeISO() ?? undefined,
       groups: this.grupos().map(g => ({
         stylistId:         g.stylist!.id,
@@ -586,8 +590,8 @@ export class HistoricoComponent implements OnInit {
   canNext(): boolean {
     if (this.step() === 0) return this.historialDateValida();
     if (this.step() === 1) return !!this.grupoActual().stylist;
-    if (this.step() === 2) return this.hayServiciosGrupoActual();
-    if (this.step() === 4) return this.pagosValidos();
+    if (this.step() === 2) return true;
+    if (this.step() === 4) return this.pagosValidos() && this.ficha().trim().length > 0;
     return true;
   }
 
@@ -734,6 +738,7 @@ export class HistoricoComponent implements OnInit {
     this.tipAmountSig.set(0);
     this.tipGrupoIdx.set(0);
     this.pagos.set([{ paymentMethodId: null, amount: 0 }]);
+    this.ficha.set('');
     this.clienteEncontrado.set(null);
     this.filtroServicio.set('');
     this.categoriaServicio.set('Todos');

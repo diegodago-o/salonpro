@@ -53,6 +53,7 @@ public record SaleDto(
     string Status,
     string? VoidedReason,
     string? Notes,
+    string? Ficha,
     // Status helpers
     bool IsPendingPayment,
     // Detail (null on list, populated on GetById)

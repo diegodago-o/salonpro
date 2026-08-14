@@ -27,6 +27,7 @@ export interface CreateTicketRequest {
   }[];
   saleDateTime?: string;
   tipGroupIndex?: number;
+  ficha?: string;
 }
 
 export interface TicketDto {
