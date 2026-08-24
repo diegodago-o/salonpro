@@ -119,7 +119,11 @@ export class CajaComponent {
         this.cargarHistorial();
         setTimeout(() => this.successMsg.set(null), 3000);
       },
-      error: () => { this.errorMsg.set('Error al abrir la caja.'); this.guardando.set(false); }
+      error: (e: any) => {
+        const msg = e?.error?.message || e?.error?.errors?.[0] || e?.message || `Error al abrir la caja (${e?.status ?? 'sin conexión'}).`;
+        this.errorMsg.set(msg);
+        this.guardando.set(false);
+      }
     });
   }
 
