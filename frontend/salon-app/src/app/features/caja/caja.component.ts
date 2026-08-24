@@ -142,7 +142,11 @@ export class CajaComponent {
         this.vista.set('detalle');
         this.guardando.set(false);
       },
-      error: () => { this.errorMsg.set('Error al cerrar la caja.'); this.guardando.set(false); }
+      error: (e: any) => {
+        const msg = e?.error?.message || e?.error?.errors?.[0] || e?.message || `Error al cerrar la caja (${e?.status ?? 'sin conexión'}).`;
+        this.errorMsg.set(msg);
+        this.guardando.set(false);
+      }
     });
   }
 
