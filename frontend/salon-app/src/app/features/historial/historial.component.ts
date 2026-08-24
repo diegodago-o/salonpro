@@ -33,6 +33,7 @@ interface VentaGrupo {
   status: SaleStatus;
   voidedReason?: string;
   notes?: string;
+  ficha?: string;
   ventas: Sale[];
 }
 
@@ -271,6 +272,7 @@ export class HistorialComponent {
       .join('');
 
     const docLine = g.clientDocument ? `<br><span style="color:#666">${g.clientDocumentType ?? 'Doc'}: ${g.clientDocument}</span>` : '';
+    const fichaLine = g.ficha ? `<br><span style="color:#666">Ficha: ${g.ficha}</span>` : '';
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>*{margin:0;padding:0;box-sizing:border-box}
@@ -285,7 +287,7 @@ ${logoHtml}
 <h2>${g.branchName ?? 'Salón'}</h2>
 <div class="c" style="font-size:11px;color:#555;margin-bottom:8px">${fecha}</div>
 <div class="d"></div>
-<div style="font-size:12px;margin-bottom:6px"><strong>${g.clientName}</strong>${docLine}</div>
+<div style="font-size:12px;margin-bottom:6px"><strong>${g.clientName}</strong>${docLine}${fichaLine}</div>
 <div class="d"></div>
 ${secciones}
 ${g.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td><td style="text-align:right">${fmt(g.tipAmount)}</td></tr></table>` : ''}
@@ -407,6 +409,7 @@ ${g.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
       'Salón total':    v.salonTotal,
       'Estado':         v.status === 'Active' ? 'Activa' : 'Anulada',
       'Motivo anul.':   v.voidedReason ?? '',
+      'Ficha':          v.ficha ?? '',
       'Notas':          v.notes ?? '',
     }));
 
@@ -590,6 +593,7 @@ ${g.tipAmount > 0 ? `<table><tr><td style="color:#666;padding:2px 0">Propina</td
           status:           v.status,
           voidedReason:     v.voidedReason,
           notes:            v.notes,
+          ficha:            v.ficha,
           ventas:           [v],
         });
       }

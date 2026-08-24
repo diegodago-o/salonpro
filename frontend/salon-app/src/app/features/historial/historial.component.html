@@ -97,6 +97,7 @@
               <th>Fecha</th>
               <th>Sede</th>
               <th>Peluquero</th>
+              <th>Ficha</th>
               <th>Cliente / Doc.</th>
               <th>Método pago</th>
               <th style="text-align:right">Servicios</th>
@@ -113,6 +114,8 @@
               <tr [style.opacity]="v.status === 'Voided' ? '0.5' : '1'" [style.background]="v.status === 'Settled' ? 'rgba(99,102,241,.04)' : ''">
 
                 <td class="mono" style="font-size:11px;color:var(--ink-3)">#{{ v.id }}</td>
+
+                <td style="font-size:12px;font-weight:500">{{ v.ficha || '—' }}</td>
 
                 <td style="white-space:nowrap;font-size:12px">
                   {{ v.saleDateTime | date:'dd/MM/yy':'America/Bogota' }}<br>
@@ -425,6 +428,9 @@
             }
             @if (det.clientPhone) {
               <div><span style="color:var(--ink-4)">Teléfono</span><br>{{ det.clientPhone }}</div>
+            }
+            @if (det.ficha) {
+              <div><span style="color:var(--ink-4)">Ficha</span><br><strong class="mono">{{ det.ficha }}</strong></div>
             }
           </div>
         </div>
